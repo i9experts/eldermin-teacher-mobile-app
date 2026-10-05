@@ -8,9 +8,10 @@ import '../models/teacher_user.dart';
 ///  * [canAccess] mirrors the web `canAccess(permission, subModuleKey?)`
 ///    from AuthContext.tsx (custom `user.permissions` override, else the
 ///    role matrix).
-///  * [isModuleActive] is an ADDITIONAL, app-only UI visibility rule
-///    (`institution.activeModules`); the web never gates on it and the
-///    backend does not enforce it.
+///  * `institution.activeModules` is kept (read-only, informational) but
+///    NEVER hides anything: the web does not gate on it either
+///    (AuthContext.hasModule exists but is never called; Sidebar.tsx and
+///    ProtectedRoute.tsx use canAccess permissions only). Owner decision A.
 class PermissionService {
   PermissionSet _set;
   List<String> _activeModules;
@@ -39,21 +40,11 @@ class PermissionService {
   bool canAccess(String permission, {String? subModuleKey}) =>
       _set.has(permission, subModuleKey: subModuleKey);
 
-  /// True when [requiredModules] is empty (feature not module-gated) or
-  /// at least one of the module ids is active for the school.
-  bool isModuleActive(List<String> requiredModules) {
-    if (requiredModules.isEmpty) return true;
-    return requiredModules.any(_activeModules.contains);
-  }
-
-  /// Permission AND active-module check, the rule used for every
-  /// module entry (tabs, Classes grid, More list).
-  bool canSee({
-    String? permission,
-    String? subModuleKey,
-    List<String> requiredModules = const [],
-  }) {
-    if (permission != null && !canAccess(permission, subModuleKey: subModuleKey)) return false;
-    return isModuleActive(requiredModules);
+  /// Permission-only visibility, the rule used for every module entry
+  /// (tabs, Classes grid, More list). No permission = always visible
+  /// (e.g. safeguarding).
+  bool canSee({String? permission, String? subModuleKey}) {
+    if (permission == null) return true;
+    return canAccess(permission, subModuleKey: subModuleKey);
   }
 }

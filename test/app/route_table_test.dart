@@ -81,14 +81,12 @@ void main() {
       expect(ids(ModulePlacement.more, teacher, classTeacher: true), contains('student_leaves'));
     });
 
-    test('inactive modules are hidden, ungated entries remain', () {
+    test('activeModules does not hide permitted entries (web parity)', () {
       final p = PermissionService(role: 'teacher', activeModules: ['teaching']);
       final classes = ids(ModulePlacement.classes, p, classTeacher: false);
-      expect(classes, containsAll(['homework', 'lesson_plans']));
-      expect(classes, isNot(contains('assessments')));
+      expect(classes, containsAll(['students', 'homework', 'lesson_plans', 'assessments']));
       final more = ids(ModulePlacement.more, p, classTeacher: false);
-      expect(more, containsAll(['calendar', 'events', 'safeguarding']));
-      expect(more, isNot(contains('library')));
+      expect(more, containsAll(['calendar', 'events', 'safeguarding', 'library', 'leave']));
     });
 
     test('custom permissions can hide entries a teacher normally has', () {

@@ -1,3 +1,4 @@
+import 'package:eldermin_teacher_app/app/common/module_catalog.dart';
 import 'package:eldermin_teacher_app/core/models/institution.dart';
 import 'package:eldermin_teacher_app/core/models/teacher_user.dart';
 import 'package:eldermin_teacher_app/core/services/permission_service.dart';
@@ -105,30 +106,49 @@ void main() {
     });
   });
 
-  group('activeModules visibility rule', () {
-    final p = PermissionService(role: 'teacher', activeModules: ['teaching', 'assessment']);
+  group('activeModules never gates visibility (owner decision A)', () {
+    const permittedPerm = 'teaching:view';
 
-    test('empty requirement is always satisfied', () {
-      expect(p.isModuleActive(const []), isTrue);
+    test('canSee depends on permission only', () {
+      final p = PermissionService(role: 'teacher', activeModules: const ['x']);
+      expect(p.canSee(permission: permittedPerm), isTrue);
+      expect(p.canSee(permission: 'teaching:manage'), isFalse);
+      expect(p.canSee(), isTrue);
     });
 
-    test('any-of semantics', () {
-      expect(p.isModuleActive(['teaching']), isTrue);
-      expect(p.isModuleActive(['library', 'assessment']), isTrue);
-      expect(p.isModuleActive(['library']), isFalse);
+    for (final entry in <String, List<String>?>{
+      'legacy ids (student_profile, human_resource)': ['student_profile', 'human_resource'],
+      'empty list': <String>[],
+      'unknown ids': ['totally_unknown', 'zzz'],
+    }.entries) {
+      test('${entry.key} never hide a permitted module', () {
+        final p = PermissionService(role: 'teacher', activeModules: entry.value!);
+        for (final m in ModuleCatalog.all.where((m) => m.enabledInV1 && m.permission != null)) {
+          final expected = p.canAccess(m.permission!, subModuleKey: m.subModuleKey);
+          expect(p.canSee(permission: m.permission, subModuleKey: m.subModuleKey), expected, reason: m.id);
+        }
+        final visible = ModuleCatalog.all
+            .where((m) => m.isVisibleTo(p, isClassTeacher: true))
+            .map((m) => m.id)
+            .toSet();
+        expect(visible, containsAll(['students', 'homework', 'leave', 'library', 'safeguarding', 'timetable']));
+      });
+    }
+
+    test('missing / null activeModules (institution omitted or field absent) hide nothing', () {
+      const user = TeacherUser(id: '1', name: 'A B', email: 'a@b.c', role: 'teacher');
+      final noInstitution = PermissionService.fromSession(user, null);
+      final noField = PermissionService.fromSession(user, Institution.fromJson({'slug': 's'}));
+      final nullField = PermissionService.fromSession(user, Institution.fromJson({'slug': 's', 'activeModules': null}));
+      for (final p in [noInstitution, noField, nullField]) {
+        expect(ModuleCatalog.visible(ModulePlacement.classes, p, isClassTeacher: false).map((e) => e.id),
+            containsAll(['students', 'homework', 'lesson_plans', 'syllabus', 'assessments', 'behaviour']));
+      }
     });
 
-    test('canSee needs permission AND module', () {
-      expect(p.canSee(permission: 'teaching:view', requiredModules: ['teaching']), isTrue);
-      expect(p.canSee(permission: 'teaching:manage', requiredModules: ['teaching']), isFalse);
-      expect(p.canSee(permission: 'academics:view', requiredModules: ['library']), isFalse);
-      expect(p.canSee(permission: 'leave:self'), isTrue);
-    });
-
-    test('no active modules hides every module-gated entry', () {
-      final none = PermissionService(role: 'teacher');
-      expect(none.canSee(permission: 'teaching:view', requiredModules: ['teaching']), isFalse);
-      expect(none.canSee(permission: 'events:view'), isTrue);
+    test('safeguarding is always visible, even for an unsupported role', () {
+      final p = PermissionService(role: 'parent', activeModules: const []);
+      expect(ModuleCatalog.visible(ModulePlacement.more, p, isClassTeacher: false).map((e) => e.id), contains('safeguarding'));
     });
   });
 
@@ -137,9 +157,9 @@ void main() {
     const user = TeacherUser(id: '1', name: 'A B', email: 'a@b.c', role: 'teacher');
     p.update(user, const Institution(activeModules: ['teaching']));
     expect(p.canAccess('teaching:view'), isTrue);
-    expect(p.isModuleActive(['teaching']), isTrue);
+    expect(p.activeModules, ['teaching']);
     p.clear();
     expect(p.canAccess('teaching:view'), isFalse);
-    expect(p.isModuleActive(['teaching']), isFalse);
+    expect(p.activeModules, isEmpty);
   });
 }

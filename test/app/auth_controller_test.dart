@@ -112,7 +112,6 @@ void main() {
     expect(auth.isClassTeacher, isTrue);
     expect(auth.roleSupported.value, isTrue);
     expect(permissions.canAccess('teaching:view'), isTrue);
-    expect(permissions.isModuleActive(['teaching']), isTrue);
   });
 
   test('login takes staffId from /me, never from the login payload', () async {
