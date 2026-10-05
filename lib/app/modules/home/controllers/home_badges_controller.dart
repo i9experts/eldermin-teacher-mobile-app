@@ -58,7 +58,7 @@ class HomeBadgesController extends GetxController with WidgetsBindingObserver {
   void onReady() {
     super.onReady();
     if (autoPoll) {
-      refresh();
+      refreshAll();
       _startTimer();
     }
   }
@@ -74,7 +74,7 @@ class HomeBadgesController extends GetxController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!autoPoll) return;
     if (state == AppLifecycleState.resumed) {
-      refresh();
+      refreshAll();
       _startTimer();
     } else {
       _stopTimer();
@@ -83,7 +83,7 @@ class HomeBadgesController extends GetxController with WidgetsBindingObserver {
 
   void _startTimer() {
     _stopTimer();
-    _timer = Timer.periodic(pollInterval, (_) => refresh());
+    _timer = Timer.periodic(pollInterval, (_) => refreshAll());
   }
 
   void _stopTimer() {
@@ -96,7 +96,7 @@ class HomeBadgesController extends GetxController with WidgetsBindingObserver {
   /// Refreshes both badges. [userInitiated] (pull-to-refresh / retry) makes a
   /// failure visible in the Messages section; a silent poll keeps the last
   /// real data instead of flashing an error.
-  Future<void> refresh({bool userInitiated = false}) async {
+  Future<void> refreshAll({bool userInitiated = false}) async {
     if (!_signedIn) return;
     await Future.wait([refreshNotifications(), refreshThreads(userInitiated: userInitiated)]);
   }
