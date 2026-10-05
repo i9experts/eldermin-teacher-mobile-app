@@ -261,9 +261,9 @@ void main() {
       return localMidnight.subtract(Duration(minutes: (offsetHours * 60).round()));
     }
 
-    // UTC, Karachi (+5), Los Angeles (-7 PDT / -8 PST), Kolkata (+5:30), New York (-5), Tokyo (+9), extremes +-11. Auckland (+13) and
-    // Kiritimati (+14) are OUTSIDE the supported +-12h server range (documented limit, see attendance_models.dart).
-    for (final off in [0.0, 5.0, -7.0, -8.0, -5.0, 5.5, -3.0, 9.0, -11.0, 11.0]) {
+    // UTC, Karachi (+5), Los Angeles (-7 PDT / -8 PST), Kolkata (+5:30), New York (-5), Tokyo (+9), Auckland NZDT (+13),
+    // Kiritimati (+14), American Samoa (-11). Supported: server offsets in (-12h, +12h) and (+12h, +14h]; exactly +-12h sits on the window boundary (no inhabited zone).
+    for (final off in [0.0, 5.0, -7.0, -8.0, -5.0, 5.5, -3.0, 9.0, -11.0, 11.0, 13.0, 14.0, 11.5, -11.5]) {
       test('server offset ${off}h: write lands on the same day, read window finds it, key maps back', () {
         for (final day in [DateTime(2026, 10, 5), DateTime(2026, 3, 1), DateTime(2026, 12, 31), DateTime(2026, 1, 1)]) {
           final stored = serverStores(attendanceWireDate(day), off);
@@ -280,6 +280,11 @@ void main() {
         }
       });
     }
+
+    test('documented limit: a server at exactly UTC-12 maps the stored midnight to the next day', () {
+      final stored = serverStores(attendanceWireDate(DateTime(2026, 10, 5)), -12);
+      expect(attendanceDayKey(stored), '2026-10-06');
+    });
 
     test('a plain YYYY-MM-DD write would land on the previous day on a server west of UTC (why noon is used)', () {
       final stored = serverStores('2026-10-05', -7); // UTC midnight = 17:00 on Oct 4 for a UTC-7 server

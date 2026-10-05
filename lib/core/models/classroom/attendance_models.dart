@@ -165,15 +165,19 @@ class StatusCounts {
 // and `date <= new Date(to)` (:1842-1843). The server zone is UNVERIFIED (U3).
 //
 // The app is therefore timezone-agnostic by construction:
-//  * WRITE `date` as noon UTC of the calendar day. For any server zone within
-//    +-11h the instant falls on that calendar day in the server's zone, so
-//    `setHours(0,0,0,0)` lands on that day's local midnight (a plain
-//    `YYYY-MM-DD` = UTC midnight would land on the PREVIOUS day on a server
-//    west of UTC). On a UTC server the stored value is identical to a
-//    `YYYY-MM-DD` write.
-//  * READ with the window [(D-1) 12:00Z, D 12:00Z] which contains day D's
-//    local midnight for every server offset in (-12h, +12h) and no other day's.
+//  * WRITE `date` as noon UTC of the calendar day. For a server west of UTC the
+//    instant is still on that calendar day locally, so `setHours(0,0,0,0)`
+//    lands on that day's local midnight (a plain `YYYY-MM-DD` = UTC midnight
+//    would land on the PREVIOUS day there). On a UTC server the stored value
+//    equals a `YYYY-MM-DD` write.
+//  * READ with the window [(D-1) 12:00Z, D 12:00Z]: it contains the value stored
+//    for day D and none stored for D-1 / D+1.
 //  * MAP a stored instant back to its day as the UTC date of (instant + 12h).
+// Works for any server offset in (-12h, +12h) and (+12h, +14h] (tested). The only
+// unsupported cases are exactly UTC-12 and UTC+12 (no inhabited zone observes them
+// in practice; the stored midnight lands on the window boundary). For servers east of +12h the day
+// the SERVER thinks it stored (its local calendar) is D+1, which only matters to
+// server-side month filters; every client read/write here stays consistent.
 
 /// `YYYY-MM-DD` of a LOCAL calendar date (only y/m/d are used: the zone is irrelevant).
 String ymdOf(DateTime d) =>
