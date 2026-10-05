@@ -71,21 +71,20 @@ class FilterChipsRow extends StatelessWidget {
   final List<(String label, int count, bool selected, VoidCallback onTap, String keyName)> chips;
   const FilterChipsRow({super.key, required this.chips});
 
+  /// A Wrap (not a horizontal list): four chips with counts are wider than a small phone, and a hidden chip is a hidden filter.
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 36,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: chips.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, i) {
-          final (label, count, on, tap, name) = chips[i];
-          return InkWell(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final (label, count, on, tap, name) in chips)
+          InkWell(
             key: Key('chip_$name'),
             borderRadius: BorderRadius.circular(AppRadius.pill),
             onTap: tap,
             child: Container(
+              height: 34,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               alignment: Alignment.center,
               decoration: BoxDecoration(
@@ -95,9 +94,8 @@ class FilterChipsRow extends StatelessWidget {
               ),
               child: CustomText(text: '$label  $count', color: on ? Colors.white : AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 11.5),
             ),
-          );
-        },
-      ),
+          ),
+      ],
     );
   }
 }
