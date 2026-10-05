@@ -183,6 +183,18 @@ def timetable_docs(staff_id, name):
             _period(d, 2, "17:00", "17:45", "Mathematics", OTHER_STAFF, "Other Teacher (DUMMY)", "202"),
         ]
 
+    # DUMMY: two extra periods around the server clock (today's weekday) so a run at any time of day
+    # shows a current + a next period. Skipped near midnight (HH:mm must not wrap).
+    nowdt = datetime.datetime.now()
+    if 1 <= nowdt.hour < 22:
+        def hm(dt):
+            return dt.strftime("%H:%M")
+        today_idx = (nowdt.weekday() + 1) % 7
+        a.append(_period(today_idx, 20, hm(nowdt - datetime.timedelta(minutes=10)), hm(nowdt + datetime.timedelta(minutes=30)),
+                         "History (live dummy)", staff_id, name, "105"))
+        a.append(_period(today_idx, 21, hm(nowdt + datetime.timedelta(minutes=40)), hm(nowdt + datetime.timedelta(minutes=80)),
+                         "Geography (live dummy)", staff_id, name, "106"))
+
     def doc(n, grade, section, periods, cycle):
         return {
             "_id": _oid(0x100 + n), "tenantId": _oid(0xa1), "institutionId": _oid(0xa2), "academicYearId": None,

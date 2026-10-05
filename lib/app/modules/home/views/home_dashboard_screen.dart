@@ -32,17 +32,24 @@ class HomeDashboardScreen extends GetView<HomeDashboardController> {
             if (actions.isEmpty) return const SizedBox.shrink();
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Wrap(spacing: 8, runSpacing: 8, children: [
-                for (final a in actions)
-                  ActionChip(
-                    key: Key('quick_${a.label}'),
-                    avatar: Icon(a.icon, size: 16, color: AppColors.blue),
-                    label: CustomText(text: a.label, fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primaryColor),
-                    backgroundColor: AppColors.surface,
-                    side: const BorderSide(color: AppColors.line),
-                    onPressed: () => Get.toNamed(a.route),
-                  ),
-              ]),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  for (final a in actions)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ActionChip(
+                        key: Key('quick_${a.label}'),
+                        visualDensity: VisualDensity.compact,
+                        avatar: Icon(a.icon, size: 16, color: AppColors.blue),
+                        label: CustomText(text: a.label, fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primaryColor),
+                        backgroundColor: AppColors.surface,
+                        side: const BorderSide(color: AppColors.line),
+                        onPressed: () => Get.toNamed(a.route),
+                      ),
+                    ),
+                ]),
+              ),
             );
           }),
           Obx(() => c.showClassCard
