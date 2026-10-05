@@ -4,4 +4,8 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- DEBUG ONLY (this file is not merged into release builds): allow
+         cleartext http so the app can reach the local stub server at
+         http://10.0.2.2:PORT (tool/dev/stub_server.py). -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

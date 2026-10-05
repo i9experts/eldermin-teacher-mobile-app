@@ -6,8 +6,7 @@ import '../../../components/custom_button.dart';
 import '../../../components/custom_text.dart';
 import '../controllers/auth_controller.dart';
 
-/// Shown when the signed-in role is not in the app's allow-list. Shell
-/// only (Phase 3 polishes the copy) - but the sign-out is real.
+/// Shown when the signed-in role is not in the app's allow-list.
 class UnsupportedRoleScreen extends StatelessWidget {
   const UnsupportedRoleScreen({super.key});
 
@@ -23,7 +22,8 @@ class UnsupportedRoleScreen extends StatelessWidget {
               child: AppEmptyView(
                 icon: Icons.desktop_windows_rounded,
                 title: 'Please use the Eldermin web portal',
-                subtitle: 'This app is for teachers. Your account role is not supported here yet.',
+                subtitle: 'The Eldermin Teacher app is for teaching staff. Your account is set up for a different role, '
+                    'so please sign in on the Eldermin web portal instead.',
               ),
             ),
             Padding(

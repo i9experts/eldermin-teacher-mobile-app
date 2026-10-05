@@ -4,6 +4,7 @@ import '../../../core/network/dio_service.dart';
 import '../../../core/services/auth_api_service.dart';
 import '../../../core/services/permission_service.dart';
 import '../../modules/auth/controllers/auth_controller.dart';
+import '../services/deep_link_service.dart';
 
 /// Wires up the app's global, app-lifetime singletons - the network layer
 /// and the session state (+ permissions) every feature depends on.
@@ -18,6 +19,7 @@ class InitialBinding extends Bindings {
       AuthController(api: Get.find<AuthApiService>(), permissions: permissions),
       permanent: true,
     );
-    DioService.onUnauthorized = auth.logout;
+    DioService.onUnauthorized = auth.handleUnauthorized;
+    Get.put<DeepLinkService>(DeepLinkService(auth: auth), permanent: true);
   }
 }

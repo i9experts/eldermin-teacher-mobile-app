@@ -30,6 +30,13 @@ class ApiConstants {
   /// Used by the network layer to recognise "invalid credentials" 401s.
   static bool isLoginUrl(String url) => url.contains('/auth/login');
 
+  /// Unauthenticated auth endpoints. A 401 from any of these (bad
+  /// credentials, invalid/expired reset token) is NEVER a session expiry.
+  static bool isPublicAuthUrl(String url) =>
+      url.contains('/auth/login') ||
+      url.contains('/auth/forgot-password') ||
+      url.contains('/auth/reset-password');
+
   // ── Staff portal (Phase 1) ───────────────────────────────────
   static const String staffPortal = '$apiPrefix/staff-portal';
   static const String staffMe = '$staffPortal/me';

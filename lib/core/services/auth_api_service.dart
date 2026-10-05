@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
+import '../models/auth_me.dart';
 import '../models/json_helpers.dart';
 import '../models/login_result.dart';
 import '../models/staff_me.dart';
@@ -7,8 +8,8 @@ import '../network/api_exception.dart';
 import '../network/base_client.dart';
 import '../network/dio_exception_handler.dart';
 
-/// The only network calls Phase 2 needs: sign in, resolve the staff
-/// identity, and (best-effort) tell the server we signed out.
+/// Auth network calls: sign in, session check, staff identity, forgot /
+/// reset password and (best-effort) sign-out.
 /// Throws [ApiException] for every failure.
 class AuthApiService {
   final BaseClient _client;
@@ -36,6 +37,37 @@ class AuthApiService {
           requiresAuth: false,
         );
         return LoginResult.fromJson(asJsonMap(res.data));
+      });
+
+  /// `GET /auth/me` - the session check. Returns the user's role only (all
+  /// the app needs from it; identity comes from `/staff-portal/me`).
+  ///
+  /// With [token] (deep-link auto-login) the supplied JWT is sent explicitly
+  /// and a 401 is NOT treated as a session expiry (nothing is stored yet);
+  /// without it the stored token is used like any authenticated call.
+  Future<AuthMe> fetchAuthMe({String? token}) => _guard(() async {
+        final res = token == null
+            ? await _client.get(ApiConstants.authMe)
+            : await _client.get(
+                ApiConstants.authMe,
+                requiresAuth: false,
+                headers: {'Authorization': 'Bearer $token'},
+              );
+        return AuthMe.fromJson(asJsonMap(res.data));
+      });
+
+  /// `POST /auth/forgot-password` - the backend always answers with the
+  /// same generic message, whether or not the account exists.
+  Future<void> forgotPassword(String email) => _guard(() async {
+        await _client.post(ApiConstants.forgotPassword, data: {'email': email}, requiresAuth: false);
+      });
+
+  /// `POST /auth/reset-password {token, newPassword}`. An invalid/expired
+  /// token is a 401 ("This reset link is invalid or has expired") that must
+  /// reach the form, never end a session.
+  Future<void> resetPassword({required String token, required String newPassword}) => _guard(() async {
+        await _client.post(ApiConstants.resetPassword,
+            data: {'token': token, 'newPassword': newPassword}, requiresAuth: false);
       });
 
   /// `GET /staff-portal/me` - the only source of staffId/teacherProfileId.

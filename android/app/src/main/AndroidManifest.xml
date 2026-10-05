@@ -25,7 +25,29 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Custom-scheme deep links (handled in Dart via app_links):
+                 eldermin-teacher://reset-password?token=<t>
+                 eldermin-teacher://login?token=<jwt>&slug=<slug>
+                 Verified https app links are NOT enabled yet - see
+                 eldermin-teacher-app-docs/DEEP_LINKS.md. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="eldermin-teacher" android:host="reset-password"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="eldermin-teacher" android:host="login"/>
+            </intent-filter>
         </activity>
+        <!-- Links are routed by app_links in Dart, not by Flutter's own
+             deep-link -> initial-route handling. -->
+        <meta-data
+            android:name="flutter_deeplinking_enabled"
+            android:value="false" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

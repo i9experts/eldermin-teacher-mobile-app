@@ -39,11 +39,12 @@ class DioService {
   }
 
   /// A 401 means "session expired" ONLY for an authenticated request that
-  /// is not the login call. A 401 from `POST /auth/login` means invalid
-  /// credentials and must reach the login form untouched.
+  /// is not one of the public auth calls. A 401 from `POST /auth/login`
+  /// (invalid credentials) or `/auth/reset-password` (bad token) must reach
+  /// the form untouched.
   static bool shouldLogoutOn(RequestOptions options, int? statusCode) {
     if (statusCode != 401) return false;
-    if (ApiConstants.isLoginUrl(options.path)) return false;
+    if (ApiConstants.isPublicAuthUrl(options.path)) return false;
     final requiresAuth = options.extra['requiresAuth'] ?? false;
     return requiresAuth == true;
   }

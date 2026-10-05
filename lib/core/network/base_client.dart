@@ -13,12 +13,13 @@ class BaseClient {
     String url, {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
+    Map<String, String>? headers,
   }) async {
     debugPrint('GET → $url');
     return DioService.getDio().get(
       url,
       queryParameters: queryParameters,
-      options: Options(extra: {'requiresAuth': requiresAuth}),
+      options: Options(extra: {'requiresAuth': requiresAuth}, headers: headers),
     );
   }
 
