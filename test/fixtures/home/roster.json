@@ -1,0 +1,16 @@
+{
+ "totalInClass": 31,
+ "activeCount": 30,
+ "byStatus": [
+  {
+   "status": "active",
+   "count": 30
+  },
+  {
+   "status": "transferred",
+   "count": 1
+  }
+ ],
+ "excludedByCampus": 0,
+ "scopedToCampusId": "64a0000000000000000000c1"
+}

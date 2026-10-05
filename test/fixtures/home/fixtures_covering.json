@@ -1,0 +1,24 @@
+[
+ {
+  "_id": "64f000000000000000000801",
+  "tenantId": "64f0000000000000000000a1",
+  "date": "2026-10-05T00:00:00.000Z",
+  "dayOfWeek": 1,
+  "timetableId": "64f000000000000000000101",
+  "periodNo": 3,
+  "startTime": "09:20",
+  "endTime": "10:00",
+  "gradeLevel": "Grade 5",
+  "sectionName": "A",
+  "subject": "Mathematics",
+  "roomNo": "101",
+  "originalTeacherId": "64a0000000000000000000a9",
+  "originalTeacherName": "Other Teacher (DUMMY)",
+  "substituteTeacherId": "64a0000000000000000000a1",
+  "substituteTeacherName": "Tess Teacher",
+  "reason": "leave",
+  "status": "assigned",
+  "assignedBy": "Admin",
+  "notificationStatus": "sent"
+ }
+]

@@ -1,0 +1,51 @@
+{
+ "assignment": {
+  "_id": "64f000000000000000000301"
+ },
+ "submissions": [
+  {
+   "_id": "64f00000000000000000050a",
+   "assignmentId": "64f000000000000000000301",
+   "studentId": "64f000000000000000000200",
+   "studentName": "Sample Student 1 (DUMMY)",
+   "status": "submitted",
+   "isLate": false,
+   "attachmentS3Keys": [],
+   "maxGrade": 100,
+   "grade": null
+  },
+  {
+   "_id": "64f00000000000000000050b",
+   "assignmentId": "64f000000000000000000301",
+   "studentId": "64f000000000000000000201",
+   "studentName": "Sample Student 2 (DUMMY)",
+   "status": "submitted",
+   "isLate": false,
+   "attachmentS3Keys": [],
+   "maxGrade": 100,
+   "grade": null
+  },
+  {
+   "_id": "64f00000000000000000050c",
+   "assignmentId": "64f000000000000000000301",
+   "studentId": "64f000000000000000000202",
+   "studentName": "Sample Student 3 (DUMMY)",
+   "status": "late",
+   "isLate": true,
+   "attachmentS3Keys": [],
+   "maxGrade": 100,
+   "grade": null
+  },
+  {
+   "_id": "64f00000000000000000050d",
+   "assignmentId": "64f000000000000000000301",
+   "studentId": "64f000000000000000000203",
+   "studentName": "Sample Student 4 (DUMMY)",
+   "status": "graded",
+   "isLate": false,
+   "attachmentS3Keys": [],
+   "maxGrade": 100,
+   "grade": 80
+  }
+ ]
+}

@@ -1,0 +1,25 @@
+{
+ "data": [
+  {
+   "_id": "64f000000000000000000400",
+   "studentId": "64f000000000000000000200",
+   "studentName": "Sample Student 1 (DUMMY)",
+   "grade": "Grade 5",
+   "section": "A",
+   "date": "2026-10-05T00:00:00.000Z",
+   "status": "present",
+   "markedBy": "Sample Teacher",
+   "schoolSlug": "demo-school",
+   "academicYear": "2026-27",
+   "createdAt": "2026-10-05T03:10:00.000Z",
+   "updatedAt": "2026-10-05T03:10:00.000Z",
+   "__v": 0
+  }
+ ],
+ "meta": {
+  "total": 27,
+  "page": 1,
+  "limit": 1,
+  "pages": 1
+ }
+}

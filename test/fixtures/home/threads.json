@@ -1,0 +1,53 @@
+{
+ "items": [
+  {
+   "_id": "64f000000000000000000901",
+   "subject": "Homework query",
+   "studentId": "64f000000000000000000201",
+   "studentName": "Sample Student 1 (DUMMY)",
+   "guardianUserId": "64f000000000000000000911",
+   "guardianName": "Sample Guardian (DUMMY)",
+   "staffId": "64a0000000000000000000a1",
+   "staffName": "Sample Teacher",
+   "lastMessagePreview": "Thank you ma'am (DUMMY)",
+   "lastMessageAt": "2026-10-05T06:30:00.000Z",
+   "guardianHasUnread": false,
+   "staffHasUnread": true,
+   "status": "open",
+   "schoolSlug": "demo-school"
+  },
+  {
+   "_id": "64f000000000000000000902",
+   "subject": "Homework query",
+   "studentId": "64f000000000000000000202",
+   "studentName": "Sample Student 2 (DUMMY)",
+   "guardianUserId": "64f000000000000000000912",
+   "guardianName": "Sample Guardian (DUMMY)",
+   "staffId": "64a0000000000000000000a1",
+   "staffName": "Sample Teacher",
+   "lastMessagePreview": "Could you share the worksheet? (DUMMY)",
+   "lastMessageAt": "2026-10-05T06:30:00.000Z",
+   "guardianHasUnread": false,
+   "staffHasUnread": true,
+   "status": "open",
+   "schoolSlug": "demo-school"
+  },
+  {
+   "_id": "64f000000000000000000903",
+   "subject": "Homework query",
+   "studentId": "64f000000000000000000203",
+   "studentName": "Sample Student 3 (DUMMY)",
+   "guardianUserId": "64f000000000000000000913",
+   "guardianName": "Sample Guardian (DUMMY)",
+   "staffId": "64a0000000000000000000a1",
+   "staffName": "Sample Teacher",
+   "lastMessagePreview": "See you at the meeting (DUMMY)",
+   "lastMessageAt": "2026-10-05T06:30:00.000Z",
+   "guardianHasUnread": false,
+   "staffHasUnread": false,
+   "status": "open",
+   "schoolSlug": "demo-school"
+  }
+ ],
+ "unreadCount": 2
+}
