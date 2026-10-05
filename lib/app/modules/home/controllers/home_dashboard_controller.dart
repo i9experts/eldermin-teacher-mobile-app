@@ -68,7 +68,13 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
     return (id == null || id.isEmpty) ? null : id;
   }
 
-  bool get canTeaching => perms.canAccess('teaching:view');
+  /// Permissions are rebuilt together with `auth.staffMe` (see AuthController._applyMe),
+  /// so reading it here makes Obx widgets re-evaluate when permissions change.
+  bool get canTeaching {
+    auth.staffMe.value;
+    return perms.canAccess('teaching:view');
+  }
+
   bool get showTimetable => canTeaching;
   bool get showHomework => canTeaching;
   bool get showLessonPlans => canTeaching;

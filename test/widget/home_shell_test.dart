@@ -11,6 +11,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:eldermin_teacher_app/app/modules/home/controllers/home_badges_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/home/controllers/home_dashboard_controller.dart';
+import 'package:eldermin_teacher_app/core/services/home_repository.dart';
+import '../support/fake_home_repository.dart';
 
 class _Tokens implements TokenStore {
   @override
@@ -67,6 +71,10 @@ void main() {
     Get.put<AuthApiService>(api);
     Get.put<PermissionService>(PermissionService());
     Get.put<AuthController>(auth);
+    final repo = FakeHomeRepository();
+    Get.put<HomeRepository>(repo);
+    Get.put(HomeBadgesController(repository: repo, auth: auth, autoPoll: false));
+    Get.put(HomeDashboardController(repository: repo, auth: auth, tick: null));
     await tester.runAsync(auth.bootstrap);
     expect(auth.status.value, AuthStatus.authenticated);
 
