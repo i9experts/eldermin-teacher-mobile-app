@@ -60,7 +60,8 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
   Timer? _ticker;
   Worker? _profileWorker;
   String _dateKey = '';
-  final _tokens = <Object, int>{};
+  // Identity map: Rx == compares VALUES, and the initial states are equal consts.
+  final _tokens = Map<Object, int>.identity();
 
   // ── Visibility (permissions) ─────────────────────────────────
   String? get staffId {

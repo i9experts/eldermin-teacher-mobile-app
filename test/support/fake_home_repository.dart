@@ -87,4 +87,4 @@ class FakeHomeRepository extends HomeRepository {
   }
 }
 
-Never failWith(int status, [String message = 'error']) => throw ApiException(message, statusCode: status);
+Never failWith(int? status, [String message = 'error']) => throw ApiException(message, statusCode: status);
