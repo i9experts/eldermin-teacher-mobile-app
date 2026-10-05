@@ -109,6 +109,7 @@ class ApiConstants {
 
   // ── Students ─────────────────────────────────────────────────
   static const String students = '$apiPrefix/students';
+  static const String classRosterDiagnostic = '$apiPrefix/students/class-roster-diagnostic'; // ?grade&section
   static String student(String id) => '$apiPrefix/students/$id';
   static String student360(String id) => '$apiPrefix/students/$id/360';
   static const String studentGradesSections = '$apiPrefix/students/filters/grades-sections';

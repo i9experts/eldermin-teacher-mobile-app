@@ -29,3 +29,19 @@ int? readInt(Object? v) {
 }
 
 bool readBool(Object? v, {bool fallback = false}) => v is bool ? v : fallback;
+
+/// Tolerant date reader for backend JSON: ISO-8601 strings (the normal
+/// serialization of a Mongo Date), `{ "$date": ... }` extended JSON, or an
+/// epoch-milliseconds number. Returns null when it cannot be understood.
+DateTime? readDate(Object? v) {
+  if (v == null) return null;
+  if (v is DateTime) return v;
+  if (v is Map) return readDate(v[r'$date']);
+  if (v is num) return DateTime.fromMillisecondsSinceEpoch(v.toInt(), isUtc: true);
+  final s = v.toString().trim();
+  if (s.isEmpty) return null;
+  return DateTime.tryParse(s);
+}
+
+/// `String` that is never null ('' when missing) - for display fields.
+String readText(Object? v) => readString(v) ?? '';
