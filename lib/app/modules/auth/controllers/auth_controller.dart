@@ -133,7 +133,7 @@ class AuthController extends GetxController with WidgetsBindingObserver {
     final token = await _tokens.readToken();
     if (token == null || token.isEmpty) {
       await minSplash;
-      status.value = AuthStatus.unauthenticated;
+      if (status.value == AuthStatus.unknown) status.value = AuthStatus.unauthenticated;
       return;
     }
     final ok = await _restore();

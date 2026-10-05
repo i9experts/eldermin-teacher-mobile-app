@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:eldermin_teacher_app/core/constants/api_constants.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
+import 'package:eldermin_teacher_app/core/network/base_client.dart';
+import 'package:eldermin_teacher_app/core/services/auth_api_service.dart';
 import 'package:eldermin_teacher_app/core/network/dio_exception_handler.dart';
 import 'package:eldermin_teacher_app/core/network/dio_service.dart';
 import 'package:flutter/services.dart';
@@ -63,6 +65,12 @@ void main() {
       expect(DioService.shouldLogoutOn(req(ApiConstants.login, auth: false), 401), isFalse);
       expect(DioService.shouldLogoutOn(req(ApiConstants.login, auth: true), 401), isFalse);
     });
+    test('401 from forgot-password / reset-password never logs out (invalid/expired token)', () {
+      for (final url in [ApiConstants.forgotPassword, ApiConstants.resetPassword]) {
+        expect(DioService.shouldLogoutOn(req(url, auth: false), 401), isFalse);
+        expect(DioService.shouldLogoutOn(req(url, auth: true), 401), isFalse);
+      }
+    });
     test('unauthenticated requests and other statuses do not log out', () {
       expect(DioService.shouldLogoutOn(req('/x', auth: false), 401), isFalse);
       expect(DioService.shouldLogoutOn(req(ApiConstants.staffMe), 403), isFalse);
@@ -108,6 +116,28 @@ void main() {
       final api = DioExceptionHandler.handle(e);
       expect(api, isA<ApiException>());
       expect(api.message, contains('No internet'));
+    }
+    expect(logouts, 0);
+  });
+
+  test('token deep-link check sends the supplied JWT (not the stored one) and a 401 is not a session expiry', () async {
+    final adapter = _StatusAdapter(401);
+    DioService.getDio().httpClientAdapter = adapter;
+    final api = AuthApiService(BaseClient());
+    await expectLater(api.fetchAuthMe(token: 'link.jwt.value'), throwsA(isA<ApiException>()));
+    expect(adapter.lastAuthHeader, 'Bearer link.jwt.value');
+    expect(logouts, 0);
+  });
+
+  test('reset-password 401 reaches the caller with the server message and does not log out', () async {
+    final adapter = _StatusAdapter(401);
+    DioService.getDio().httpClientAdapter = adapter;
+    final api = AuthApiService(BaseClient());
+    try {
+      await api.resetPassword(token: 'tttttttttt', newPassword: 'secret1');
+      fail('should throw');
+    } on ApiException catch (e) {
+      expect(e.statusCode, 401);
     }
     expect(logouts, 0);
   });
