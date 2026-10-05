@@ -62,6 +62,16 @@ and the PTM list `GET /teaching/ptm?teacherId&from&to` (today's meetings). Extra
 fallbacks (old N+1 homework path, old class-timetable path). `threads` honours `?status=open`.
 Walkthrough: `integration_test/phase4_followups_test.dart`.
 
+## Classroom (Phase 5a): Timetable, Attendance, My students / Student 360
+The stub serves `GET /students` (30 active Grade 5 A students, two stored as "5"/"a"; every row carries `monthlyTuitionFee` and full
+guardian contact data ON PURPOSE to prove the app ignores them), `GET /students/filters/grades-sections`, `GET /students/:id/360`,
+`GET /students/:id/attendance/summary`, an in-memory `GET /students/attendance/list` (exact grade/section match, `from`/`to`, class-teacher
+scoping) and `POST /students/attendance/bulk` (DTO validation, 403/400 shapes, upsert). Mode features: `students studentsgrades student360
+attsummary attendance attbulk`; extra values `409` and `drop` (closes the connection = offline path). Run the stub with
+`TZ=Asia/Karachi` (or any zone) to emulate a non-UTC server clock: attendance dates are stored as server-local midnight.
+Fixtures: `TZ=UTC python3 tool/dev/dump_classroom_fixtures.py` -> `test/fixtures/classroom/`. Stub tests:
+`python3 tool/dev/test_stub_attendance.py`. Walkthrough: `integration_test/phase5a_classroom_test.dart`.
+
 ## Staging verification (read-only)
 `python3 tool/dev/verify_staging.py` (credentials in git-ignored `tool/dev/.env.staging`, see `.env.staging.example`) checks the
 keys/types Home parses against a staging server and prints only statuses/types/counts; it hard-blocks the production host and
