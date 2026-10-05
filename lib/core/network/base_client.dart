@@ -28,10 +28,12 @@ class BaseClient {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
+    Map<String, String>? headers,
   }) async {
     debugPrint('POST → $url');
-    return DioService.getDio().post(url,
-        data: data, queryParameters: queryParameters, options: _jsonOptions(requiresAuth));
+    final options = _jsonOptions(requiresAuth);
+    if (headers != null) options.headers = {...?options.headers, ...headers};
+    return DioService.getDio().post(url, data: data, queryParameters: queryParameters, options: options);
   }
 
   Future<Response> patch(
