@@ -56,6 +56,18 @@ features: timetable roster attendance homework lessonplans ptm fixtures threads 
 `curl -X POST "localhost:3999/__stub/attendance?count=12"`. `tool/dev/dump_home_fixtures.py` regenerates `test/fixtures/home/`.
 Screenshots: `tool/dev/capture_walkthrough.sh <sim> <out-dir> integration_test/phase4_home_test.dart`.
 
+Follow-ups: the stub also serves `GET /staff-portal/homework/pending-grading`, `GET /staff-portal/timetable?date=|from&to`
+and the PTM list `GET /teaching/ptm?teacherId&from&to` (today's meetings). Extra features for the mode switch: `ptmlist`,
+`pendinggrading`, `mytimetable`; `feature=new&value=404` makes both new staff-portal endpoints answer 404 to test the app's
+fallbacks (old N+1 homework path, old class-timetable path). `threads` honours `?status=open`.
+Walkthrough: `integration_test/phase4_followups_test.dart`.
+
+## Staging verification (read-only)
+`python3 tool/dev/verify_staging.py` (credentials in git-ignored `tool/dev/.env.staging`, see `.env.staging.example`) checks the
+keys/types Home parses against a staging server and prints only statuses/types/counts; it hard-blocks the production host and
+only sends the login POSTs. Unit tests: `python3 -m unittest discover -s tool/dev -p 'test_*.py'`. Steps and checklist:
+`../eldermin-teacher-app-docs/phase4/STAGING_VERIFICATION.md`.
+
 ## Checks
 ```
 flutter analyze
