@@ -62,6 +62,8 @@ class ApiConstants {
   static const String teachingDashboard = '$apiPrefix/teaching/dashboard';
   static String timetableForTeacher(String staffId) => '$apiPrefix/teaching/timetable/teacher/$staffId';
   static const String timetable = '$apiPrefix/teaching/timetable';
+  /// NEW on feat/staff-portal (staff-portal.controller.ts:91-92): my own slots, `?date=` or `?from=&to=`.
+  static const String myTimetable = '$staffPortal/timetable';
   static const String periodTemplates = '$apiPrefix/teaching/period-templates';
 
   // ── Student attendance (class teacher) ───────────────────────
@@ -72,6 +74,8 @@ class ApiConstants {
 
   // ── Homework (assignments) ───────────────────────────────────
   static const String assignments = '$apiPrefix/teaching/assignments';
+  /// NEW on feat/staff-portal (staff-portal.controller.ts:87-88); 404 on servers without it.
+  static const String pendingGrading = '$staffPortal/homework/pending-grading'; // ?limit=
   static String assignment(String id) => '$apiPrefix/teaching/assignments/$id';
   static String assignmentSubmissions(String id) => '$apiPrefix/teaching/assignments/$id/submissions';
   static String assignmentSubmission(String id, String submissionId) =>

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
 import '../models/home/class_snapshot.dart';
 import '../models/home/messaging.dart';
+import '../models/home/pending_grading.dart';
 import '../models/home/teaching.dart';
 import '../models/home/timetable.dart';
 import '../models/json_helpers.dart';
@@ -45,6 +46,22 @@ class HomeRepository {
         return _list(res.data).map(TimetableDoc.fromJson).toList();
       });
 
+  /// `GET /staff-portal/timetable?date=YYYY-MM-DD` (when [from] and [to] are the same calendar day)
+  /// or `?from=&to=` (max 14 days, inclusive). Own slots only, resolved server-side by Staff._id,
+  /// including split-group-only teachers (staff-teaching.service.ts:153-225). Dates are CALENDAR
+  /// dates (the device-local date is sent; there is no server-side "today"). Throws
+  /// [ApiException] 404 on servers where the endpoint is not deployed. Generic on purpose: the
+  /// Phase 5 Timetable module reuses it.
+  Future<MyTimetable> getMyTimetable(DateTime from, DateTime to) => _guard(() async {
+        final f = _ymd(from), t = _ymd(to);
+        final res = await _client.get(ApiConstants.myTimetable,
+            queryParameters: f == t ? {'date': f} : {'from': f, 'to': t});
+        return MyTimetable.fromJson(asJsonMap(res.data));
+      });
+
+  String _ymd(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
   // ── Class-teacher card ────────────────────────────────────────
   /// `GET /students/class-roster-diagnostic?grade=&section=`.
   Future<RosterCount> fetchRoster({required String grade, String? section}) => _guard(() async {
@@ -84,6 +101,14 @@ class HomeRepository {
         return asJsonMapList(asJsonMap(res.data)['submissions']).map(HomeworkSubmission.fromJson).toList();
       });
 
+  /// `GET /staff-portal/homework/pending-grading?limit=` -> ungraded counts per assignment in one
+  /// aggregation (staff-teaching.service.ts:58-117). 404 when not deployed (callers fall back).
+  Future<PendingGrading> getPendingGrading({int? limit}) => _guard(() async {
+        final res = await _client.get(ApiConstants.pendingGrading,
+            queryParameters: {if (limit != null) 'limit': limit});
+        return PendingGrading.fromJson(asJsonMap(res.data));
+      });
+
   // ── Lesson plans ──────────────────────────────────────────────
   /// `GET /teaching/lesson-plans?teacherId=<staffId>&status=<status>` (hard limit 100).
   Future<List<LessonPlan>> fetchLessonPlans(String staffId, String status) => _guard(() async {
@@ -96,6 +121,17 @@ class HomeRepository {
   /// `GET /teaching/ptm/upcoming/mine?teacherId=<staffId>`.
   Future<List<PtmMeeting>> fetchUpcomingPtms(String staffId) => _guard(() async {
         final res = await _client.get(ApiConstants.ptmUpcomingMine, queryParameters: {'teacherId': staffId});
+        return _list(res.data).map(PtmMeeting.fromJson).toList();
+      });
+
+  /// `GET /teaching/ptm?teacherId=<staffId>&from=<ISO>&to=<ISO>` (ptm.controller.ts:18-21 ->
+  /// ptm.service.ts:91-104): any status, scheduledDate in [from, to] (inclusive, `new Date(x)`),
+  /// sorted scheduledDate desc, hard limit 200, campus-scoped. Used for TODAY's meetings, which
+  /// `ptm/upcoming/mine` drops after UTC midnight (ptm.service.ts:181).
+  Future<List<PtmMeeting>> fetchPtmsInRange(String staffId, {required DateTime from, required DateTime to}) =>
+      _guard(() async {
+        final res = await _client.get(ApiConstants.ptm,
+            queryParameters: {'teacherId': staffId, 'from': _iso(from), 'to': _iso(to)});
         return _list(res.data).map(PtmMeeting.fromJson).toList();
       });
 

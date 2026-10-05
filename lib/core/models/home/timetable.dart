@@ -111,3 +111,106 @@ class TimetableDoc {
 
   String get classLabel => [gradeLevel, sectionName].where((e) => e.isNotEmpty).join(' - ');
 }
+
+// ── GET /staff-portal/timetable (NEW on feat/staff-portal) ─────────────
+// Backend: eldermin-backend/src/staff-portal/staff-teaching.service.ts
+// timetable() :153-225 (route staff-portal.controller.ts:91-92). Verified from code.
+
+/// `slots[].splitGroup` (staff-teaching.service.ts:181): `{ name, subject, roomNo }`,
+/// present only when the teacher teaches one group of a split period.
+class SlotSplitGroup {
+  final String name;
+  final String subject;
+  final String roomNo;
+  const SlotSplitGroup({this.name = '', this.subject = '', this.roomNo = ''});
+
+  factory SlotSplitGroup.fromJson(Map<String, dynamic> j) => SlotSplitGroup(
+        name: readText(j['name']),
+        subject: readText(j['subject']),
+        roomNo: readText(j['roomNo']),
+      );
+}
+
+/// One of MY slots on a day (staff-teaching.service.ts:188-200). `sectionName`
+/// may be null/absent. `weekCycle` is the slot's own tag `both|A|B` (:184),
+/// `startTime`/`endTime` are trimmed strings passed through as stored (U7).
+class TimetableSlot {
+  final String timetableId;
+  final String gradeLevel;
+  final String sectionName;
+  final int? periodNo;
+  final String startTime;
+  final String endTime;
+  final String subject;
+  final String roomNo;
+  final String type;
+  final String weekCycle;
+  final SlotSplitGroup? splitGroup;
+
+  const TimetableSlot({
+    this.timetableId = '',
+    this.gradeLevel = '',
+    this.sectionName = '',
+    this.periodNo,
+    this.startTime = '',
+    this.endTime = '',
+    this.subject = '',
+    this.roomNo = '',
+    this.type = 'regular',
+    this.weekCycle = 'both',
+    this.splitGroup,
+  });
+
+  factory TimetableSlot.fromJson(Map<String, dynamic> j) {
+    final wc = readString(j['weekCycle']);
+    return TimetableSlot(
+      timetableId: readId(j['timetableId']) ?? '',
+      gradeLevel: readText(j['gradeLevel']),
+      sectionName: readText(j['sectionName']),
+      periodNo: readInt(j['periodNo']),
+      startTime: readText(j['startTime']),
+      endTime: readText(j['endTime']),
+      subject: readText(j['subject']),
+      roomNo: readText(j['roomNo']),
+      type: readString(j['type']) ?? 'regular',
+      weekCycle: (wc == 'A' || wc == 'B') ? wc! : 'both',
+      splitGroup: j['splitGroup'] is Map ? SlotSplitGroup.fromJson(asJsonMap(j['splitGroup'])) : null,
+    );
+  }
+
+  String get classLabel => [gradeLevel, sectionName].where((e) => e.isNotEmpty).join(' - ');
+}
+
+/// `days[]` (staff-teaching.service.ts:217-222). The day `weekCycle` is ALWAYS
+/// null today (U1: A/B parity is undeterminable); it is parsed but the app
+/// never derives anything from it.
+class TimetableDay {
+  /// Calendar date `YYYY-MM-DD` as sent.
+  final String date;
+  /// 0 = Sunday, computed server-side in UTC from [date].
+  final int? dayOfWeek;
+  final String? weekCycle;
+  final List<TimetableSlot> slots;
+  const TimetableDay({this.date = '', this.dayOfWeek, this.weekCycle, this.slots = const []});
+
+  factory TimetableDay.fromJson(Map<String, dynamic> j) => TimetableDay(
+        date: readText(j['date']),
+        dayOfWeek: readInt(j['dayOfWeek']),
+        weekCycle: readString(j['weekCycle']),
+        slots: asJsonMapList(j['slots']).map(TimetableSlot.fromJson).toList(),
+      );
+}
+
+/// `{ from, to, days[] }` (staff-teaching.service.ts:224).
+class MyTimetable {
+  final String from;
+  final String to;
+  final List<TimetableDay> days;
+  const MyTimetable({this.from = '', this.to = '', this.days = const []});
+
+  factory MyTimetable.fromJson(Map<String, dynamic> j) => MyTimetable(
+        from: readText(j['from']),
+        to: readText(j['to']),
+        days: asJsonMapList(j['days']).map(TimetableDay.fromJson).toList(),
+      );
+}
