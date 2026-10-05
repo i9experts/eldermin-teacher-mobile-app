@@ -83,15 +83,15 @@ class _FakeApi extends AuthApiService {
   Future<void> logout() async {}
 }
 
-late _FakeApi api;
-late AuthController auth;
-
 Future<void> _pump(WidgetTester tester, Widget screen) async {
   await tester.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: screen));
   await tester.pump();
 }
 
 void main() {
+  late _FakeApi api;
+  late AuthController auth;
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     Get.reset();
