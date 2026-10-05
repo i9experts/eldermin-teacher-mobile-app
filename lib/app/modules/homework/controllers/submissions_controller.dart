@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import '../../../../core/models/homework/homework_models.dart';
 import '../../../../core/services/homework_repository.dart';
 import '../../../common/action_failure.dart';
+import '../../home/controllers/home_dashboard_controller.dart';
 import '../../home/models/section_state.dart';
 import 'homework_controller.dart';
 import 'homework_detail_controller.dart';
@@ -163,6 +164,8 @@ class SubmissionsController extends GetxController {
     state.value = SectionState.data(SubmissionsResult(a, rows));
     final l = list;
     if (l != null && l.byId(a.id) != null) l.upsert(l.byId(a.id)!.copyWith(submissionsCount: handedIn));
+    // Home's "Homework to grade" counter changed: refresh it if Home is alive (best effort).
+    if (Get.isRegistered<HomeDashboardController>()) Get.find<HomeDashboardController>().loadHomework();
   }
 
   Future<ActionFailure?> openAttachment(String key) async {

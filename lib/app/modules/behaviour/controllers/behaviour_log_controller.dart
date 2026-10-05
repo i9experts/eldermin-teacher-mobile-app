@@ -229,8 +229,13 @@ class BehaviourLogController extends GetxController {
     if (titleC.text.trim().isEmpty) e['title'] = 'Enter a title';
     if (descriptionC.text.trim().isEmpty) e['description'] = 'Describe what happened';
     final s = student.value;
-    if (s != null && (s.grade.trim().isEmpty)) e['student'] = "This student has no grade on record, so the entry can't be saved";
-    if (s != null && !inAnyClass(s, classes)) e['student'] = 'This student is not in one of your classes';
+    if (s != null) {
+      if (s.grade.trim().isEmpty) {
+        e['student'] = "This student has no grade on record, so the entry can't be saved";
+      } else if (!inAnyClass(s, classes)) {
+        e['student'] = 'This student is not in one of your classes';
+      }
+    }
     return e;
   }
 
