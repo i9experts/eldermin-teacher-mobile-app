@@ -1,0 +1,76 @@
+name: eldermin_teacher_app
+description: "Eldermin Teacher - classroom, attendance and communication tools for school teachers."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+# Dependency versions intentionally match eldermin-parent-mobile-app.
+# No Firebase / FCM packages: v1 has no client-side push.
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # State management
+  get: ^4.6.6
+
+  # Networking
+  dio: ^5.4.3+1
+  connectivity_plus: ^6.0.5
+
+  # Secure local storage (JWT)
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.2.3
+
+  # Formatting
+  intl: ^0.19.0
+
+  # UI
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  table_calendar: ^3.1.2
+  fl_chart: ^0.68.0
+  flutter_svg: ^2.0.10+1
+
+  # Device / platform
+  url_launcher: ^6.3.0
+  file_picker: ^8.0.6
+  image_picker: ^1.1.2
+  permission_handler: ^11.3.1
+  package_info_plus: ^8.0.0
+  # Deep links (reset-password / token+slug auto-login) - wired in Phase 3.
+  app_links: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
+
+# Launcher icon: placeholder-quality Eldermin Teacher variant generated from
+# the Eldermin logomark (see assets/launcher_icon). Re-run with
+# `dart run flutter_launcher_icons` after changing it.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/launcher_icon/icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/launcher_icon/icon_foreground.png"
+
+# Native splash from the logomark - `dart run flutter_native_splash:create`.
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: "assets/images/eldermin_logomark.png"
+  android: false
+  ios: true
