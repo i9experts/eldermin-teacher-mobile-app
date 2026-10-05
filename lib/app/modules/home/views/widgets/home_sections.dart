@@ -238,7 +238,7 @@ class SubstitutionsCard extends StatelessWidget {
     return Column(children: [
       for (final s in data.covering)
         _row(
-          key: const Key('sub_covering'),
+          key: ValueKey('sub_covering_${s.id}'),
           title: "You're covering ${s.subject.isEmpty ? 'a class' : s.subject}",
           subtitle: [s.classLabel, when(s), if (s.originalTeacherName.isNotEmpty) 'for ${s.originalTeacherName}'].where((e) => e.isNotEmpty).join(' · '),
           trailing: const AppTag('Covering', style: TagStyle.amber),
@@ -246,7 +246,7 @@ class SubstitutionsCard extends StatelessWidget {
         ),
       for (final s in data.covered)
         _row(
-          key: const Key('sub_covered'),
+          key: ValueKey('sub_covered_${s.id}'),
           title: '${s.subject.isEmpty ? 'Your class' : s.subject} is being covered',
           subtitle: [
             s.classLabel,

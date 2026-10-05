@@ -162,8 +162,7 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
       loadLessonPlans(),
       loadPtms(),
       loadSubstitutions(),
-      // The badges controller refreshes itself on start and every 60 s.
-      if (userInitiated) badges.refreshAll(userInitiated: true),
+      badges.refreshAll(userInitiated: userInitiated), // joins an in-flight startup refresh
     ]);
   }
 

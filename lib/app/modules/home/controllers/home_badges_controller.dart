@@ -98,8 +98,20 @@ class HomeBadgesController extends GetxController with WidgetsBindingObserver {
   /// real data instead of flashing an error.
   Future<void> refreshAll({bool userInitiated = false}) async {
     if (!_signedIn) return;
-    await Future.wait([refreshNotifications(), refreshThreads(userInitiated: userInitiated)]);
+    // Startup calls from the shell and the dashboard share one request.
+    final running = _inFlight;
+    if (running != null && !userInitiated) return running;
+    final f = Future.wait([refreshNotifications(), refreshThreads(userInitiated: userInitiated)])
+        .then((_) {});
+    _inFlight = f;
+    try {
+      await f;
+    } finally {
+      if (identical(_inFlight, f)) _inFlight = null;
+    }
   }
+
+  Future<void>? _inFlight;
 
   Future<void> refreshNotifications() async {
     try {
