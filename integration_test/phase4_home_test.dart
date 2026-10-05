@@ -135,6 +135,7 @@ void main() {
     await shot(t, '40_home_class_teacher_not_marked');
     await stub(t, '/__stub/attendance?count=12');
     await pull(t);
+    await scrollTop(t);
     await shot(t, '41_home_class_teacher_partly_marked');
     await scrollDown(t, 500);
     await shot(t, '42_home_class_teacher_middle');
