@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import '../../../core/utils/deep_link_parser.dart';
 import '../../modules/auth/controllers/auth_controller.dart';
 import '../../routes/app_routes.dart';
-import '../../utils/toast_util.dart';
+import '../../components/confirm_dialog.dart';
 
 /// Receives `eldermin-teacher://` links (cold start via
 /// `getInitialLink`, warm start via `uriLinkStream`), validates them with
@@ -30,6 +30,10 @@ class DeepLinkService extends GetxService {
 
   DeepLink? _pending;
 
+  /// True while the switch-account dialog is up; further links are dropped
+  /// meanwhile so dialogs never stack.
+  bool _confirming = false;
+
   /// Start listening. Safe to call once at startup.
   Future<void> init() async {
     final links = _appLinks ?? AppLinks();
@@ -45,6 +49,10 @@ class DeepLinkService extends GetxService {
     final link = DeepLinkParser.parse(uri);
     if (link == null) {
       debugPrint('Ignored an unsupported incoming link');
+      return;
+    }
+    if (_confirming) {
+      debugPrint('Ignored a link received while a confirmation is open');
       return;
     }
     _pending = link;
@@ -79,8 +87,25 @@ class DeepLinkService extends GetxService {
         if (Get.currentRoute != Routes.resetPassword) Get.toNamed(Routes.resetPassword);
       case TokenLoginLink(:final token, :final slug):
         if (_auth.status.value == AuthStatus.authenticated) {
-          ToastUtil.showToast("You're already signed in. Sign out first to use that sign-in link.");
-          return;
+          // Never switch accounts silently: ask first. The token stays only in
+          // this local until the user decides, then it is dropped.
+          if (_confirming) return;
+          _confirming = true;
+          final bool confirmed;
+          try {
+            final name = _auth.user.value?.name;
+            final who = (name == null || name.trim().isEmpty) ? 'an account' : name.trim();
+            confirmed = await ConfirmDialog.show(
+              title: 'Switch account?',
+              message: "You're signed in as $who. Sign out and continue with the new account?",
+              confirmLabel: 'Sign out & continue',
+              destructive: true,
+            );
+          } finally {
+            _confirming = false;
+          }
+          if (!confirmed) return;
+          await _auth.logout();
         }
         // Validated against /auth/me before anything is stored.
         await _auth.signInWithToken(token: token, slug: slug);

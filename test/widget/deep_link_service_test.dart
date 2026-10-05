@@ -4,6 +4,7 @@ import 'package:eldermin_teacher_app/app/modules/reset_password/views/reset_pass
 import 'package:eldermin_teacher_app/app/routes/app_routes.dart';
 import 'package:eldermin_teacher_app/core/models/auth_me.dart';
 import 'package:eldermin_teacher_app/core/models/staff_me.dart';
+import 'package:eldermin_teacher_app/core/models/teacher_user.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/network/base_client.dart';
 import 'package:eldermin_teacher_app/core/services/auth_api_service.dart';
@@ -31,10 +32,13 @@ class _Tokens implements TokenStore {
 class _Api extends AuthApiService {
   _Api() : super(BaseClient());
   final authMeTokens = <String?>[];
+  final events = <String>[];
+  int logoutCalls = 0;
   bool reject = false;
   @override
   Future<AuthMe> fetchAuthMe({String? token}) async {
     authMeTokens.add(token);
+    events.add('authMe:$token');
     if (reject) throw ApiException('Unauthorized', statusCode: 401);
     return const AuthMe(id: 'u', name: 'T', email: 't@s.test', role: 'teacher');
   }
@@ -47,7 +51,10 @@ class _Api extends AuthApiService {
         'institution': {'slug': 's'},
       });
   @override
-  Future<void> logout() async {}
+  Future<void> logout() async {
+    logoutCalls++;
+    events.add('logout');
+  }
 }
 
 void main() {
@@ -142,14 +149,65 @@ void main() {
     expect(auth.status.value, AuthStatus.authenticated);
   });
 
-  testWidgets('a token link never replaces an active session', (tester) async {
-    await tester.pumpWidget(GetMaterialApp(home: const Scaffold(body: Text('root'))));
-    auth.status.value = AuthStatus.authenticated;
-    tokens.token = 'existing';
-    svc.handleUri(Uri.parse('eldermin-teacher://login?token=$_jwt&slug=demo-school'));
-    await tester.pump();
-    expect(api.authMeTokens, isEmpty);
-    expect(tokens.token, 'existing');
-    await tester.pump(const Duration(seconds: 3)); // let the toast timer finish
+  group('token link while signed in asks before switching accounts', () {
+    Future<void> signedIn(WidgetTester tester) async {
+      await tester.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: const Scaffold(body: Text('root'))));
+      auth.status.value = AuthStatus.authenticated;
+      auth.user.value = const TeacherUser(id: 'u', name: 'Tess Teacher', email: 't@s.test', role: 'teacher');
+      tokens.token = 'existing';
+    }
+
+    final link = Uri.parse('eldermin-teacher://login?token=$_jwt&slug=demo-school');
+
+    testWidgets('shows the confirmation naming the current user; Cancel changes nothing', (tester) async {
+      await signedIn(tester);
+      svc.handleUri(link);
+      await tester.pumpAndSettle();
+      expect(find.text('Switch account?'), findsOneWidget);
+      expect(find.text("You're signed in as Tess Teacher. Sign out and continue with the new account?"), findsOneWidget);
+      expect(api.authMeTokens, isEmpty, reason: 'nothing is validated before the user decides');
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(api.authMeTokens, isEmpty);
+      expect(api.logoutCalls, 0);
+      expect(auth.status.value, AuthStatus.authenticated);
+      expect(auth.user.value?.name, 'Tess Teacher');
+      expect(tokens.token, 'existing');
+      // The link was dropped: a later link-less status change does not resurrect it.
+      auth.status.refresh();
+      await tester.pumpAndSettle();
+      expect(api.authMeTokens, isEmpty);
+    });
+
+    testWidgets('Sign out & continue logs out, then validates the link and signs in', (tester) async {
+      await signedIn(tester);
+      svc.handleUri(link);
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        await tester.tap(find.text('Sign out & continue'));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pumpAndSettle();
+      expect(api.events.take(2), ['logout', 'authMe:$_jwt'], reason: 'logout must come before validation');
+      expect(auth.status.value, AuthStatus.authenticated);
+      expect(tokens.token, _jwt);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('a link arriving while the dialog is open does not stack another dialog', (tester) async {
+      await signedIn(tester);
+      svc.handleUri(link);
+      await tester.pumpAndSettle();
+      svc.handleUri(Uri.parse('eldermin-teacher://login?token=other.jwt.value&slug=x'));
+      svc.handleUri(link);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(api.authMeTokens, isEmpty);
+    });
   });
 }

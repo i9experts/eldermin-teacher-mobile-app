@@ -44,11 +44,12 @@ class MoreScreen extends GetView<MoreController> {
               subtitle: 'App version',
               onTap: () => Get.toNamed(Routes.about)),
           ModuleTile(
+              key: const Key('more_sign_out'),
               icon: Icons.logout_rounded,
               iconColor: Colors.red.shade700,
               title: 'Sign out',
               subtitle: 'Sign out of this device',
-              onTap: controller.logout),
+              onTap: controller.confirmAndLogout),
         ],
       );
     });
