@@ -37,7 +37,12 @@ Dev controls (not part of the real API):
                  mytimetable (GET /staff-portal/timetable)
        value 'new' on feature=new applies to pendinggrading + mytimetable (e.g. feature=new&value=404 emulates a server
        without the feat/staff-portal follow-ups, to test the app's N+1 / old-timetable FALLBACKS).
-  POST /__stub/attendance?count=<n>   number of attendance records "marked today" (default 0)
+  POST /__stub/attendance?count=<n>   seed n "present" records for TODAY for Grade 5 A (default 0; a 28-weekday history is always seeded)
+Phase 5a (classroom) features for /__stub/mode: students (GET /students)  studentsgrades (GET /students/filters/grades-sections)
+  student360 (GET /students/:id/360)  attsummary (GET /students/:id/attendance/summary)  attendance (GET /students/attendance/list)
+  attbulk (POST /students/attendance/bulk).  Extra values: 409 (all) and drop (close the connection: offline path).
+  Run with TZ=Asia/Karachi (or America/Los_Angeles ...) to emulate a non-UTC server clock (attendance dates are stored as SERVER-LOCAL midnight).
+  GET /__stub/state shows the in-memory attendance record count and the last x-academic-year header the bulk call carried.
 Home (Phase 4) endpoints, response shapes mirror
 eldermin-teacher-app-docs/phase4/home-endpoint-shapes.md (citations next to each builder below;
 legend: TS=teaching.service.ts S/TT=schemas/timetable.schema.ts STS=students.service.ts SPS=staff-portal.service.ts ...).
@@ -119,7 +124,13 @@ def user_view(a, with_scope=True):
 def staff_me(a):
     profile = {
         "employeeId": "EMP-STUB", "designation": "Teacher", "department": a["department"], "photoUrl": None,
-        "subjectsCanTeach": ["Science"], "gradeLevelsCanTeach": ["5"], "currentAssignments": [],
+        "subjectsCanTeach": ["Science"], "gradeLevelsCanTeach": ["5"],
+        # TeacherProfile.currentAssignments (teacher-profile.schema.ts:24): sectionId, sectionName, subjectName, gradeLevel,
+        # periodsPerWeek. DUMMY. The app scopes rosters to these classes (+ the class-teacher class).
+        "currentAssignments": [
+            {"sectionId": "64a0000000000000000005a1", "sectionName": "A", "subjectName": "Mathematics", "gradeLevel": "Grade 5", "periodsPerWeek": 5},
+            {"sectionId": "64a0000000000000000006b1", "sectionName": "B", "subjectName": "Science", "gradeLevel": "Grade 6", "periodsPerWeek": 4},
+        ],
         "status": "active", "isClassTeacher": a["classTeacher"],
         "classTeacherOf": {"gradeId": "grade-5", "gradeName": "Grade 5", "sectionName": "A",
                            "label": "Grade 5 - A"} if a["classTeacher"] else None,
@@ -544,6 +555,418 @@ def unread_count():
     return {"unreadCount": 3}
 
 
+# ======================= Phase 5a: Classroom fixtures (DUMMY) =======================
+# Backend citations (eldermin-backend, branch feat/staff-portal). Abbreviations:
+#   STC = src/students/students.controller.ts   STS = src/students/students.service.ts
+#   STD = src/students/dto/student.dto.ts       SCH = src/students/schemas/student.schema.ts
+#   ATT = src/students/schemas/student-supporting.schema.ts   SCOPE = src/auth/scope.util.ts
+#   CM  = src/common/utils/class-match.util.ts  FLT = src/filters/sentry.filter.ts   MAIN = src/main.ts
+# "UNVERIFIED" = cannot be confirmed from code (see PHASE5A_REPORT.md register).
+import calendar as _cal
+import math
+import time as _time
+
+CAMPUS_ID = "64a0000000000000000000c1"
+ACADEMIC_YEAR = "2026-27"  # DUMMY. Real value is per-student `currentAcademicYear` (SCH:141)
+
+_FIRST = ["Aarav", "Zara", "Omar", "Layla", "Yusuf", "Mariam", "Hamza", "Aisha", "Bilal", "Sana", "Ibrahim", "Hira",
+          "Zayd", "Noor", "Ali", "Fatima", "Usman", "Amna", "Hassan", "Iqra", "Saad", "Maryam", "Daniyal", "Eman",
+          "Rayyan", "Khadija", "Talha", "Anaya", "Huzaifa", "Rida", "Idris"]
+_LAST = ["Ahmed", "Siddiqui", "Malik", "Qureshi", "Sheikh", "Baig", "Raza", "Farooq"]
+
+# (grade string as STORED on the student, section as stored, count, first student index, id base)
+# Two Grade 5 A students are stored as "5"/"a" to exercise the tolerant class matching (CM:25-45); whether real
+# data looks like that is UNVERIFIED (CM header comment says imports may produce such strings).
+CLASSES = [
+    {"grade": "Grade 5", "section": "A", "count": 31, "base": 0x200, "name0": 0},
+    {"grade": "Grade 5", "section": "B", "count": 6, "base": 0x240, "name0": 8},
+    {"grade": "Grade 6", "section": "B", "count": 8, "base": 0x260, "name0": 15},
+]
+ODD_STRINGS = {3: ("5", "a"), 17: ("5", "a")}  # index within Grade 5 A -> stored (grade, section)
+TRANSFERRED_INDEX = 30  # last of Grade 5 A is status 'transferred' (31 total, 30 active == roster_diagnostic)
+
+
+def _student_doc(cls, i):
+    """One Student document, fields from SCH:79-241 (verified). The real GET /students and GET /students/:id/360
+    return the WHOLE document (guardian phone/CNIC/income, address, medical incl. insurance, ...): this stub does
+    the same ON PURPOSE so the app's whitelist models are proven to ignore them."""
+    sid = cls["base"] + i
+    first = _FIRST[(cls["name0"] + i) % len(_FIRST)]
+    last = _LAST[(i * 3 + cls["name0"]) % len(_LAST)]
+    grade, section = ODD_STRINGS.get(i, (cls["grade"], cls["section"])) if (cls["grade"], cls["section"]) == ("Grade 5", "A") else (cls["grade"], cls["section"])
+    status = "transferred" if (cls["count"] == 31 and i == TRANSFERRED_INDEX) else "active"
+    allergies = ["Peanuts (DUMMY)"] if i % 11 == 4 else []
+    return {
+        "_id": _oid(sid), "studentId": f"STU-2026-{1000 + sid % 1000}", "firstName": first,
+        "lastName": f"{last} (DUMMY)", "dateOfBirth": "2015-04-12T00:00:00.000Z", "gender": "female" if i % 2 else "male",
+        "nationality": "Pakistani", "photo": None, "grNo": f"GR-{2000 + sid % 1000}", "rfid": "RFID-DUMMY",
+        "address": "12 Dummy Street (DUMMY ADDRESS)", "town": "Dummytown", "city": "Dummycity",
+        "personalPhone": "0300-5550000", "nationalId": "00000-0000000-0", "bForm": "00000-0000000-1",
+        "guardians": [
+            {"name": f"Mr {last} (DUMMY)", "relation": "father", "cnic": "00000-0000000-2", "phone": "0300-5550001",
+             "email": "guardian.dummy@example.test", "occupation": "Engineer", "employer": "DUMMY Corp",
+             "monthlyIncome": 250000, "isPrimary": True, "isEmergencyContact": True},
+            {"name": f"Mrs {last} (DUMMY)", "relation": "mother", "cnic": "00000-0000000-3", "phone": "0300-5550002",
+             "email": "", "occupation": "Doctor", "employer": "DUMMY Clinic", "monthlyIncome": 180000,
+             "isPrimary": False, "isEmergencyContact": True},
+        ] + ([{"name": f"Mr {last} (DUMMY)", "relation": "father", "cnic": "00000-0000000-2", "phone": "0300-5550001",
+               "isPrimary": True, "isEmergencyContact": True}] if i == 2 else []),  # duplicate guardian row (known data issue, see STC:196-205 comment)
+        "medical": {"bloodGroup": "B+", "allergies": allergies, "medications": [], "conditions": ["Asthma (DUMMY)"] if i == 7 else [],
+                    "doctorName": "Dr DUMMY", "doctorPhone": "0300-5550003", "insurancePolicyNumber": "POL-DUMMY-1"},
+        "currentGrade": grade, "currentSection": section, "currentRollNumber": str(i + 1),
+        "currentAcademicYear": ACADEMIC_YEAR, "classTeacher": "Clara Classteacher", "houseGroup": "Blue",
+        "admissionDate": "2021-04-01T00:00:00.000Z", "admissionNumber": f"ADM-{sid}",
+        "emergencyContactName": "Uncle DUMMY", "emergencyContactPhone": "0300-5550004",
+        "specialNeeds": i == 7, "scholarshipHolder": i == 5, "scholarshipDetail": "50% (DUMMY)" if i == 5 else None,
+        "transportRequired": True, "siblingInSchool": False, "status": status,
+        "campusId": CAMPUS_ID, "schoolSlug": "demo-school", "programType": "k12",
+        "createdAt": f"2026-04-{1 + i % 27:02d}T05:00:00.000Z", "updatedAt": "2026-09-01T05:00:00.000Z", "__v": 0,
+    }
+
+
+STUDENTS = []
+for _c in CLASSES:
+    for _i in range(_c["count"]):
+        STUDENTS.append(_student_doc(_c, _i))
+STUDENTS_BY_ID = {s["_id"]: s for s in STUDENTS}
+
+
+def _norm_grade(v):
+    """CM:normalizeGradeName (CM:25-29)."""
+    s = re.sub(r"\s+", " ", str(v if v is not None else "").strip()).lower()
+    s = re.sub(r"^(?:grade|class|standard|std|g)[\s\-_.]*(?=\d)", "", s)
+    if re.fullmatch(r"\d+", s):
+        s = str(int(s))
+    return s
+
+
+def _norm_section(v):
+    """CM:normalizeSectionName (CM:31-35)."""
+    s = re.sub(r"\s+", " ", str(v if v is not None else "").strip()).lower()
+    return re.sub(r"^(?:section|sec)[\s\-_.:]+(?=\S)", "", s)
+
+
+def grades_sections():
+    """GET /students/filters/grades-sections (STC:61-66 -> STS:450-462, verified): school-wide DISTINCT RAW strings,
+    sorted, falsy removed. No class/campus scoping."""
+    return {"grades": sorted({s["currentGrade"] for s in STUDENTS if s["currentGrade"]}),
+            "sections": sorted({s["currentSection"] for s in STUDENTS if s["currentSection"]})}
+
+
+def _fee_for(s):
+    """STS:547-621: the list adds `monthlyTuitionFee` (number|null) to EVERY student (verified). DUMMY amount.
+    The teacher app must NOT parse or show it (hardening-backlog item 6)."""
+    return 18500 if s["currentGrade"].endswith("5") or s["currentGrade"] == "5" else 21000
+
+
+def students_list(q, account):
+    """GET /students  (STC:54-59 -> STS:515-622, verified). Query StudentQueryDto STD:235-258 + PaginationDto STD:15-30:
+    page (def 1), limit (def 20, @Min(1) @Max(1000)), search, sortBy (def createdAt), sortOrder (def desc), grade[]/section[]
+    (repeated params, exact $in), status, gender, academicYear, campusId. Campus forced for non-owner roles (SCOPE:70-91): a
+    teacher without a campusId gets 403 'Your account has no campus assigned...'. NOT class-scoped (hardening item 6).
+    `search` (STS:538-554) = regex over firstName, lastName, studentId, grNo, admissionNumber, guardians.phone/email
+    (NOT currentRollNumber). Response { data, meta:{total,page,limit,pages} } (STS:623)."""
+    def arg(k, d=None):
+        v = q.get(k)
+        return v[0] if v else d
+    try:
+        page = int(arg("page", "1")); limit = int(arg("limit", "20"))
+    except ValueError:
+        return 400, "limit must be a number conforming to the specified constraints"
+    if limit < 1:
+        return 400, "limit must not be less than 1"
+    if limit > 1000:
+        return 400, "limit must not be greater than 1000"
+    rows = [dict(s) for s in STUDENTS]
+    if q.get("grade"):
+        rows = [s for s in rows if s["currentGrade"] in q["grade"]]
+    if q.get("section"):
+        rows = [s for s in rows if s["currentSection"] in q["section"]]
+    if arg("status"):
+        rows = [s for s in rows if s["status"] == arg("status")]
+    if arg("search"):
+        rx = re.compile(re.escape(arg("search")), re.I)
+        def hit(s):
+            keys = [s["firstName"], s["lastName"], s["studentId"], s["grNo"], s["admissionNumber"]]
+            keys += [g.get("phone", "") for g in s["guardians"]] + [g.get("email", "") for g in s["guardians"]]
+            return any(rx.search(k or "") for k in keys)
+        rows = [s for s in rows if hit(s)]
+    rows.sort(key=lambda s: s["createdAt"], reverse=(arg("sortOrder", "desc") != "asc"))
+    total = len(rows)
+    page_rows = rows[(page - 1) * limit: page * limit]
+    for s in page_rows:
+        s["monthlyTuitionFee"] = _fee_for(s)
+    return 200, {"data": page_rows, "meta": {"total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit)}}
+
+
+# ---- attendance store (StudentAttendance, ATT:14-49) ----
+# date is stored as server-LOCAL midnight (STS:1800-1801, 1812-1813): "server local" = this process's TZ (run the stub with
+# TZ=Asia/Karachi etc. to exercise U3). Unique index {studentId,date} (ATT:46-49).
+ATT = {}  # (studentId, epoch_seconds) -> record
+_att_last = {"academicYearHeader": None, "bulkCalls": 0, "lastBulkSize": 0}
+
+
+def _js_parse_date(v):
+    """JS `new Date(str)` for the strings IsDateString accepts: date-only = UTC midnight; with Z/offset = that instant; naive
+    datetime = local time. Returns epoch seconds or None."""
+    m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?(Z|[+-]\d{2}:?\d{2})?)?", v or "")
+    if not m:
+        return None
+    y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+    try:
+        datetime.date(y, mo, d)
+    except ValueError:
+        return None
+    if m.group(4) is None:
+        return _cal.timegm((y, mo, d, 0, 0, 0))
+    hh, mi, ss = int(m.group(4)), int(m.group(5)), int(m.group(6) or 0)
+    tz = m.group(8)
+    if tz is None:
+        return _time.mktime((y, mo, d, hh, mi, ss, 0, 0, -1))
+    epoch = _cal.timegm((y, mo, d, hh, mi, ss))
+    if tz != "Z":
+        sign = 1 if tz[0] == "+" else -1
+        digits = tz[1:].replace(":", "")
+        epoch -= sign * (int(digits[:2]) * 3600 + int(digits[2:]) * 60)
+    return epoch
+
+
+def _local_midnight(epoch):
+    """`date.setHours(0,0,0,0)` in the server's local zone (STS:1800-1801)."""
+    lt = _time.localtime(epoch)
+    return _time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1))
+
+
+def _iso_utc(epoch):
+    return _time.strftime("%Y-%m-%dT%H:%M:%S.000Z", _time.gmtime(epoch))
+
+
+def _att_record(student, epoch, status, grade, section, academic_year, marked_by="Clara Classteacher"):
+    return {"_id": _oid(0x900000 + len(ATT) + 1), "studentId": student["_id"],
+            "studentName": f'{student["firstName"]} {student["lastName"]}', "grade": grade, "section": section,
+            "date": _iso_utc(epoch), "status": status, "markedBy": marked_by, "schoolSlug": "demo-school",
+            "academicYear": academic_year, "createdAt": _iso_utc(epoch + 3 * 3600), "updatedAt": _iso_utc(epoch + 3 * 3600), "__v": 0}
+
+
+def _roster_5a():
+    rows = [s for s in STUDENTS if s["currentGrade"] in ("Grade 5", "5") and _norm_section(s["currentSection"]) == "a" and s["status"] == "active"]
+    rows.sort(key=lambda s: int(s["currentRollNumber"]))
+    return rows
+
+
+def seed_attendance(today_count=0):
+    """DUMMY history for Grade 5 A: the last 28 weekdays (not today) with a deterministic mix; plus `today_count` present
+    records for today. Stored with the class strings the app sends (grade 'Grade 5' / section 'A')."""
+    ATT.clear()
+    roster = _roster_5a()
+    today = datetime.date.today()
+    day = today - datetime.timedelta(days=1)
+    made = 0
+    while made < 28:
+        if day.weekday() < 5:
+            midnight = _local_midnight(_cal.timegm((day.year, day.month, day.day, 12, 0, 0)))
+            for idx, s in enumerate(roster):
+                k = (idx * 7 + made * 3) % 29
+                status = "absent" if k == 0 else "late" if k in (1, 2) else "excused" if k == 3 else "half_day" if k == 4 and made % 5 == 0 else "present"
+                ATT[(s["_id"], midnight)] = _att_record(s, midnight, status, "Grade 5", "A", ACADEMIC_YEAR)
+            made += 1
+        day -= datetime.timedelta(days=1)
+    set_today_attendance(today_count)
+
+
+def set_today_attendance(n):
+    today = datetime.date.today()
+    midnight = _local_midnight(_cal.timegm((today.year, today.month, today.day, 12, 0, 0)))
+    for key in [k for k in ATT if k[1] == midnight]:
+        del ATT[key]
+    for s in _roster_5a()[:max(0, n)]:
+        ATT[(s["_id"], midnight)] = _att_record(s, midnight, "present", "Grade 5", "A", ACADEMIC_YEAR)
+
+
+def _resolve_class_scope(account, grade, section):
+    """SCOPE:163-180 resolveClassSectionScope (verified): no class-teacher claim -> pass through unrestricted; else 403 when the
+    requested grade/section differs (normalised, CM) and the RESULT is the claim's own strings (exact match downstream).
+    Section is checked only when both sides have one (SCOPE:175). Returns (grade, section) or an error string."""
+    if not account or not account["classTeacher"]:
+        return grade, section
+    if grade and _norm_grade(grade) != _norm_grade("Grade 5"):
+        return "Access denied. You are the class teacher of your own assigned class only."
+    if section and _norm_section(section) != _norm_section("A"):
+        return "Access denied. You are the class teacher of your own assigned class only."
+    return "Grade 5", "A"
+
+
+def attendance_list_real(account, q):
+    """GET /students/attendance/list  (STC:451-457 -> STS:1825-1852, verified). AttendanceQueryDto STD:284-292 = PaginationDto +
+    studentId?(MongoId) grade? section? from?(ISO) to?(ISO) status? month?('YYYY-MM'); there is NO `date` param (stripped by
+    the whitelist, MAIN:70-74). Filter: schoolSlug, grade/section EXACT (STS:1831-1832; hazard U4), status, month ($gte/$lt
+    local-month bounds) else from ($gte new Date(from)) / to ($lte new Date(to)); sorted date desc; skip/limit.
+    Response { data, meta:{total,page,limit,pages} } (STS:1851)."""
+    def arg(k, d=None):
+        v = q.get(k)
+        return v[0] if v else d
+    try:
+        page = int(arg("page", "1")); limit = int(arg("limit", "20"))
+    except ValueError:
+        return 400, "limit must be a number conforming to the specified constraints"
+    if limit < 1 or limit > 1000:
+        return 400, "limit must not be greater than 1000" if limit > 1000 else "limit must not be less than 1"
+    for k in ("from", "to"):
+        if arg(k) and _js_parse_date(arg(k)) is None:
+            return 400, f"{k} must be a valid ISO 8601 date string"
+    if arg("studentId") and not re.fullmatch(r"[0-9a-f]{24}", arg("studentId")):
+        return 400, "studentId must be a mongodb id"
+    scoped = _resolve_class_scope(account, arg("grade"), arg("section"))
+    if isinstance(scoped, str):
+        return 403, scoped
+    grade, section = scoped
+    rows = list(ATT.values())
+    if arg("studentId"):
+        rows = [r for r in rows if r["studentId"] == arg("studentId")]
+    if grade:
+        rows = [r for r in rows if r["grade"] == grade]
+    if section:
+        rows = [r for r in rows if r["section"] == section]
+    if arg("status"):
+        rows = [r for r in rows if r["status"] == arg("status")]
+    def ep(r):
+        return _js_parse_date(r["date"])
+    if arg("month"):
+        y, mo = [int(x) for x in arg("month").split("-")]
+        lo = _time.mktime((y, mo, 1, 0, 0, 0, 0, 0, -1))
+        hi = _time.mktime((y + (mo == 12), 1 if mo == 12 else mo + 1, 1, 0, 0, 0, 0, 0, -1))
+        rows = [r for r in rows if lo <= ep(r) < hi]
+    else:
+        if arg("from"):
+            rows = [r for r in rows if ep(r) >= _js_parse_date(arg("from"))]
+        if arg("to"):
+            rows = [r for r in rows if ep(r) <= _js_parse_date(arg("to"))]
+    rows.sort(key=lambda r: (ep(r), r["studentName"]), reverse=True)
+    total = len(rows)
+    return 200, {"data": rows[(page - 1) * limit: page * limit],
+                 "meta": {"total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit)}}
+
+
+ATT_STATUSES = ("present", "absent", "late", "excused", "half_day")  # STD:268, ATT:26
+
+
+def attendance_bulk(account, body, academic_year_header):
+    """POST /students/attendance/bulk (STC:481-493 -> STS:1810-1823, verified). Guard: @RolesOrModuleManage('students',
+    STAFF_WRITE_ROLES, allowModuleWide) - teacher passes. Body BulkAttendanceDto STD:277-282: records[] each MarkAttendanceDto
+    STD:261-275: studentId(MongoId) studentName(string) grade(string) section?(string) date(ISO) status(enum) checkInTime? checkOutTime?
+    remarks?; schoolSlug/academicYear/markedBy in the body are NOT validated properties and are stripped (whitelist, MAIN:70-74).
+    academicYear = JWT claim (absent) || header x-academic-year || '2025-26' (STC:30-31, ctx). Every record is class-checked
+    (STC:487-489) with SCOPE:163-180. Upsert key {studentId, date(local midnight), schoolSlug} (STS:1815-1819); `markedBy` is NOT
+    written by bulk (STS:1820 spreads r only). Returns the Mongo BulkWriteResult (HTTP 201) - its JSON shape is UNVERIFIED (U5)
+    and the app does not read it. Validation errors: 400 with the FIRST message only (FLT:43-48)."""
+    recs = body.get("records") if isinstance(body, dict) else None
+    if not isinstance(recs, list):
+        return 400, "records must be an array"
+    for n, r in enumerate(recs):
+        if not isinstance(r, dict) or not re.fullmatch(r"[0-9a-f]{24}", str(r.get("studentId", ""))):
+            return 400, f"records.{n}.studentId must be a mongodb id"
+        if not isinstance(r.get("studentName"), str):
+            return 400, f"records.{n}.studentName must be a string"
+        if not isinstance(r.get("grade"), str):
+            return 400, f"records.{n}.grade must be a string"
+        if r.get("section") is not None and not isinstance(r.get("section"), str):
+            return 400, f"records.{n}.section must be a string"
+        if _js_parse_date(str(r.get("date", ""))) is None:
+            return 400, f"records.{n}.date must be a valid ISO 8601 date string"
+        if r.get("status") not in ATT_STATUSES:
+            return 400, f"records.{n}.status must be one of the following values: {', '.join(ATT_STATUSES)}"
+    for r in recs:
+        scoped = _resolve_class_scope(account, r["grade"], r.get("section"))
+        if isinstance(scoped, str):
+            return 403, scoped
+    year = academic_year_header or "2025-26"
+    upserted = matched = 0
+    for r in recs:
+        epoch = _local_midnight(_js_parse_date(r["date"]))
+        key = (r["studentId"], epoch)
+        student = STUDENTS_BY_ID.get(r["studentId"]) or {"_id": r["studentId"], "firstName": r["studentName"], "lastName": ""}
+        rec = _att_record(student, epoch, r["status"], r["grade"], r.get("section"), year, marked_by="")
+        rec["studentName"] = r["studentName"]
+        rec.pop("markedBy", None)
+        if key in ATT:
+            matched += 1
+            rec["_id"] = ATT[key]["_id"]
+        else:
+            upserted += 1
+        ATT[key] = rec
+    _att_last.update({"academicYearHeader": academic_year_header, "bulkCalls": _att_last["bulkCalls"] + 1,
+                      "lastBulkSize": len(recs)})
+    # UNVERIFIED (U5): shape of mongoose bulkWrite()'s result serialised by Nest. Typical driver BulkWriteResult JSON:
+    return 201, {"ok": 1, "writeErrors": [], "writeConcernErrors": [], "insertedIds": [], "nInserted": 0,
+                 "nUpserted": upserted, "nMatched": matched, "nModified": matched, "nRemoved": 0, "upserted": []}
+
+
+def attendance_summary(student_id, month):
+    """GET /students/:id/attendance/summary?month=YYYY-MM (STC:459-468 -> STS:1854-1864, verified): a BARE ARRAY of
+    { _id: status, count } from $group (no month => ALL years). month bounds are server-local (STS:1857-1858)."""
+    rows = [r for (sid, _), r in ATT.items() if sid == student_id]
+    if month:
+        y, mo = [int(x) for x in month.split("-")]
+        lo = _time.mktime((y, mo, 1, 0, 0, 0, 0, 0, -1))
+        hi = _time.mktime((y + (mo == 12), 1 if mo == 12 else mo + 1, 1, 0, 0, 0, 0, 0, -1))
+        rows = [r for r in rows if lo <= _js_parse_date(r["date"]) < hi]
+    counts = {}
+    for r in rows:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    return [{"_id": k, "count": v} for k, v in counts.items()]
+
+
+def student_360(student_id):
+    """GET /students/:id/360 (STC:154-159 -> STS:1483-1575, verified). { student (WHOLE doc incl. guardians' phone/CNIC/income,
+    medical...), attendance:{summary{status:count}, totalDays, presentDays, percentage(1 dp, (present+late)/total), recent[<=30
+    StudentAttendance, date desc]}, fees:{summary, recent[<=6]}, behaviour:{summary{type:{count,points}}, totalPoints, recent[<=10]},
+    assessments:{recent[<=5]} }. No campus/class check (hardening item 6): 404 'Student not found' only if absent. `fees` is FINANCE
+    DATA the teacher app must ignore. attendance summary is for the student's currentAcademicYear (STS:1496-1500)."""
+    s = STUDENTS_BY_ID.get(student_id)
+    if not s:
+        return 404, "Student not found"
+    mine = sorted([r for (sid, _), r in ATT.items() if sid == student_id], key=lambda r: r["date"], reverse=True)
+    summary = {}
+    for r in mine:
+        summary[r["status"]] = summary.get(r["status"], 0) + 1
+    total = sum(summary.values())
+    present = summary.get("present", 0) + summary.get("late", 0)
+    pct = round((present / total) * 100, 1) if total else 0
+    idx = int(s["currentRollNumber"])
+    beh = [
+        {"_id": _oid(0xb00 + idx * 5 + n), "studentId": student_id, "studentName": s["firstName"], "grade": s["currentGrade"],
+         "section": s["currentSection"], "date": f"2026-09-{10 + n * 4:02d}T00:00:00.000Z", "type": t, "category": c,
+         "description": d, "severity": sev, "actionTaken": "Talked to student (DUMMY)", "parentNotified": False,
+         "resolved": res, "reportedBy": "Sample Teacher", "points": pts, "schoolSlug": "demo-school", "academicYear": ACADEMIC_YEAR}
+        for n, (t, c, d, sev, res, pts) in enumerate([
+            ("positive", "helping", "Helped a classmate with fractions (DUMMY)", "low", True, 5),
+            ("negative", "late_coming", "Arrived 15 minutes late twice this week (DUMMY)", "medium", False, 2),
+            ("neutral", "parent_meeting", "Brief catch-up with guardian (DUMMY)", "low", True, 0),
+        ])
+    ]
+    results = [
+        {"_id": _oid(0xc00 + idx * 3 + n), "studentId": student_id, "studentName": s["firstName"], "grade": s["currentGrade"],
+         "assessmentTitle": title, "assessmentType": typ, "date": f"2026-09-{5 + n * 7:02d}T00:00:00.000Z",
+         "subjectResults": [{"subject": "Mathematics", "maxMarks": 50, "obtainedMarks": 40 - n * 3, "grade": "B"}],
+         "totalMaxMarks": 50, "totalObtainedMarks": 40 - n * 3, "percentage": float(80 - n * 6), "overallGrade": "A" if n == 0 else "B",
+         "schoolSlug": "demo-school", "academicYear": ACADEMIC_YEAR}
+        for n, (title, typ) in enumerate([("Unit 1 test (DUMMY)", "test"), ("Quiz 2 (DUMMY)", "quiz")])
+    ]
+    return 200, {
+        "student": s,
+        "attendance": {"summary": summary, "totalDays": total, "presentDays": present, "percentage": pct, "recent": mine[:30]},
+        "fees": {"summary": {"pending": {"count": 1, "total": 18500}}, "recent": [
+            {"_id": _oid(0xd00 + idx), "studentId": student_id, "month": "2026-10", "feeType": "tuition",
+             "amount": 18500, "netAmount": 18500, "status": "pending"}]},
+        "behaviour": {"summary": {"positive": {"count": 1, "points": 5}, "negative": {"count": 1, "points": 2}},
+                      "totalPoints": 3, "recent": beh},
+        "assessments": {"recent": results},
+    }
+
+
+seed_attendance(0)
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "ElderminStub/1"
 
@@ -593,8 +1016,17 @@ class Handler(BaseHTTPRequestHandler):
         if mode == "slow":
             time.sleep(6)
             return None
-        if mode in ("403", "404", "500"):
-            msgs = {"403": "Forbidden resource", "404": f"Cannot GET (feature {feature} not available)", "500": "Internal server error"}
+        if mode == "drop":  # connection closed without a response -> the app's offline/connection-error path
+            self.close_connection = True
+            try:
+                self.connection.shutdown(2)
+            except OSError:
+                pass
+            return True
+        if mode in ("403", "404", "409", "500"):
+            msgs = {"403": "Forbidden resource", "404": f"Cannot GET (feature {feature} not available)",
+                    "409": "Attendance for this date is locked (UNVERIFIED: backend code never returns 409 here)",
+                    "500": "Internal server error"}
             self._err(int(mode), msgs[mode])
             return True
         return mode if mode == "empty" else None
@@ -605,7 +1037,6 @@ class Handler(BaseHTTPRequestHandler):
             return (q.get(k) or [d])[0]
         routes = {
             "/api/v1/students/class-roster-diagnostic": "roster",
-            "/api/v1/students/attendance/list": "attendance",
             "/api/v1/teaching/assignments": "homework",
             "/api/v1/teaching/lesson-plans": "lessonplans",
             "/api/v1/teaching/ptm/upcoming/mine": "ptm",
@@ -637,8 +1068,6 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, [] if (empty or not who) else timetable_docs(who["staffId"], who["name"])) or True
         if feature == "roster":
             return self._send(200, roster_diagnostic(arg("grade"), arg("section"))) or True
-        if feature == "attendance":
-            return self._send(200, attendance_list(arg("grade"), arg("section"), arg("limit", "20"))) or True
         if feature == "homework" and m_sub:
             r = submissions(m_sub.group(1))
             return (self._err(404, "Assignment not found") if r is None else self._send(200, r)) or True
@@ -674,6 +1103,44 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"unreadCount": 0} if empty else unread_count()) or True
         return False
 
+    def _classroom_get(self, path, q):
+        """Phase 5a routes. Returns True when handled."""
+        m360 = re.fullmatch(r"/api/v1/students/([0-9a-f]{24})/360", path)
+        msum = re.fullmatch(r"/api/v1/students/([0-9a-f]{24})/attendance/summary", path)
+        table = {"/api/v1/students": "students", "/api/v1/students/filters/grades-sections": "studentsgrades",
+                 "/api/v1/students/attendance/list": "attendance"}
+        feature = "student360" if m360 else "attsummary" if msum else table.get(path)
+        if not feature:
+            return False
+        a = self._authed()
+        if not a:
+            return True
+        gate = self._feature_gate(feature)
+        if gate is True:
+            return True
+        empty = gate == "empty"
+        if feature == "studentsgrades":
+            return self._send(200, {"grades": [], "sections": []} if empty else grades_sections()) or True
+        if feature == "students":
+            if empty:
+                return self._send(200, {"data": [], "meta": {"total": 0, "page": 1, "limit": 20, "pages": 0}}) or True
+            status, body = students_list(q, a)
+            return (self._err(status, body) if status != 200 else self._send(200, body)) or True
+        if feature == "attendance":
+            if empty:
+                return self._send(200, {"data": [], "meta": {"total": 0, "page": 1, "limit": 20, "pages": 0}}) or True
+            status, body = attendance_list_real(a, q)
+            return (self._err(status, body) if status != 200 else self._send(200, body)) or True
+        if feature == "attsummary":
+            month = (q.get("month") or [""])[0]
+            if month and not re.fullmatch(r"\d{4}-\d{2}", month):
+                return self._err(500, "Internal server error") or True  # STS:1857 NaN dates -> Mongo cast error (500) - UNVERIFIED
+            return self._send(200, [] if empty else attendance_summary(m360 and m360.group(1) or msum.group(1), month)) or True
+        if feature == "student360":
+            status, body = student_360(m360.group(1))
+            return (self._err(status, body) if status != 200 else self._send(200, body)) or True
+        return False
+
     # -- routing
     def do_GET(self):
         path = urlparse(self.path).path
@@ -688,11 +1155,14 @@ class Handler(BaseHTTPRequestHandler):
             if a["role"] != "teacher":
                 return self._err(403, "Forbidden resource")
             self._send(200, staff_me(a))
+        elif path.startswith("/api/v1/") and self._classroom_get(path, parse_qs(urlparse(self.path).query)):
+            return
         elif path.startswith("/api/v1/") and self._home_get(path, parse_qs(urlparse(self.path).query)):
             return
         elif path == "/__stub/state":
             with _lock:
-                self._send(200, {"classTeacher": {k: v["classTeacher"] for k, v in ACCOUNTS.items()}, **_state})
+                self._send(200, {"classTeacher": {k: v["classTeacher"] for k, v in ACCOUNTS.items()}, **_state,
+                                 "attendance": {"records": len(ATT), **_att_last}})
         else:
             self._err(404, f"Cannot GET {path}")
 
@@ -731,6 +1201,19 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"message": "Password updated - you can now sign in with your new password."})
         if path == "/api/v1/auth/logout":
             return self._send(200, {"message": "Logged out successfully"})
+        if path == "/api/v1/students/attendance/bulk":
+            a = self._authed()
+            if not a:
+                return
+            body = self._json()
+            gate = self._feature_gate("attbulk")
+            if gate is True:
+                return
+            if a["role"] not in ("teacher", "principal"):
+                return self._err(403, "Forbidden resource")
+            with _lock:
+                status, resp = attendance_bulk(a, body, self.headers.get("x-academic-year"))
+            return self._err(status, resp) if status != 201 else self._send(201, resp)
         if path == "/__stub/mode":
             q = parse_qs(u.query)
             with _lock:
@@ -740,6 +1223,7 @@ class Handler(BaseHTTPRequestHandler):
             q = parse_qs(u.query)
             with _lock:
                 _attendance["count"] = int((q.get("count") or ["0"])[0])
+                set_today_attendance(_attendance["count"])
             return self._send(200, _attendance)
         if path == "/__stub/class-teacher":
             q = parse_qs(u.query)
@@ -754,6 +1238,8 @@ class Handler(BaseHTTPRequestHandler):
                 _state["reset_used"] = False
                 _modes.clear()
                 _attendance["count"] = 0
+                seed_attendance(0)
+                _att_last.update({"academicYearHeader": None, "bulkCalls": 0, "lastBulkSize": 0})
                 ACCOUNTS["teacher"]["classTeacher"] = False
                 ACCOUNTS["classteacher"]["classTeacher"] = True
             return self._send(200, {"ok": True})
