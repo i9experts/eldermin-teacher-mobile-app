@@ -48,6 +48,14 @@ tapped without Accessibility access.
 `tool/dev/capture_walkthrough.sh <sim-udid> <out-dir> [test-file]` starts the stub, resets the simulator (uninstall + keychain), runs the
 walkthrough and takes a `simctl` screenshot on every `SHOT:` marker. Walkthroughs sign out through the real More-screen UI.
 
+## Home dashboard (Phase 4)
+The stub also serves the Home endpoints (timetable, class roster/attendance, assignments + submissions, lesson plans,
+PTM, fixtures, threads, unread-count); every response builder in `tool/dev/stub_server.py` cites the backend file:line.
+Force a section into a state: `curl -X POST "localhost:3999/__stub/mode?feature=ptm&value=500"` (ok|empty|403|404|500|slow;
+features: timetable roster attendance homework lessonplans ptm fixtures threads unread) and
+`curl -X POST "localhost:3999/__stub/attendance?count=12"`. `tool/dev/dump_home_fixtures.py` regenerates `test/fixtures/home/`.
+Screenshots: `tool/dev/capture_walkthrough.sh <sim> <out-dir> integration_test/phase4_home_test.dart`.
+
 ## Checks
 ```
 flutter analyze
