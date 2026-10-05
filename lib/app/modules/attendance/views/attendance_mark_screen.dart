@@ -97,7 +97,11 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
-        ..showSnackBar(SnackBar(key: const Key('not_marked_snack'), content: Text('$missing ${missing == 1 ? 'student isn\'t' : 'students aren\'t'} marked yet. Everyone needs a status.')));
+        ..showSnackBar(SnackBar(
+          key: const Key('not_marked_snack'),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 170), // above the bottom bar so it never covers the buttons
+          content: Text('$missing ${missing == 1 ? 'student isn\'t' : 'students aren\'t'} marked yet. Everyone needs a status.')));
       _scrollToFirstUnmarked();
       return;
     }
@@ -112,7 +116,11 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     if (r is SubmitSaved) {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
-        ..showSnackBar(const SnackBar(key: Key('saved_snack'), content: Text('Attendance saved')));
+        ..showSnackBar(const SnackBar(
+          key: Key('saved_snack'),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.fromLTRB(16, 0, 16, 170),
+          content: Text('Attendance saved')));
     }
   }
 

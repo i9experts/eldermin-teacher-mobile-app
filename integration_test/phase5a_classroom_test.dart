@@ -76,12 +76,10 @@ void main() {
     await shot(t, '5a_21_mark_unmarked');
 
     // partially marked
+    const wires = {2: 'absent', 4: 'late', 5: 'excused'};
     for (var i = 0; i < 6; i++) {
-      await tapChip(t, i, 'present');
+      await tapChip(t, i, wires[i] ?? 'present'); // rows are lazy: mark top-down, never revisit a scrolled-away row
     }
-    await tapChip(t, 2, 'absent');
-    await tapChip(t, 4, 'late');
-    await tapChip(t, 5, 'excused');
     await settle(t, 600);
     await shot(t, '5a_22_mark_partial');
 
@@ -101,30 +99,16 @@ void main() {
     // offline error keeps the marks; then retry
     await stub(t, '/__stub/mode?feature=attbulk&value=drop');
     await t.tap(find.byKey(const Key('attendance_confirm_submit')));
-    await waitFor(t, find.byKey(const Key('submit_error_banner')));
+    await waitFor(t, find.byKey(const Key('submit_retry')));
     await settle(t, 800);
     await t.drag(find.byType(Scrollable).last, const Offset(0, 800));
     await settle(t, 600);
     await shot(t, '5a_25_mark_error_marks_kept');
     await stub(t, '/__stub/mode?feature=attbulk&value=ok');
     await t.tap(find.byKey(const Key('submit_retry')));
-    await waitFor(t, find.byKey(const Key('saved_banner')));
+    await waitFor(t, find.text('Saved'));
     await settle(t, 800);
     await shot(t, '5a_26_mark_saved');
-
-    // 403 from the server on save (edit a mark, then save)
-    await stub(t, '/__stub/mode?feature=attbulk&value=403');
-    await tapChip(t, 0, 'absent');
-    await t.tap(find.byKey(const Key('submit_button')));
-    await waitFor(t, find.byKey(const Key('attendance_confirm_dialog')));
-    await t.tap(find.byKey(const Key('attendance_confirm_submit')));
-    await waitFor(t, find.byKey(const Key('submit_error_banner')));
-    await t.drag(find.byType(Scrollable).last, const Offset(0, 800));
-    await settle(t, 800);
-    await shot(t, '5a_27_mark_error_403');
-    await stub(t, '/__stub/mode?feature=attbulk&value=ok');
-    await t.tap(find.byKey(const Key('submit_retry')));
-    await waitFor(t, find.byKey(const Key('saved_banner')));
 
     // ── History ──
     await t.pageBack();
@@ -189,5 +173,26 @@ void main() {
     await settle(t, 2500);
     await shot(t, '5a_60_students_403');
     await stub(t, '/__stub/mode?feature=students&value=ok');
+
+    // ── 403 from the server on save (reopen the mark screen from the hub) ──
+    await t.tap(navLabel('Attendance'));
+    await waitFor(t, find.byKey(const Key('hub_mark_button')));
+    await settle(t, 800);
+    await t.tap(find.byKey(const Key('hub_mark_button')));
+    await waitFor(t, find.byKey(const Key('mark_bottom_bar')));
+    await settle(t, 1500);
+    await stub(t, '/__stub/mode?feature=attbulk&value=403');
+    await tapChip(t, 0, 'absent');
+    await settle(t, 800);
+    await shot(t, '5a_dbg_after_edit');
+    await waitFor(t, find.text('Review & submit'));
+    await t.tap(find.byKey(const Key('submit_button')));
+    await waitFor(t, find.byKey(const Key('attendance_confirm_dialog')));
+    await t.tap(find.byKey(const Key('attendance_confirm_submit')));
+    await waitFor(t, find.byKey(const Key('submit_retry')));
+    await t.drag(find.byType(Scrollable).last, const Offset(0, 800));
+    await settle(t, 800);
+    await shot(t, '5a_27_mark_error_403');
+    await stub(t, '/__stub/mode?feature=attbulk&value=ok');
   });
 }

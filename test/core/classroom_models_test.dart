@@ -255,7 +255,8 @@ void main() {
     // Emulates the backend writer for a server whose local zone is UTC+offset:
     //   date = new Date(wire); date.setHours(0,0,0,0)
     DateTime serverStores(String wire, double offsetHours) {
-      final instant = DateTime.parse(wire).toUtc();
+      // a bare YYYY-MM-DD is UTC midnight for the server (JS `new Date('2026-10-05')`), never device-local
+      final instant = DateTime.parse(wire.length == 10 ? '${wire}T00:00:00Z' : wire).toUtc();
       final local = instant.add(Duration(minutes: (offsetHours * 60).round())); // server wall clock
       final localMidnight = DateTime.utc(local.year, local.month, local.day); // setHours(0,0,0,0) on the wall clock
       return localMidnight.subtract(Duration(minutes: (offsetHours * 60).round()));
