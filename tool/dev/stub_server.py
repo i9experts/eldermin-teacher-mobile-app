@@ -43,6 +43,12 @@ Phase 5a (classroom) features for /__stub/mode: students (GET /students)  studen
   attbulk (POST /students/attendance/bulk).  Extra values: 409 (all) and drop (close the connection: offline path).
   Run with TZ=Asia/Karachi (or America/Los_Angeles ...) to emulate a non-UTC server clock (attendance dates are stored as SERVER-LOCAL midnight).
   GET /__stub/state shows the in-memory attendance record count and the last x-academic-year header the bulk call carried.
+Phase 5b (homework, upload, behaviour) logic lives in stub_5b.py with backend file:line citations. Extra /__stub/mode features:
+  homework (GET /teaching/assignments + /:id/submissions)  hwwrite (POST/PATCH/DELETE /teaching/assignments[/:id])
+  hwgrade (PATCH .../submissions/:sid)  upload (POST /upload/single/:folder)  signedurl (GET /upload/signed-url)
+  behaviour (GET /behaviour/records)  behaviourcreate (POST)  behaviourresolve (PATCH records/:id/resolve)  tarbiyah (GET /behaviour/tarbiyah)
+  Extra values on any feature: 400 (validation-style message), 413 (File too large), 422, 403, 404, 500, drop, slow, empty.
+  GET /__stub/state -> phase5b: counts + the last upload's {folder,fileType,fileSize}.
 Home (Phase 4) endpoints, response shapes mirror
 eldermin-teacher-app-docs/phase4/home-endpoint-shapes.md (citations next to each builder below;
 legend: TS=teaching.service.ts S/TT=schemas/timetable.schema.ts STS=students.service.ts SPS=staff-portal.service.ts ...).
@@ -966,6 +972,10 @@ def student_360(student_id):
 
 seed_attendance(0)
 
+import sys as _sys
+import stub_5b  # Phase 5b logic (homework, upload, behaviour, tarbiyah)
+stub_5b.bind(_sys.modules[__name__])
+
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "ElderminStub/1"
@@ -1023,9 +1033,12 @@ class Handler(BaseHTTPRequestHandler):
             except OSError:
                 pass
             return True
-        if mode in ("403", "404", "409", "500"):
-            msgs = {"403": "Forbidden resource", "404": f"Cannot GET (feature {feature} not available)",
+        if mode in ("400", "403", "404", "409", "413", "422", "500"):
+            msgs = {"400": "title must be a string (stub mode 400: a class-validator style message)",
+                    "403": "Forbidden resource", "404": f"Cannot GET (feature {feature} not available)",
                     "409": "Attendance for this date is locked (UNVERIFIED: backend code never returns 409 here)",
+                    "413": "File too large",
+                    "422": "Unprocessable entity (stub mode 422: the real backend answers validation errors with 400)",
                     "500": "Internal server error"}
             self._err(int(mode), msgs[mode])
             return True
@@ -1069,15 +1082,18 @@ class Handler(BaseHTTPRequestHandler):
         if feature == "roster":
             return self._send(200, roster_diagnostic(arg("grade"), arg("section"))) or True
         if feature == "homework" and m_sub:
-            r = submissions(m_sub.group(1))
-            return (self._err(404, "Assignment not found") if r is None else self._send(200, r)) or True
+            status, body = stub_5b.get_submissions(a, m_sub.group(1))
+            return (self._err(status, body) if status != 200 else self._send(200, body)) or True
         if feature == "homework":
-            return self._send(200, [] if empty else assignments(arg("teacherId"))) or True
+            if empty:
+                return self._send(200, []) or True
+            status, body = stub_5b.list_assignments(a, q)
+            return (self._err(status, body) if status != 200 else self._send(200, body)) or True
         if feature == "lessonplans":
             return self._send(200, [] if empty else lesson_plans(arg("teacherId"), arg("status"))) or True
         if feature == "pendinggrading":
             body = {"total": 0, "items": [], "generatedAt": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")} \
-                if empty else pending_grading(a["staffId"], arg("limit", ""))
+                if empty else stub_5b.pending_grading(a["staffId"], arg("limit", ""))
             return self._send(200, body) or True
         if feature == "mytimetable":
             rng = parse_timetable_query(q)
@@ -1141,6 +1157,98 @@ class Handler(BaseHTTPRequestHandler):
             return (self._err(status, body) if status != 200 else self._send(200, body)) or True
         return False
 
+
+    # -- Phase 5b routes (homework writes, grading, upload, behaviour, tarbiyah). True when handled.
+    def _raw(self):
+        n = int(self.headers.get("Content-Length") or 0)
+        return self.rfile.read(n) if n else b""
+
+    def _reply(self, status, body, ok=200):
+        if status >= 400:
+            return self._err(status, body)
+        if body is None:  # Nest sends an empty body for a null return (resolve of an unknown id)
+            self.send_response(status)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return None
+        return self._send(status, body)
+
+    def _p5b(self, method, path, q):
+        m_asg = re.fullmatch(r"/api/v1/teaching/assignments/([0-9a-f]{24})", path)
+        m_grade = re.fullmatch(r"/api/v1/teaching/assignments/([0-9a-f]{24})/submissions/([0-9a-f]{24})", path)
+        m_up = re.fullmatch(r"/api/v1/upload/single/([A-Za-z0-9_\-]+)", path)
+        m_res = re.fullmatch(r"/api/v1/behaviour/records/([0-9a-f]{24})/resolve", path)
+        m_file = path.startswith("/__stub/files/")
+        feature = None
+        if method == "POST" and path == "/api/v1/teaching/assignments":
+            feature = "hwwrite"
+        elif method in ("PATCH", "DELETE") and m_asg:
+            feature = "hwwrite"
+        elif method == "PATCH" and m_grade:
+            feature = "hwgrade"
+        elif method == "POST" and m_up:
+            feature = "upload"
+        elif method == "GET" and path == "/api/v1/upload/signed-url":
+            feature = "signedurl"
+        elif method == "GET" and path == "/api/v1/behaviour/records":
+            feature = "behaviour"
+        elif method == "POST" and path == "/api/v1/behaviour/records":
+            feature = "behaviourcreate"
+        elif method == "PATCH" and m_res:
+            feature = "behaviourresolve"
+        elif method == "GET" and path == "/api/v1/behaviour/tarbiyah":
+            feature = "tarbiyah"
+        elif method == "GET" and m_file:
+            self.send_response(200)
+            body = b"DUMMY FILE CONTENT (stub)"
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return True
+        if not feature:
+            return False
+        a = self._authed()
+        if not a:
+            return True
+        raw = self._raw() if method in ("POST", "PATCH", "DELETE") else b""
+        gate = self._feature_gate(feature)
+        if gate is True:
+            return True
+        if a["role"] != "teacher":
+            return self._err(403, "Forbidden resource") or True
+        empty = gate == "empty"
+        ctype = self.headers.get("Content-Type") or ""
+        def jbody():
+            try:
+                return json.loads(raw or b"{}")
+            except Exception:
+                return {}
+        with _lock:
+            if feature == "hwwrite" and method == "POST":
+                r = stub_5b.create_assignment(a, jbody())
+            elif feature == "hwwrite" and method == "PATCH":
+                r = stub_5b.update_assignment(a, m_asg.group(1), jbody())
+            elif feature == "hwwrite":
+                r = stub_5b.delete_assignment(a, m_asg.group(1))
+            elif feature == "hwgrade":
+                r = stub_5b.grade_submission(a, m_grade.group(1), m_grade.group(2), jbody())
+            elif feature == "upload":
+                r = stub_5b.upload_single(a, m_up.group(1), ctype, raw)
+            elif feature == "signedurl":
+                host = self.headers.get("Host") or "127.0.0.1"
+                r = stub_5b.signed_url((q.get("key") or [""])[0], f"http://{host}")
+            elif feature == "behaviour":
+                r = (200, {"data": [], "meta": {"total": 0, "page": 1, "limit": 20, "pages": 0}}) if empty else stub_5b.list_records(a, q)
+            elif feature == "behaviourcreate":
+                r = stub_5b.create_record(a, jbody())
+            elif feature == "behaviourresolve":
+                r = stub_5b.resolve_record(a, m_res.group(1), jbody())
+            else:
+                r = (200, {"data": [], "meta": {"total": 0, "page": 1, "limit": 20, "pages": 0}}) if empty else stub_5b.list_tarbiyah(a, q)
+        self._reply(*r)
+        return True
+
     # -- routing
     def do_GET(self):
         path = urlparse(self.path).path
@@ -1155,6 +1263,8 @@ class Handler(BaseHTTPRequestHandler):
             if a["role"] != "teacher":
                 return self._err(403, "Forbidden resource")
             self._send(200, staff_me(a))
+        elif (path.startswith("/api/v1/") or path.startswith("/__stub/files/")) and self._p5b("GET", path, parse_qs(urlparse(self.path).query)):
+            return
         elif path.startswith("/api/v1/") and self._classroom_get(path, parse_qs(urlparse(self.path).query)):
             return
         elif path.startswith("/api/v1/") and self._home_get(path, parse_qs(urlparse(self.path).query)):
@@ -1162,13 +1272,25 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/__stub/state":
             with _lock:
                 self._send(200, {"classTeacher": {k: v["classTeacher"] for k, v in ACCOUNTS.items()}, **_state,
-                                 "attendance": {"records": len(ATT), **_att_last}})
+                                 "attendance": {"records": len(ATT), **_att_last}, "phase5b": stub_5b.state_summary()})
         else:
             self._err(404, f"Cannot GET {path}")
+
+    def do_PATCH(self):
+        path = urlparse(self.path).path
+        if not self._p5b("PATCH", path, parse_qs(urlparse(self.path).query)):
+            self._err(404, f"Cannot PATCH {path}")
+
+    def do_DELETE(self):
+        path = urlparse(self.path).path
+        if not self._p5b("DELETE", path, parse_qs(urlparse(self.path).query)):
+            self._err(404, f"Cannot DELETE {path}")
 
     def do_POST(self):
         u = urlparse(self.path)
         path = u.path
+        if self._p5b("POST", path, parse_qs(u.query)):
+            return
         if path == "/api/v1/auth/login":
             b = self._json()
             email, pw = str(b.get("email", "")).strip().lower(), str(b.get("password", ""))
@@ -1240,6 +1362,7 @@ class Handler(BaseHTTPRequestHandler):
                 _attendance["count"] = 0
                 seed_attendance(0)
                 _att_last.update({"academicYearHeader": None, "bulkCalls": 0, "lastBulkSize": 0})
+                stub_5b.reset()
                 ACCOUNTS["teacher"]["classTeacher"] = False
                 ACCOUNTS["classteacher"]["classTeacher"] = True
             return self._send(200, {"ok": True})
