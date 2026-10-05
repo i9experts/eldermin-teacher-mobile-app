@@ -1,4 +1,3 @@
-import 'package:eldermin_teacher_app/core/models/home/timetable.dart';
 import 'package:eldermin_teacher_app/core/utils/home_time.dart';
 import 'package:eldermin_teacher_app/core/utils/timetable_week.dart';
 import 'package:flutter_test/flutter_test.dart';

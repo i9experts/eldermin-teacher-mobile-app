@@ -170,10 +170,8 @@ void main() {
     final c = await make();
     final slow = <DateTime, Future<MyTimetable> Function()>{};
     repo.myTimetable = (f, t) => slow[f]?.call() ?? Future.value(serverWeek(f, t, {1: mon}));
-    var release = () {};
     slow[DateTime(2026, 10, 4)] = () async {
       await Future<void>.delayed(const Duration(milliseconds: 50));
-      release();
       return serverWeek(DateTime(2026, 10, 4), DateTime(2026, 10, 10), {2: tue});
     };
     final first = c.load();
