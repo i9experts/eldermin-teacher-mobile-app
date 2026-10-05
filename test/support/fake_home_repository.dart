@@ -1,5 +1,6 @@
 import 'package:eldermin_teacher_app/core/models/home/class_snapshot.dart';
 import 'package:eldermin_teacher_app/core/models/home/messaging.dart';
+import 'package:eldermin_teacher_app/core/models/home/pending_grading.dart';
 import 'package:eldermin_teacher_app/core/models/home/teaching.dart';
 import 'package:eldermin_teacher_app/core/models/home/timetable.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
@@ -19,6 +20,11 @@ class FakeHomeRepository extends HomeRepository {
   Future<List<PtmMeeting>> Function(String staffId) ptms = (_) async => [];
   Future<List<Substitution>> Function(String staffId, DateTime from, DateTime to) fixtures =
       (_, __, ___) async => [];
+  /// Default: endpoint "not deployed" (404) so the legacy paths run unless a test opts in.
+  Future<MyTimetable> Function(DateTime from, DateTime to) myTimetable = (_, __) async => failWith(404);
+  Future<PendingGrading> Function() pendingGrading = () async => failWith(404);
+  Future<List<PtmMeeting>> Function(String staffId, DateTime from, DateTime to) ptmRange =
+      (_, __, ___) async => [];
   Future<ThreadsResult> Function() threads = () async => const ThreadsResult();
   Future<int> Function() unread = () async => 0;
 
@@ -28,6 +34,24 @@ class FakeHomeRepository extends HomeRepository {
   Future<List<TimetableDoc>> fetchTeacherTimetable(String staffId) {
     calls.add('timetable:$staffId');
     return timetable(staffId);
+  }
+
+  @override
+  Future<MyTimetable> getMyTimetable(DateTime from, DateTime to) {
+    calls.add('myTimetable');
+    return myTimetable(from, to);
+  }
+
+  @override
+  Future<PendingGrading> getPendingGrading({int? limit}) {
+    calls.add('pendingGrading');
+    return pendingGrading();
+  }
+
+  @override
+  Future<List<PtmMeeting>> fetchPtmsInRange(String staffId, {required DateTime from, required DateTime to}) {
+    calls.add('ptmRange:$staffId');
+    return ptmRange(staffId, from, to);
   }
 
   @override

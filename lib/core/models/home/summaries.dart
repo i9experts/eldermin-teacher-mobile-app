@@ -1,33 +1,71 @@
 import '../../utils/home_time.dart';
+import 'pending_grading.dart';
 import 'teaching.dart';
 
-/// One assignment that still has work to grade.
-class GradingItem {
-  final HomeworkAssignment assignment;
+/// One assignment that still has work to grade (display row; built from
+/// either the pending-grading endpoint or the N+1 fallback).
+class GradingRow {
+  final String assignmentId;
+  final String title;
+  final String subject;
+  final String classLabel;
   final int ungraded;
-  const GradingItem(this.assignment, this.ungraded);
+  const GradingRow({required this.assignmentId, this.title = '', this.subject = '', this.classLabel = '', required this.ungraded});
 }
 
-/// Result of the "homework to grade" aggregation (N+1: see
-/// [selectGradingCandidates]).
+/// Where the homework numbers came from.
+enum GradingSource {
+  /// `GET /staff-portal/homework/pending-grading` (one aggregation, complete).
+  endpoint,
+
+  /// N+1 fallback (assignments list + one `/submissions` call per assignment):
+  /// capped, used ONLY when the endpoint answered 404 (not deployed).
+  fallback,
+}
+
+/// Result of the "homework to grade" lookup.
 class HomeworkToGrade {
-  final List<GradingItem> items; // only assignments with ungraded > 0
+  final List<GradingRow> items; // only assignments with ungraded > 0
   final int totalUngraded;
+  final GradingSource source;
   final int assignmentsChecked;
 
-  /// More candidate assignments existed than the cap, so older ones were not checked.
+  /// Fallback only: more candidate assignments existed than the cap, so older ones were not checked.
   final bool capped;
 
-  /// Submission look-ups that failed (their counts are NOT in [totalUngraded]).
+  /// Fallback only: submission look-ups that failed (their counts are NOT in [totalUngraded]).
   final int failedLookups;
 
   const HomeworkToGrade({
     this.items = const [],
     this.totalUngraded = 0,
+    this.source = GradingSource.fallback,
     this.assignmentsChecked = 0,
     this.capped = false,
     this.failedLookups = 0,
   });
+
+  /// From the new endpoint. `total` (all my assignments) is trusted over the sum of the
+  /// possibly limited `items`.
+  factory HomeworkToGrade.fromPending(PendingGrading p) => HomeworkToGrade(
+        source: GradingSource.endpoint,
+        totalUngraded: p.total,
+        items: [
+          for (final i in p.items.where((i) => i.submittedCount > 0))
+            GradingRow(
+              assignmentId: i.assignmentId,
+              title: i.title,
+              subject: i.subject,
+              classLabel: i.classLabel,
+              ungraded: i.submittedCount,
+            ),
+        ],
+      );
+
+  /// Assignments with ungraded work that are not listed (endpoint `limit` reached).
+  int get unlistedUngraded => source == GradingSource.endpoint
+      ? (totalUngraded - items.fold<int>(0, (a, i) => a + i.ungraded)).clamp(0, 1 << 30)
+      : 0;
 }
 
 /// Max assignments whose submissions are fetched per refresh (each costs one request).

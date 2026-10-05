@@ -51,7 +51,10 @@ class ThreadsResult {
         serverUnreadCount: readInt(j['unreadCount']),
       );
 
-  List<MessageThread> get unreadThreads => items.where((t) => t.staffHasUnread).toList();
+  /// Unread among OPEN threads only (owner decision): the request already sends `status=open`,
+  /// and a `closed` row is dropped here too, so a server that ignored the filter cannot inflate it.
+  List<MessageThread> get unreadThreads =>
+      items.where((t) => t.staffHasUnread && t.status != 'closed').toList();
   int get unreadCount => unreadThreads.length;
 
   /// True when the list was cut at the server limit, so more unread threads may exist.

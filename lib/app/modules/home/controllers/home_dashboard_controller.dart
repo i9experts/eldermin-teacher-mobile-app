@@ -5,6 +5,8 @@ import '../../../../core/models/home/class_snapshot.dart';
 import '../../../../core/models/home/messaging.dart';
 import '../../../../core/models/home/summaries.dart';
 import '../../../../core/models/home/teaching.dart';
+import '../../../../core/network/api_exception.dart';
+import '../../../../core/utils/ptm_agenda.dart';
 import '../../../../core/services/home_repository.dart';
 import '../../../../core/services/permission_service.dart';
 import '../../../../core/utils/home_time.dart';
@@ -137,6 +139,7 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
       loadClassCard();
       loadSubstitutions();
       loadPtms();
+      loadTimetable();
     }
   }
 
@@ -188,10 +191,16 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
   Future<void> loadTimetable() async {
     final id = staffId;
     if (!showTimetable || id == null) return;
-    await _load<List<TeacherPeriod>>(
-      timetable,
-      () async => teacherPeriodsOf(await repo.fetchTeacherTimetable(id), id),
-    );
+    await _load<List<TeacherPeriod>>(timetable, () async {
+      final today = clock();
+      try {
+        // Preferred: my own slots for today's device-local date (split-group-only teachers included).
+        return teacherPeriodsFromTimetable(await repo.getMyTimetable(today, today));
+      } on ApiException catch (e) {
+        if (e.statusCode != 404) rethrow; // 404 = endpoint not deployed yet -> old path
+      }
+      return teacherPeriodsOf(await repo.fetchTeacherTimetable(id), id);
+    });
   }
 
   Future<void> loadClassCard() async {
@@ -224,31 +233,49 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
     await _load<HomeworkToGrade>(
       homework,
       () async {
-        final all = await repo.fetchAssignments(id);
-        final sel = selectGradingCandidates(all, id);
-        final lookups = await Future.wait(sel.picked.map((a) async {
-          try {
-            final subs = await repo.fetchSubmissions(a.id);
-            return GradingItem(a, subs.where((s) => s.isUngraded).length);
-          } catch (_) {
-            return null;
-          }
-        }));
-        final ok = lookups.whereType<GradingItem>().toList();
-        final failed = lookups.length - ok.length;
-        if (sel.picked.isNotEmpty && ok.isEmpty) {
-          throw StateError('all submission look-ups failed');
+        try {
+          return HomeworkToGrade.fromPending(await repo.getPendingGrading());
+        } on ApiException catch (e) {
+          if (e.statusCode != 404) rethrow; // 404 = endpoint not deployed yet -> N+1 fallback
         }
-        final items = ok.where((i) => i.ungraded > 0).toList();
-        return HomeworkToGrade(
-          items: items,
-          totalUngraded: items.fold(0, (a, i) => a + i.ungraded),
-          assignmentsChecked: sel.picked.length,
-          capped: sel.candidates > sel.picked.length,
-          failedLookups: failed,
-        );
+        return _homeworkViaSubmissions(id);
       },
       isEmpty: (h) => h.totalUngraded == 0 && h.failedLookups == 0,
+    );
+  }
+
+  /// Fallback ONLY when `pending-grading` is 404: one assignment list, then one `/submissions` call
+  /// per assignment (capped to [kHomeworkLookupCap]).
+  Future<HomeworkToGrade> _homeworkViaSubmissions(String id) async {
+    final all = await repo.fetchAssignments(id);
+    final sel = selectGradingCandidates(all, id);
+    final lookups = await Future.wait(sel.picked.map((a) async {
+      try {
+        final subs = await repo.fetchSubmissions(a.id);
+        return GradingRow(
+          assignmentId: a.id,
+          title: a.title,
+          subject: a.subject,
+          classLabel: a.classLabel,
+          ungraded: subs.where((s) => s.isUngraded).length,
+        );
+      } catch (_) {
+        return null;
+      }
+    }));
+    final ok = lookups.whereType<GradingRow>().toList();
+    final failed = lookups.length - ok.length;
+    if (sel.picked.isNotEmpty && ok.isEmpty) {
+      throw StateError('all submission look-ups failed');
+    }
+    final items = ok.where((i) => i.ungraded > 0).toList();
+    return HomeworkToGrade(
+      source: GradingSource.fallback,
+      items: items,
+      totalUngraded: items.fold(0, (a, i) => a + i.ungraded),
+      assignmentsChecked: sel.picked.length,
+      capped: sel.candidates > sel.picked.length,
+      failedLookups: failed,
     );
   }
 
@@ -274,10 +301,19 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
   Future<void> loadPtms() async {
     final id = staffId;
     if (!showPtms || id == null) return;
+    // Today's meetings come from the range query (upcoming/mine drops them after UTC midnight,
+    // ptm.service.ts:181); both lists are merged and split by [ptmAgenda].
     await _load<List<PtmMeeting>>(
       ptms,
-      () async => (await repo.fetchUpcomingPtms(id)).where((m) => m.teacherId == id).toList(),
-      isEmpty: (l) => l.isEmpty,
+      () async {
+        final w = ptmTodayWindow(clock());
+        final r = await Future.wait([
+          repo.fetchPtmsInRange(id, from: w.from, to: w.to),
+          repo.fetchUpcomingPtms(id),
+        ]);
+        return [...r[0], ...r[1]].where((m) => m.teacherId == id).toList();
+      },
+      isEmpty: (l) => buildPtmAgenda(l, clock()).isEmpty,
     );
   }
 
@@ -311,7 +347,13 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
     return out;
   }
 
-  // ── Derived ──────────────────────────────────────────────────
+  // ── Derived ──
+  /// Today's / upcoming parent meetings at [now] (recomputed on every tick).
+  PtmAgenda get ptmAgenda {
+    final all = ptms.value.data;
+    return all == null ? const PtmAgenda() : buildPtmAgenda(all, now.value);
+  }
+
   /// Today's periods annotated at [now] (recomputed on every tick / rollover).
   List<TodayPeriod> get todayTimetable {
     final all = timetable.value.data;

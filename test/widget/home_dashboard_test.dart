@@ -14,6 +14,7 @@ import 'package:eldermin_teacher_app/core/models/home/teaching.dart';
 import 'package:eldermin_teacher_app/core/services/home_repository.dart';
 import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
 import 'package:eldermin_teacher_app/core/utils/home_time.dart';
+import 'package:eldermin_teacher_app/core/utils/ptm_agenda.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -104,14 +105,79 @@ void main() {
     });
 
     testWidgets('homework: totals, per-assignment counts and the cap note', (t) async {
-      const a = HomeworkAssignment(id: 'a', title: 'Chapter 3', subject: 'Maths', gradeLevel: 'Grade 5', sectionName: 'A');
       await t.pumpWidget(host(HomeworkCard(
-          data: const HomeworkToGrade(items: [GradingItem(a, 3)], totalUngraded: 3, assignmentsChecked: 10, capped: true, failedLookups: 1),
+          data: const HomeworkToGrade(
+              items: [GradingRow(assignmentId: 'a', title: 'Chapter 3', subject: 'Maths', classLabel: 'Grade 5 - A', ungraded: 3)],
+              totalUngraded: 3,
+              assignmentsChecked: 10,
+              capped: true,
+              failedLookups: 1),
           onOpen: (_) {})));
       expect(find.text('3'), findsOneWidget);
       expect(find.text('3 to grade'), findsOneWidget);
       expect(find.textContaining('10 most recent'), findsOneWidget);
       expect(find.textContaining("Couldn't check 1"), findsOneWidget);
+    });
+
+    testWidgets('homework from the endpoint: per-assignment counts, +N more, unlisted note, no cap note', (t) async {
+      final items = [
+        for (var i = 1; i <= 6; i++) GradingRow(assignmentId: 'a$i', title: 'HW $i', subject: 'Maths', classLabel: 'Grade 5 - A', ungraded: i),
+      ];
+      String? opened;
+      await t.pumpWidget(host(HomeworkCard(
+          data: HomeworkToGrade(items: items, totalUngraded: 30, source: GradingSource.endpoint),
+          onOpen: (r) => opened = r.assignmentId)));
+      expect(find.byKey(const Key('homework_total')), findsOneWidget);
+      expect(find.text('30'), findsOneWidget);
+      expect(find.text('1 to grade'), findsOneWidget);
+      expect(find.text('5 to grade'), findsOneWidget);
+      expect(find.text('HW 6'), findsNothing);
+      expect(find.text('+ 1 more assignment with work to grade.'), findsOneWidget);
+      expect(find.textContaining('9 more waiting'), findsOneWidget); // 30 - (1+..+6)
+      expect(find.textContaining('most recent'), findsNothing);
+      await t.tap(find.text('HW 2'));
+      expect(opened, 'a2');
+    });
+
+    testWidgets('ptm list: Today first, collapsible Earlier today with status chips, then Upcoming', (t) async {
+      PtmMeeting mk(String id, String status, {String start = '09:00', DateTime? d}) => PtmMeeting(
+          id: id, studentName: 'S-$id', guardianName: 'G', scheduledDate: d ?? DateTime.utc(2026, 10, 5), startTime: start, endTime: '09:20', status: status);
+      final agenda = PtmAgenda(
+        remainingToday: [mk('rem', 'confirmed', start: '15:00')],
+        earlierToday: [mk('done', 'completed'), mk('gone', 'no_show', start: '08:00'), mk('late', 'confirmed', start: '07:00')],
+        upcoming: [mk('up', 'requested', d: DateTime.utc(2026, 10, 9))],
+      );
+      await t.pumpWidget(host(PtmList(agenda: agenda, onOpen: (_) {})));
+      expect(find.byKey(const Key('ptm_label_today')), findsOneWidget);
+      expect(find.text('S-rem'), findsOneWidget);
+      expect(find.text('Earlier today (3)'), findsOneWidget);
+      expect(find.text('S-done'), findsNothing, reason: 'collapsed by default');
+      expect(find.text('S-up'), findsOneWidget);
+      expect(find.text('9 Oct · 09:00 - 09:20 · G'), findsOneWidget);
+      // order: Today < Earlier < Upcoming
+      double y(Finder f) => t.getTopLeft(f).dy;
+      expect(y(find.text('S-rem')), lessThan(y(find.text('Earlier today (3)'))));
+      expect(y(find.text('Earlier today (3)')), lessThan(y(find.text('S-up'))));
+      await t.tap(find.byKey(const Key('ptm_earlier_toggle')));
+      await t.pump();
+      expect(find.text('S-done'), findsOneWidget);
+      expect(find.text('Completed'), findsOneWidget);
+      expect(find.text('No-show'), findsOneWidget);
+      expect(find.text('Confirmed'), findsNWidgets(2)); // remaining + the past-by-time one (neutral chip)
+      await t.tap(find.byKey(const Key('ptm_earlier_toggle')));
+      await t.pump();
+      expect(find.text('S-done'), findsNothing);
+    });
+
+    testWidgets('timetable strip shows the split-group label and only A/B slots tagged', (t) async {
+      final periods = [
+        const TodayPeriod(TeacherPeriod(day: 1, startMinutes: 480, endMinutes: 525, subject: 'Maths', classLabel: 'Grade 5 - A', room: '101'), PeriodPhase.later),
+        const TodayPeriod(TeacherPeriod(day: 1, startMinutes: 540, endMinutes: 585, subject: 'Science Lab', classLabel: 'Grade 8', room: 'Lab 2', splitLabel: 'Group 1', weekCycleTag: 'B'), PeriodPhase.later),
+      ];
+      await t.pumpWidget(host(TimetableStrip(periods: periods)));
+      expect(find.text('Room Lab 2 · Group 1'), findsOneWidget);
+      expect(find.text('Week B'), findsOneWidget);
+      expect(find.textContaining('Week'), findsOneWidget);
     });
 
     testWidgets('lesson plans: counts, rejection reason shown only for rejected', (t) async {
@@ -127,7 +193,7 @@ void main() {
 
     testWidgets('ptm list', (t) async {
       final m = PtmMeeting(id: 'p', studentName: 'Sam', scheduledDate: DateTime.utc(2026, 10, 10), startTime: '10:00', endTime: '10:20', status: 'confirmed');
-      await t.pumpWidget(host(PtmList(meetings: [m], onOpen: (_) {})));
+      await t.pumpWidget(host(PtmList(agenda: PtmAgenda(upcoming: [m]), onOpen: (_) {})));
       expect(find.text('Sam'), findsOneWidget);
       expect(find.text('10 Oct · 10:00 - 10:20'), findsOneWidget);
       expect(find.text('Confirmed'), findsOneWidget);
@@ -170,7 +236,7 @@ void main() {
       expect(find.byKey(const Key('section_loading')), findsWidgets);
       expect(find.text('Good morning, Tess'), findsOneWidget);
       expect(find.text('Monday, 5 October'), findsOneWidget);
-      gate.complete([const PtmMeeting(id: 'p', teacherId: me, studentName: 'Sam')]);
+      gate.complete([PtmMeeting(id: 'p', teacherId: me, studentName: 'Sam', scheduledDate: DateTime.utc(2099, 1, 1), status: 'confirmed')]);
       await t.pump();
       await t.pump();
       expect(find.text('Sam'), findsOneWidget);
@@ -183,14 +249,14 @@ void main() {
       expect(find.text('No substitutions today'), findsOneWidget);
       expect(find.text('Nothing to grade'), findsOneWidget);
       expect(find.text('All caught up'), findsOneWidget);
-      expect(find.text('No upcoming meetings'), findsOneWidget);
+      expect(find.text('No meetings today or coming up'), findsOneWidget);
       expect(find.byKey(const Key('messages_caught_up')), findsOneWidget);
     });
 
     testWidgets('one section failing shows error+Retry while the others render; Retry recovers', (t) async {
       repo = FakeHomeRepository();
       var fail = true;
-      repo.ptms = (_) async => fail ? failWith(500) : [const PtmMeeting(id: 'p', teacherId: me, studentName: 'Sam')];
+      repo.ptms = (_) async => fail ? failWith(500) : [PtmMeeting(id: 'p', teacherId: me, studentName: 'Sam', scheduledDate: DateTime.utc(2099, 1, 1), status: 'confirmed')];
       await _mount(t, repo);
       await t.pump();
       expect(find.byKey(const Key('section_error')), findsOneWidget);

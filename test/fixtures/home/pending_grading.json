@@ -1,0 +1,8 @@
+{
+  "total": 7,
+  "items": [
+    {"assignmentId": "665f00000000000000000a01", "title": "Fractions worksheet", "subject": "Mathematics", "gradeLevel": "Grade 5", "sectionName": "A", "dueDate": "2026-10-01T00:00:00.000Z", "submittedCount": 5, "totalSubmissions": 28, "oldestSubmittedAt": "2026-09-30T07:12:00.000Z"},
+    {"assignmentId": "665f00000000000000000a02", "title": "Quiz 3 corrections", "subject": "Mathematics", "gradeLevel": "Grade 6", "sectionName": null, "dueDate": "2026-10-03T00:00:00.000Z", "submittedCount": 2, "totalSubmissions": 30, "oldestSubmittedAt": null}
+  ],
+  "generatedAt": "2026-10-05T08:00:00.000Z"
+}

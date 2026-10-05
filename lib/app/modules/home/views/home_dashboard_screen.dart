@@ -91,7 +91,7 @@ class HomeDashboardScreen extends GetView<HomeDashboardController> {
                   emptyIcon: Icons.task_alt_rounded,
                   emptyTitle: 'Nothing to grade',
                   emptySubtitle: 'No submissions are waiting.',
-                  builder: (d) => HomeworkCard(data: d, onOpen: (a) => Get.toNamed(Routes.homeworkSubmissionsOf(a.id))),
+                  builder: (d) => HomeworkCard(data: d, onOpen: (a) => Get.toNamed(Routes.homeworkSubmissionsOf(a.assignmentId))),
                 )
               : const SizedBox.shrink()),
           Obx(() => c.showLessonPlans
@@ -108,13 +108,13 @@ class HomeDashboardScreen extends GetView<HomeDashboardController> {
               : const SizedBox.shrink()),
           Obx(() => c.showPtms
               ? SectionView(
-                  title: 'Upcoming parent meetings',
+                  title: 'Parent meetings',
                   state: c.ptms.value,
                   onRetry: c.loadPtms,
                   onSeeAll: () => Get.toNamed(Routes.ptm),
                   emptyIcon: Icons.handshake_outlined,
-                  emptyTitle: 'No upcoming meetings',
-                  builder: (d) => PtmList(meetings: d, onOpen: (m) => Get.toNamed(Routes.ptmDetailOf(m.id))),
+                  emptyTitle: 'No meetings today or coming up',
+                  builder: (_) => PtmList(agenda: c.ptmAgenda, onOpen: (m) => Get.toNamed(Routes.ptmDetailOf(m.id))),
                 )
               : const SizedBox.shrink()),
           Obx(() => SectionView(

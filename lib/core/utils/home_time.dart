@@ -140,6 +140,42 @@ List<TeacherPeriod> teacherPeriodsOf(List<TimetableDoc> docs, String staffId) {
   return out;
 }
 
+/// Flattens the `GET /staff-portal/timetable` response into [TeacherPeriod]s. The server already
+/// filtered to MY slots, so no teacher filtering happens here. Slots keep their own `both|A|B` tag:
+/// 'A'/'B' become the "Week A/B" tag, 'both' stays untagged; the day-level `weekCycle` (always null,
+/// U1) is ignored - which week is current is never guessed. A split slot carries its group name.
+List<TeacherPeriod> teacherPeriodsFromTimetable(MyTimetable t) {
+  final out = <TeacherPeriod>[];
+  for (final d in t.days) {
+    final day = d.dayOfWeek ?? _dayOfDateString(d.date);
+    if (day == null) continue;
+    for (final s in d.slots) {
+      final g = s.splitGroup;
+      out.add(TeacherPeriod(
+        day: day,
+        periodNo: s.periodNo,
+        startMinutes: parseHm(s.startTime),
+        endMinutes: parseHm(s.endTime),
+        startText: s.startTime,
+        endText: s.endTime,
+        classLabel: s.classLabel,
+        subject: s.subject,
+        room: s.roomNo,
+        type: s.type,
+        weekCycleTag: (s.weekCycle == 'A' || s.weekCycle == 'B') ? s.weekCycle : null,
+        splitLabel: g == null ? null : (g.name.isEmpty ? 'Split group' : g.name),
+      ));
+    }
+  }
+  return out;
+}
+
+int? _dayOfDateString(String ymd) {
+  final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(ymd);
+  if (m == null) return null;
+  return DateTime.utc(int.parse(m.group(1)!), int.parse(m.group(2)!), int.parse(m.group(3)!)).weekday % 7;
+}
+
 /// This teacher's periods on [day] (0=Sun..6=Sat), ordered by start time.
 /// Periods whose time cannot be read sort last.
 List<TeacherPeriod> periodsOnDay(List<TeacherPeriod> all, int day) {

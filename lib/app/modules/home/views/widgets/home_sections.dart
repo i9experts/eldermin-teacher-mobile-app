@@ -5,6 +5,7 @@ import '../../../../../core/models/home/summaries.dart';
 import '../../../../../core/models/home/teaching.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/home_time.dart';
+import '../../../../../core/utils/ptm_agenda.dart';
 import '../../../../../core/widgets/app_widgets.dart';
 import '../../../../../core/widgets/hero_card.dart';
 import '../../../../components/custom_text.dart';
@@ -146,29 +147,36 @@ class ClassTeacherCard extends StatelessWidget {
 
 class HomeworkCard extends StatelessWidget {
   final HomeworkToGrade data;
-  final void Function(HomeworkAssignment) onOpen;
+  final void Function(GradingRow) onOpen;
   const HomeworkCard({super.key, required this.data, required this.onOpen});
+
+  static const int _shown = 5;
 
   @override
   Widget build(BuildContext context) {
+    final fallback = data.source == GradingSource.fallback;
+    final more = data.items.length - _shown;
     final notes = <String>[
-      if (data.capped) 'Checked the ${data.assignmentsChecked} most recent assignments only.',
-      if (data.failedLookups > 0) "Couldn't check ${data.failedLookups} assignment(s); counts may be low.",
+      if (fallback && data.capped) 'Checked the ${data.assignmentsChecked} most recent assignments only.',
+      if (fallback && data.failedLookups > 0) "Couldn't check ${data.failedLookups} assignment(s); counts may be low.",
+      if (more > 0) '+ $more more ${more == 1 ? 'assignment' : 'assignments'} with work to grade.',
+      if (data.unlistedUngraded > 0) '${data.unlistedUngraded} more waiting in assignments not listed here.',
     ];
     return Column(children: [
       AppCard(
         child: Row(children: [
-          CustomText(text: '${data.totalUngraded}', fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.primaryColor),
+          CustomText(text: '${data.totalUngraded}', key: const Key('homework_total'), fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.primaryColor),
           const SizedBox(width: 12),
           Expanded(child: CustomText(text: data.totalUngraded == 1 ? 'submission waiting to be graded' : 'submissions waiting to be graded', color: AppColors.muted, fontSize: 12)),
         ]),
       ),
-      for (final i in data.items.take(3))
+      for (final i in data.items.take(_shown))
         _row(
-          title: i.assignment.title.isEmpty ? 'Untitled assignment' : i.assignment.title,
-          subtitle: [i.assignment.subject, i.assignment.classLabel].where((e) => e.isNotEmpty).join(' · '),
+          key: ValueKey('grading_${i.assignmentId}'),
+          title: i.title.isEmpty ? 'Untitled assignment' : i.title,
+          subtitle: [i.subject, i.classLabel].where((e) => e.isNotEmpty).join(' · '),
           trailing: AppTag('${i.ungraded} to grade', style: TagStyle.amber),
-          onTap: () => onOpen(i.assignment),
+          onTap: () => onOpen(i),
         ),
       for (final n in notes) Padding(padding: const EdgeInsets.only(bottom: 4), child: CustomText(text: n, color: AppColors.faint, fontSize: 10.5)),
     ]);
@@ -205,26 +213,79 @@ class LessonPlansCard extends StatelessWidget {
   }
 }
 
-class PtmList extends StatelessWidget {
-  final List<PtmMeeting> meetings;
+/// Parent meetings: remaining today first, then a collapsible "Earlier today" group (already past
+/// or completed/cancelled/no_show, with a status chip), then later upcoming meetings.
+class PtmList extends StatefulWidget {
+  final PtmAgenda agenda;
   final void Function(PtmMeeting) onOpen;
-  const PtmList({super.key, required this.meetings, required this.onOpen});
+  const PtmList({super.key, required this.agenda, required this.onOpen});
 
   @override
-  Widget build(BuildContext context) => Column(children: [
-        for (final m in meetings.take(3))
-          _row(
-            title: m.studentName.isEmpty ? 'Parent meeting' : m.studentName,
-            subtitle: [
-              if (m.scheduledDate != null) shortUtcDateOf(m.scheduledDate!),
-              if (m.timeRange.isNotEmpty) m.timeRange,
-              if (m.guardianName.isNotEmpty) m.guardianName,
-            ].join(' · '),
-            trailing: AppTag(m.status == 'confirmed' ? 'Confirmed' : 'Requested',
-                style: m.status == 'confirmed' ? TagStyle.green : TagStyle.amber),
-            onTap: () => onOpen(m),
-          ),
-      ]);
+  State<PtmList> createState() => _PtmListState();
+}
+
+class _PtmListState extends State<PtmList> {
+  bool _earlierOpen = false;
+
+  static (String, TagStyle) _status(String s) => switch (s) {
+        'confirmed' => ('Confirmed', TagStyle.green),
+        'requested' => ('Requested', TagStyle.amber),
+        'completed' => ('Completed', TagStyle.green),
+        'cancelled' => ('Cancelled', TagStyle.red),
+        'no_show' => ('No-show', TagStyle.red),
+        _ => (s.isEmpty ? 'Unknown' : s, TagStyle.neutral),
+      };
+
+  Widget _label(String text, {Key? key, Widget? trailing, VoidCallback? onTap}) => InkWell(
+        key: key,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 6),
+          child: Row(children: [
+            Expanded(child: CustomText(text: text, fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.muted)),
+            if (trailing != null) trailing,
+          ]),
+        ),
+      );
+
+  Widget _meeting(PtmMeeting m, {bool today = false, bool dim = false}) {
+    final (label, style) = _status(m.status);
+    return _row(
+      key: ValueKey('ptm_${m.id}'),
+      title: m.studentName.isEmpty ? 'Parent meeting' : m.studentName,
+      subtitle: [
+        if (!today && m.scheduledDate != null) shortUtcDateOf(m.scheduledDate!),
+        if (m.timeRange.isNotEmpty) m.timeRange,
+        if (m.guardianName.isNotEmpty) m.guardianName,
+      ].join(' · '),
+      trailing: AppTag(label, style: dim && (m.status == 'confirmed' || m.status == 'requested') ? TagStyle.neutral : style),
+      onTap: () => widget.onOpen(m),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final a = widget.agenda;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (a.remainingToday.isNotEmpty) ...[
+        _label('Today', key: const Key('ptm_label_today')),
+        for (final m in a.remainingToday.take(5)) _meeting(m, today: true),
+      ],
+      if (a.earlierToday.isNotEmpty) ...[
+        _label(
+          'Earlier today (${a.earlierToday.length})',
+          key: const Key('ptm_earlier_toggle'),
+          onTap: () => setState(() => _earlierOpen = !_earlierOpen),
+          trailing: Icon(_earlierOpen ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: AppColors.faint, size: 20),
+        ),
+        if (_earlierOpen) for (final m in a.earlierToday) _meeting(m, today: true, dim: true),
+      ],
+      if (a.upcoming.isNotEmpty) ...[
+        _label('Upcoming', key: const Key('ptm_label_upcoming')),
+        for (final m in a.upcoming.take(3)) _meeting(m),
+      ],
+    ]);
+  }
 }
 
 class SubstitutionsCard extends StatelessWidget {

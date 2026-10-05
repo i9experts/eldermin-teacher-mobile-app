@@ -50,11 +50,19 @@ String _utcKey(DateTime d) {
 }
 
 /// True when the meeting's UTC date OR local date equals [now]'s local calendar date.
+///
+/// Guard: a value at exactly 00:00:00.000Z is the documented "picked day" form, so only its UTC
+/// date counts. Without this, in zones behind UTC (e.g. UTC-7) tomorrow's midnight-UTC meeting
+/// would have a LOCAL date of today and be shown as today's. The local-date tolerance therefore
+/// applies only to values that carry a time of day (i.e. were stored from local midnight).
 bool isPtmToday(PtmMeeting m, DateTime now) {
   final d = m.scheduledDate;
   if (d == null) return false;
   final today = dateKeyOf(now);
-  return _utcKey(d) == today || dateKeyOf(d.toLocal()) == today;
+  if (_utcKey(d) == today) return true;
+  final u = d.toUtc();
+  final isUtcMidnight = u.hour == 0 && u.minute == 0 && u.second == 0 && u.millisecond == 0;
+  return !isUtcMidnight && dateKeyOf(d.toLocal()) == today;
 }
 
 /// A today meeting is over when its status is closed, or its end time (parseable) is not after now.

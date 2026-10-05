@@ -1,0 +1,17 @@
+{
+  "from": "2026-10-05",
+  "to": "2026-10-05",
+  "days": [
+    {
+      "date": "2026-10-05",
+      "dayOfWeek": 1,
+      "weekCycle": null,
+      "slots": [
+        {"timetableId": "665f00000000000000000001", "gradeLevel": "Grade 5", "sectionName": "A", "periodNo": 1, "startTime": "08:00", "endTime": "08:40", "subject": "Mathematics", "roomNo": "101", "type": "regular", "weekCycle": "both", "splitGroup": null},
+        {"timetableId": "665f00000000000000000002", "gradeLevel": "Grade 7", "sectionName": "B", "periodNo": 3, "startTime": "09:20", "endTime": "10:00", "subject": "Languages", "roomNo": "205", "type": "regular", "weekCycle": "A", "splitGroup": {"name": "French", "subject": "Languages", "roomNo": "205"}},
+        {"timetableId": "665f00000000000000000002", "gradeLevel": "Grade 7", "sectionName": "B", "periodNo": 3, "startTime": "09:20", "endTime": "10:00", "subject": "Languages", "roomNo": "206", "type": "regular", "weekCycle": "B", "splitGroup": null},
+        {"timetableId": "665f00000000000000000003", "gradeLevel": "Grade 8", "sectionName": null, "periodNo": 5, "startTime": "11:30", "endTime": "12:10", "subject": "Science Lab", "roomNo": "Lab 2", "type": "lab", "weekCycle": "both", "splitGroup": {"name": "Group 2", "subject": "Science Lab", "roomNo": "Lab 2"}}
+      ]
+    }
+  ]
+}

@@ -5,6 +5,8 @@ import 'package:eldermin_teacher_app/app/modules/home/controllers/home_dashboard
 import 'package:eldermin_teacher_app/app/modules/home/models/section_state.dart';
 import 'package:eldermin_teacher_app/core/models/home/class_snapshot.dart';
 import 'package:eldermin_teacher_app/core/models/home/messaging.dart';
+import 'package:eldermin_teacher_app/core/models/home/pending_grading.dart';
+import 'package:eldermin_teacher_app/core/models/home/summaries.dart';
 import 'package:eldermin_teacher_app/core/models/home/teaching.dart';
 import 'package:eldermin_teacher_app/core/models/home/timetable.dart';
 import 'package:eldermin_teacher_app/core/utils/home_time.dart';
@@ -53,7 +55,7 @@ void main() {
     repo.assignments = (_) async => [hw(1)];
     repo.submissions = (_) async => [const HomeworkSubmission(id: 's', status: 'submitted'), const HomeworkSubmission(id: 't', status: 'graded')];
     repo.lessonPlans = (_, st) async => [LessonPlan(id: st, teacherId: me, status: st, topic: st)];
-    repo.ptms = (_) async => [const PtmMeeting(id: 'p', teacherId: me, studentName: 'S')];
+    repo.ptms = (_) async => [PtmMeeting(id: 'p', teacherId: me, studentName: 'S', scheduledDate: DateTime.utc(2099, 1, 1), status: 'confirmed')];
     repo.fixtures = (_, __, ___) async => [const Substitution(id: 'f', substituteTeacherId: me, status: 'assigned')];
     final t = await make();
     await t.c.loadAll();
@@ -71,7 +73,7 @@ void main() {
 
   test('independent failure: one failing section does not affect the others', () async {
     repo.timetable = (_) async => failWith(500);
-    repo.ptms = (_) async => [const PtmMeeting(id: 'p', teacherId: me)];
+    repo.ptms = (_) async => [PtmMeeting(id: 'p', teacherId: me, scheduledDate: DateTime.utc(2099, 1, 1), status: 'confirmed')];
     final t = await make();
     await t.c.loadAll();
     expect(t.c.timetable.value.status, SectionStatus.error);
@@ -83,7 +85,7 @@ void main() {
 
   test('error then retry succeeds; 403 -> forbidden; 404 -> unavailable', () async {
     var fail = true;
-    repo.ptms = (_) async => fail ? failWith(500) : [const PtmMeeting(id: 'p', teacherId: me)];
+    repo.ptms = (_) async => fail ? failWith(500) : [PtmMeeting(id: 'p', teacherId: me, scheduledDate: DateTime.utc(2099, 1, 1), status: 'confirmed')];
     repo.assignments = (_) async => failWith(403);
     repo.fixtures = (_, __, ___) async => failWith(404);
     final t = await make();
@@ -195,13 +197,217 @@ void main() {
     repo.ptms = (_) async {
       final call = ++n;
       await Future<void>.delayed(Duration(milliseconds: call == 1 ? 60 : 5));
-      return [PtmMeeting(id: 'call$call', teacherId: me)];
+      return [PtmMeeting(id: 'call$call', teacherId: me, scheduledDate: DateTime.utc(2099, 1, 1), status: 'confirmed')];
     };
     final t = await make();
     final first = t.c.loadPtms();
     final second = t.c.loadPtms();
     await Future.wait([first, second]);
     expect(t.c.ptms.value.data!.single.id, 'call2');
+  });
+
+  group('homework: pending-grading endpoint with 404-only fallback', () {
+    final pending = PendingGrading(total: 7, items: [
+      const PendingGradingItem(assignmentId: 'a1', title: 'Fractions', gradeLevel: 'Grade 5', sectionName: 'A', submittedCount: 5, totalSubmissions: 28),
+      const PendingGradingItem(assignmentId: 'a2', title: 'Quiz', gradeLevel: 'Grade 6', submittedCount: 2, totalSubmissions: 30),
+    ]);
+
+    test('uses the endpoint: total + per-assignment counts, no N+1 calls', () async {
+      repo.pendingGrading = () async => pending;
+      final t = await make();
+      await t.c.loadHomework();
+      final h = t.c.homework.value.data!;
+      expect(h.source, GradingSource.endpoint);
+      expect(h.totalUngraded, 7);
+      expect(h.items.map((i) => (i.assignmentId, i.ungraded)), [('a1', 5), ('a2', 2)]);
+      expect(repo.calls, ['pendingGrading']);
+    });
+
+    test('endpoint with nothing pending -> empty state, still no N+1', () async {
+      repo.pendingGrading = () async => const PendingGrading();
+      final t = await make();
+      await t.c.loadHomework();
+      expect(t.c.homework.value.status, SectionStatus.empty);
+      expect(repo.calls.any((c) => c.startsWith('assignments')), isFalse);
+    });
+
+    test('404 (not deployed) -> falls back to the N+1 path and marks the source', () async {
+      repo.assignments = (_) async => [hw(1), hw(2)];
+      repo.submissions = (id) async => [
+            const HomeworkSubmission(id: 's', status: 'submitted'),
+            if (id == 'a1') const HomeworkSubmission(id: 't', status: 'late'),
+          ];
+      final t = await make();
+      await t.c.loadHomework();
+      final h = t.c.homework.value.data!;
+      expect(h.source, GradingSource.fallback);
+      expect(h.totalUngraded, 3);
+      expect(h.items.map((i) => (i.assignmentId, i.ungraded)), [('a1', 2), ('a2', 1)]);
+      expect(repo.calls.take(2), ['pendingGrading', 'assignments:$me']);
+    });
+
+    test('404 and an empty fallback shows nothing fabricated (empty state)', () async {
+      final t = await make();
+      await t.c.loadHomework();
+      expect(t.c.homework.value.status, SectionStatus.empty);
+    });
+
+    test('500 and 403 do NOT trigger the fallback', () async {
+      for (final code in [500, 403]) {
+        repo = FakeHomeRepository();
+        repo.pendingGrading = () async => failWith(code);
+        final t = await make();
+        await t.c.loadHomework();
+        expect(t.c.homework.value.status, code == 403 ? SectionStatus.forbidden : SectionStatus.error);
+        expect(repo.calls, ['pendingGrading']);
+        Get.reset();
+        Get.testMode = true;
+      }
+    });
+  });
+
+  group('today timetable: staff-portal/timetable with 404-only fallback', () {
+    MyTimetable day(List<TimetableSlot> slots) =>
+        MyTimetable(from: '2026-10-05', to: '2026-10-05', days: [TimetableDay(date: '2026-10-05', dayOfWeek: 1, slots: slots)]);
+
+    test('uses the endpoint with the device-local date; renders split-only slot and A/B tags', () async {
+      DateTime? asked;
+      repo.myTimetable = (from, to) async {
+        asked = from;
+        expect(to, from);
+        return day(const [
+          TimetableSlot(periodNo: 1, startTime: '08:00', endTime: '08:45', subject: 'Maths', gradeLevel: 'Grade 5', sectionName: 'A', roomNo: '101'),
+          TimetableSlot(periodNo: 2, startTime: '09:00', endTime: '09:45', subject: 'Languages', gradeLevel: 'Grade 7', weekCycle: 'A', splitGroup: SlotSplitGroup(name: 'French', roomNo: '205')),
+        ]);
+      };
+      final t = await make();
+      await t.c.loadTimetable();
+      expect(asked, now);
+      final today = t.c.todayTimetable;
+      expect(today, hasLength(2));
+      expect(today[0].period.weekCycleTag, isNull);
+      expect(today[0].phase, PeriodPhase.current);
+      expect(today[1].period.weekCycleTag, 'A');
+      expect(today[1].period.splitLabel, 'French');
+      expect(repo.calls, ['myTimetable'], reason: 'no old-path call when the endpoint works');
+    });
+
+    test('empty day: data state with no periods (the screen shows "No classes today")', () async {
+      repo.myTimetable = (_, __) async => day(const []);
+      final t = await make();
+      await t.c.loadTimetable();
+      expect(t.c.timetable.value.hasData, isTrue);
+      expect(t.c.todayTimetable, isEmpty);
+    });
+
+    test('404 -> old teacher-timetable path, client-filtered', () async {
+      repo.timetable = (_) async => [timetableDoc()];
+      final t = await make();
+      await t.c.loadTimetable();
+      expect(repo.calls, ['myTimetable', 'timetable:$me']);
+      expect(t.c.todayTimetable.single.period.subject, 'Maths');
+    });
+
+    test('500/403 do NOT fall back', () async {
+      for (final code in [500, 403]) {
+        repo = FakeHomeRepository();
+        repo.myTimetable = (_, __) async => failWith(code);
+        final t = await make();
+        await t.c.loadTimetable();
+        expect(t.c.timetable.value.status, code == 403 ? SectionStatus.forbidden : SectionStatus.error);
+        expect(repo.calls, ['myTimetable']);
+        Get.reset();
+        Get.testMode = true;
+      }
+    });
+
+    test('midnight rollover reloads the timetable for the new date', () async {
+      now = DateTime(2026, 10, 5, 23, 59, 50);
+      final dates = <DateTime>[];
+      repo.myTimetable = (from, _) async {
+        dates.add(from);
+        return day(const []);
+      };
+      final t = await make();
+      await t.c.loadAll();
+      now = DateTime(2026, 10, 6, 0, 0, 5);
+      t.c.advanceClock();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(dates.map((d) => d.day), [5, 6]);
+    });
+  });
+
+  group('PTMs: today window merged with upcoming', () {
+    PtmMeeting ptm(String id, DateTime d, String start, String end, String status, {String teacher = me}) => PtmMeeting(
+        id: id, teacherId: teacher, studentName: id, scheduledDate: d, startTime: start, endTime: end, status: status);
+    final today = DateTime.utc(2026, 10, 5);
+
+    test('range + upcoming merged, deduped, foreign teacher filtered; today (08:10) split by clock', () async {
+      DateTime? from, to;
+      repo.ptmRange = (_, f, t) async {
+        from = f;
+        to = t;
+        return [
+          ptm('done_early', today, '07:00', '07:20', 'completed'),
+          ptm('remaining', today, '14:00', '14:20', 'confirmed'),
+          ptm('dup', DateTime.utc(2026, 10, 7), '09:00', '09:20', 'requested'),
+          ptm('foreign', today, '15:00', '15:20', 'confirmed', teacher: 'someone-else'),
+        ];
+      };
+      repo.ptms = (_) async => [
+            ptm('dup', DateTime.utc(2026, 10, 7), '09:00', '09:20', 'requested'),
+            ptm('later', DateTime.utc(2026, 10, 9), '10:00', '10:20', 'confirmed'),
+          ];
+      final t = await make();
+      await t.c.loadPtms();
+      final a = t.c.ptmAgenda;
+      expect(a.remainingToday.map((m) => m.id), ['remaining']);
+      expect(a.earlierToday.map((m) => m.id), ['done_early']);
+      expect(a.upcoming.map((m) => m.id), ['dup', 'later']);
+      expect(!from!.isAfter(DateTime.utc(2026, 10, 5)) && !to!.isBefore(DateTime.utc(2026, 10, 5, 23, 59, 59)), isTrue);
+      expect(repo.calls, containsAll(['ptmRange:$me', 'ptms:$me']));
+    });
+
+    test('a today meeting that upcoming/mine already dropped is still shown (comes from the range)', () async {
+      repo.ptmRange = (_, __, ___) async => [ptm('today_only', today, '09:00', '09:20', 'confirmed')];
+      final t = await make();
+      await t.c.loadPtms();
+      expect(t.c.ptmAgenda.remainingToday.single.id, 'today_only');
+    });
+
+    test('advancing the injected clock moves a meeting from remaining to earlier', () async {
+      repo.ptmRange = (_, __, ___) async => [ptm('x', today, '09:00', '09:20', 'confirmed')];
+      final t = await make();
+      await t.c.loadPtms();
+      expect(t.c.ptmAgenda.remainingToday, hasLength(1));
+      now = DateTime(2026, 10, 5, 9, 30);
+      t.c.advanceClock();
+      expect(t.c.ptmAgenda.earlierToday.single.id, 'x');
+      expect(t.c.ptmAgenda.remainingToday, isEmpty);
+    });
+
+    test('empty on both sources -> empty state; failure of either source -> error', () async {
+      var t = await make();
+      await t.c.loadPtms();
+      expect(t.c.ptms.value.status, SectionStatus.empty);
+      Get.reset();
+      Get.testMode = true;
+      repo = FakeHomeRepository();
+      repo.ptmRange = (_, __, ___) async => failWith(500);
+      t = await make();
+      await t.c.loadPtms();
+      expect(t.c.ptms.value.status, SectionStatus.error);
+    });
+  });
+
+  test('messages badge counts OPEN threads only (request is status=open; closed rows ignored)', () async {
+    repo.threads = () async => const ThreadsResult(items: [
+          MessageThread(id: '1', staffHasUnread: true, status: 'open'),
+          MessageThread(id: '2', staffHasUnread: true, status: 'closed'),
+        ]);
+    final t = await make();
+    await t.badges.refreshAll();
+    expect(t.badges.messagesUnread, 1);
   });
 
   group('badges', () {
