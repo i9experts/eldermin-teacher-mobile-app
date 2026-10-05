@@ -27,6 +27,10 @@ class ModuleEntry {
   /// False = slot exists in the route list but is hidden in v1.
   final bool enabledInV1;
 
+  /// True once the module has a real screen. False = the route still opens the honest
+  /// "still being built" shell, and the Classes grid labels it "Coming soon".
+  final bool built;
+
   const ModuleEntry({
     required this.id,
     required this.title,
@@ -38,6 +42,7 @@ class ModuleEntry {
     this.subModuleKey,
     this.classTeacherOnly = false,
     this.enabledInV1 = true,
+    this.built = false,
   });
 
   bool isVisibleTo(PermissionService permissions, {required bool isClassTeacher}) {
@@ -53,7 +58,8 @@ class ModuleCatalog {
 
   static const List<ModuleEntry> all = [
     // ── Classes tab ──
-    ModuleEntry(id: 'students', title: 'My students', subtitle: 'Roster and Student 360', icon: Icons.groups_rounded, route: Routes.students, placement: ModulePlacement.classes, permission: 'students:view'),
+    ModuleEntry(id: 'students', title: 'My students', subtitle: 'Roster and Student 360', icon: Icons.groups_rounded, route: Routes.students, placement: ModulePlacement.classes, permission: 'students:view', built: true),
+    ModuleEntry(id: 'attendance', title: 'Attendance', subtitle: 'Mark and review your class', icon: Icons.fact_check_outlined, route: Routes.attendance, placement: ModulePlacement.classes, permission: 'students:view', classTeacherOnly: true, built: true),
     ModuleEntry(id: 'homework', title: 'Homework', subtitle: 'Assign and grade', icon: Icons.menu_book_rounded, route: Routes.homework, placement: ModulePlacement.classes, permission: 'teaching:view'),
     ModuleEntry(id: 'lesson_plans', title: 'Lesson plans', subtitle: 'Plan and submit', icon: Icons.edit_note_rounded, route: Routes.lessonPlans, placement: ModulePlacement.classes, permission: 'teaching:view'),
     ModuleEntry(id: 'syllabus', title: 'Syllabus', subtitle: 'Track coverage', icon: Icons.checklist_rounded, route: Routes.syllabus, placement: ModulePlacement.classes, permission: 'teaching:view'),
@@ -61,7 +67,7 @@ class ModuleCatalog {
     ModuleEntry(id: 'behaviour', title: 'Behaviour & Tarbiyah', subtitle: 'Log and review', icon: Icons.emoji_events_rounded, route: Routes.behaviour, placement: ModulePlacement.classes, permission: 'behaviour:view'),
 
     // ── More tab ──
-    ModuleEntry(id: 'timetable', title: 'Timetable', subtitle: 'Your weekly schedule', icon: Icons.calendar_view_week_rounded, route: Routes.timetable, placement: ModulePlacement.more, permission: 'teaching:view'),
+    ModuleEntry(id: 'timetable', title: 'Timetable', subtitle: 'Your weekly schedule', icon: Icons.calendar_view_week_rounded, route: Routes.timetable, placement: ModulePlacement.more, permission: 'teaching:view', built: true),
     ModuleEntry(id: 'student_leaves', title: 'Student leave requests', subtitle: 'Approve or reject', icon: Icons.event_busy_rounded, route: Routes.studentLeaves, placement: ModulePlacement.more, permission: 'teaching:view', classTeacherOnly: true),
     ModuleEntry(id: 'ptm', title: 'Parent meetings', subtitle: 'Schedule and outcomes', icon: Icons.handshake_rounded, route: Routes.ptm, placement: ModulePlacement.more, permission: 'teaching:view'),
     ModuleEntry(id: 'fixtures', title: 'Substitutions', subtitle: 'Cover duties', icon: Icons.swap_horiz_rounded, route: Routes.fixtures, placement: ModulePlacement.more, permission: 'teaching:view'),
