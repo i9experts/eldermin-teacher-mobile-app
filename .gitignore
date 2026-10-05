@@ -69,3 +69,4 @@ tool/dev/.env
 tool/dev/.env.*
 !tool/dev/.env.staging.example
 tool/dev/*.secret
+tool/dev/out/
