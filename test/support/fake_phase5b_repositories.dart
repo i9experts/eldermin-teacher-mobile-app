@@ -4,7 +4,6 @@ import 'package:eldermin_teacher_app/core/models/json_helpers.dart';
 import 'package:eldermin_teacher_app/core/services/attachment_picker.dart';
 import 'package:eldermin_teacher_app/core/services/behaviour_repository.dart';
 import 'package:eldermin_teacher_app/core/services/homework_repository.dart';
-import 'package:eldermin_teacher_app/core/utils/roster_scope.dart';
 
 Assignment asg(String id, {String title = 'Worksheet', String status = 'assigned', String? due = '2026-10-10', String teacherId = '64a0000000000000000000a1',
         String subject = 'Mathematics', String grade = 'Grade 5', String section = 'A', int count = 0, List<String> keys = const [], double total = 100, double passing = 50}) =>
@@ -120,7 +119,7 @@ class FakePicker implements AttachmentPicker {
 }
 
 class FakeBehaviourRepository extends BehaviourRepository {
-  Future<List<BehaviourRecord>> Function(ClassRef cls, List<String> grades) classRecords = (_, __) async => [];
+  Future<List<BehaviourRecord>> Function(String grade) gradeRecords = (_) async => [];
   Future<List<BehaviourRecord>> Function(String studentId) studentRecords = (_) async => [];
   Future<BehaviourRecord> Function(Map<String, Object?> body) onCreate =
       (b) async => BehaviourRecord.fromJson({'_id': 'new1', ...b});
@@ -129,9 +128,9 @@ class FakeBehaviourRepository extends BehaviourRepository {
   final bodies = <Map<String, Object?>>[];
 
   @override
-  Future<List<BehaviourRecord>> fetchClassRecords(ClassRef cls, {required List<String> grades}) {
-    calls.add('class:${cls.label}:${grades.join('|')}');
-    return classRecords(cls, grades);
+  Future<List<BehaviourRecord>> fetchGradeRecords(String rawGrade) {
+    calls.add('grade:$rawGrade');
+    return gradeRecords(rawGrade);
   }
 
   @override

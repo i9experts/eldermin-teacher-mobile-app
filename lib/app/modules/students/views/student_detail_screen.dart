@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/classroom/attendance_models.dart';
 import '../../../../core/models/classroom/student_360.dart';
+import '../../../../core/services/permission_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/timetable_week.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/custom_text.dart';
+import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../../attendance/views/widgets/attendance_widgets.dart';
 import '../controllers/student_detail_controller.dart';
@@ -80,7 +82,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
         const SubHeading('Attendance'),
         _AttendanceCard(d: d.attendance, month: month, monthLabel: _monthLabel(c.monthStart)),
         const SubHeading('Recent behaviour'),
-        _BehaviourCard(b: d.behaviour),
+        _BehaviourCard(b: d.behaviour, studentId: d.student.id),
         const SubHeading('Recent results'),
         _ResultsCard(results: d.results),
         const SubHeading('Guardians'),
@@ -227,12 +229,34 @@ class _AttendanceCard extends StatelessWidget {
 
 class _BehaviourCard extends StatelessWidget {
   final Behaviour360 b;
-  const _BehaviourCard({required this.b});
+  final String studentId;
+  const _BehaviourCard({required this.b, required this.studentId});
 
   @override
   Widget build(BuildContext context) {
+    // The 360 reads the student-profile behaviour log (collection student_behaviour, students.service.ts:1517-1531), which is a
+    // DIFFERENT store from the Behaviour & Tarbiyah records the parent app and this app's "Behaviour" module use
+    // (collection behaviour_records). The link below opens the latter.
+    final canOpen = Get.isRegistered<PermissionService>() && Get.find<PermissionService>().canAccess('behaviour:view');
+    final link = canOpen
+        ? Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const Key('student_behaviour_history'),
+              onPressed: () => Get.toNamed(Routes.behaviourStudentOf(studentId)),
+              icon: const Icon(Icons.history_rounded, size: 18),
+              label: const CustomText(text: 'Behaviour history and Tarbiyah', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 12),
+            ),
+          )
+        : const SizedBox.shrink();
     if (b.recent.isEmpty) {
-      return const AppCard(key: Key('student_behaviour'), child: CustomText(text: 'No behaviour records.', color: AppColors.muted, fontSize: 12));
+      return AppCard(
+        key: const Key('student_behaviour'),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const CustomText(text: 'No behaviour records on the student profile.', color: AppColors.muted, fontSize: 12),
+          link,
+        ]),
+      );
     }
     return AppCard(
       key: const Key('student_behaviour'),
@@ -255,6 +279,7 @@ class _BehaviourCard extends StatelessWidget {
               if (i.type == 'negative' && !i.resolved) const AppTag('Open', style: TagStyle.amber),
             ]),
           ),
+        link,
       ]),
     );
   }

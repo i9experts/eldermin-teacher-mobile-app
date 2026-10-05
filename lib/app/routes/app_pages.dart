@@ -218,11 +218,11 @@ class AppPages {
     GetPage(
         name: Routes.behaviourNew,
         page: () => const BehaviourNewScreen(),
-        binding: BehaviourBinding()),
+        binding: BehaviourLogBinding()),
     GetPage(
         name: Routes.behaviourStudent,
         page: () => const BehaviourStudentScreen(),
-        binding: BehaviourBinding()),
+        binding: BehaviourStudentBinding()),
     GetPage(
         name: Routes.ptm,
         page: () => const PtmScreen(),

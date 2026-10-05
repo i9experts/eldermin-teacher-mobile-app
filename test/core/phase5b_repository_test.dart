@@ -1,13 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:eldermin_teacher_app/core/models/behaviour/behaviour_models.dart';
 import 'package:eldermin_teacher_app/core/models/homework/homework_models.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/network/base_client.dart';
 import 'package:eldermin_teacher_app/core/services/behaviour_repository.dart';
 import 'package:eldermin_teacher_app/core/services/homework_repository.dart';
-import 'package:eldermin_teacher_app/core/utils/roster_scope.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 dynamic fx(String n) => jsonDecode(File('test/fixtures/phase5b/$n.json').readAsStringSync());
@@ -153,19 +151,14 @@ void main() {
   });
 
   group('BehaviourRepository', () {
-    const cls = ClassRef(grade: 'Grade 5', section: 'A');
     final recs = fx('behaviour_records') as Map<String, dynamic>;
 
-    test('class records: one request per raw grade variant, scoped client-side, de-duplicated, newest first', () async {
+    test('grade records: exact raw grade, limit 100, pages bounded, newest first from the server', () async {
       final c = _Client((m, p, q, b) => recs);
-      final out = await BehaviourRepository(c).fetchClassRecords(cls, grades: const ['Grade 5', '5']);
-      expect(c.calls.map((x) => x.q!['grade']).toSet(), {'Grade 5', '5'});
-      expect(c.calls.every((x) => x.q!['limit'] == 100 && x.path == '/behaviour/records'), isTrue);
-      expect(out.every(cls.containsRecord), isTrue);
-      expect(out.map((r) => r.id).toSet().length, out.length);
-      expect(out.any((r) => r.studentName.contains('') && r.section == 'B'), isFalse);
-      final days = out.map((r) => r.day!).toList();
-      expect([...days]..sort((a, b) => b.compareTo(a)), days);
+      final out = await BehaviourRepository(c).fetchGradeRecords('Grade 5');
+      expect(c.calls.single.q, {'grade': 'Grade 5', 'limit': 100, 'page': 1});
+      expect(c.calls.single.path, '/behaviour/records');
+      expect(out, hasLength(8)); // NOT scoped here: the controller re-scopes with the class matcher
     });
 
     test('pages until meta.pages (bounded)', () async {
@@ -174,7 +167,7 @@ void main() {
         n++;
         return {'data': [], 'meta': {'total': 500, 'page': '$n', 'limit': '100', 'pages': 5}};
       });
-      await BehaviourRepository(c).fetchClassRecords(cls, grades: const ['Grade 5']);
+      await BehaviourRepository(c).fetchGradeRecords('Grade 5');
       expect(n, BehaviourRepository.maxPagesPerGrade);
     });
 

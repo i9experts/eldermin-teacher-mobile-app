@@ -4,7 +4,6 @@ import '../models/behaviour/behaviour_models.dart';
 import '../models/json_helpers.dart';
 import '../network/dio_exception_handler.dart';
 import '../network/base_client.dart';
-import '../utils/roster_scope.dart';
 
 /// Behaviour & Tarbiyah (store B: `BehaviourRecord`, the one the parent app reads).
 ///
@@ -24,24 +23,17 @@ class BehaviourRepository {
     }
   }
 
-  /// Records of the students of [cls]: `GET /behaviour/records?grade=<raw variant>&limit=100&page=n` once per raw grade string that
-  /// normalises to the class (the `grade` filter is an EXACT string match and there is NO section / reporter / class filter,
-  /// behaviour.service.ts:154-193), then re-scoped client-side with the tolerant class matcher so nothing about other classes
-  /// is ever returned. Newest first. [grades] = the raw variants (from [queryVariants]).
-  Future<List<BehaviourRecord>> fetchClassRecords(ClassRef cls, {required List<String> grades}) => _guard(() async {
-        final seen = <String>{};
+  /// Every record of the campus whose `grade` string is EXACTLY [rawGrade]: `GET /behaviour/records?grade=&limit=100&page=n`, newest first,
+  /// at most [maxPagesPerGrade] pages (behaviour.service.ts:154-193). The route has NO section, class or reporter filter and does not
+  /// scope to the caller's classes, so callers MUST re-scope the result with the tolerant class matcher ([ClassRef.containsRecord]).
+  Future<List<BehaviourRecord>> fetchGradeRecords(String rawGrade) => _guard(() async {
         final out = <BehaviourRecord>[];
-        for (final g in grades) {
-          for (var page = 1; page <= maxPagesPerGrade; page++) {
-            final res = await _client.get(ApiConstants.behaviourRecords, queryParameters: {'grade': g, 'limit': pageSize, 'page': page});
-            final p = BehaviourPage.fromJson(asJsonMap(res.data));
-            for (final r in p.records) {
-              if (r.id.isNotEmpty && cls.containsRecord(r) && seen.add(r.id)) out.add(r);
-            }
-            if (page >= p.pages) break;
-          }
+        for (var page = 1; page <= maxPagesPerGrade; page++) {
+          final res = await _client.get(ApiConstants.behaviourRecords, queryParameters: {'grade': rawGrade, 'limit': pageSize, 'page': page});
+          final p = BehaviourPage.fromJson(asJsonMap(res.data));
+          out.addAll(p.records);
+          if (page >= p.pages) break;
         }
-        out.sort((a, b) => (b.day ?? DateTime(0)).compareTo(a.day ?? DateTime(0)));
         return out;
       });
 
