@@ -9,7 +9,7 @@
 //   flutter test integration_test/phase3_demo_test.dart -d <simulator-id> \
 //     --dart-define=API_BASE_URL=http://localhost:3999
 import 'package:eldermin_teacher_app/app/common/services/deep_link_service.dart';
-import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/more/views/more_screen.dart';
 import 'package:eldermin_teacher_app/main.dart' as app;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -53,8 +53,19 @@ Future<void> signIn(WidgetTester t, String email, String password) async {
   await settle(t, 800);
 }
 
-Future<void> signOutViaController(WidgetTester t) async {
-  Get.find<AuthController>().logout();
+/// Signs out through the real UI: More tab -> "Sign out" tile -> confirm
+/// dialog -> "Sign out". [shotName] captures the confirmation dialog.
+Future<void> signOutViaUi(WidgetTester t, {String? shotName}) async {
+  await t.tap(find.text('More'));
+  await waitFor(t, find.byType(MoreScreen));
+  await settle(t, 500);
+  await t.scrollUntilVisible(find.byKey(const Key('more_sign_out')), 200,
+      scrollable: find.descendant(of: find.byType(MoreScreen), matching: find.byType(Scrollable)));
+  await settle(t, 500);
+  await t.tap(find.byKey(const Key('more_sign_out')));
+  await waitFor(t, find.text('Sign out of Eldermin Teacher?'));
+  if (shotName != null) await shot(t, shotName, ms: 1200);
+  await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
   await waitFor(t, find.text('Sign in'));
   await settle(t);
 }
@@ -136,14 +147,14 @@ void main() {
     print('STUB:/__stub/class-teacher?email=teacher@stub.test&value=false');
     await t.pump(const Duration(seconds: 1));
 
-    await signOutViaController(t);
+    await signOutViaUi(t, shotName: '21_sign_out_confirmation_dialog');
 
     // ── Class teacher login ──
     await signIn(t, 'classteacher@stub.test', 'StubPass123');
     await waitFor(t, find.text('Attendance'));
     await settle(t, 1500);
     await shot(t, '13_home_class_teacher_attendance_tab');
-    await signOutViaController(t);
+    await signOutViaUi(t);
 
     // ── Unsupported role ──
     await signIn(t, 'principal@stub.test', 'StubPass123');
@@ -184,7 +195,15 @@ void main() {
     await waitFor(t, find.text('Attendance'), seconds: 30);
     await settle(t, 1500);
     await shot(t, '18_token_login_deeplink_home_class_teacher');
-    await signOutViaController(t);
+
+    // A token link while signed in -> confirmation (never a silent switch). Cancel keeps the session.
+    await openLink(t, 'eldermin-teacher://login?token=stub.teacher.dummy&slug=demo-school');
+    await waitFor(t, find.text('Switch account?'));
+    await shot(t, '22_deeplink_switch_account_dialog', ms: 1200);
+    await t.tap(find.byKey(const Key('confirm_dialog_cancel')));
+    await settle(t, 800);
+    expect(find.text('Attendance'), findsWidgets, reason: 'Cancel keeps the signed-in session');
+    await signOutViaUi(t);
 
     // Rejected token -> clear error, Login.
     await openLink(t, 'eldermin-teacher://login?token=stub.expired.dummy&slug=demo-school');

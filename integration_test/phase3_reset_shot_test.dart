@@ -9,7 +9,6 @@
 //   flutter test integration_test/phase3_demo_test.dart -d <simulator-id> \
 //     --dart-define=API_BASE_URL=http://localhost:3999
 import 'package:eldermin_teacher_app/app/common/services/deep_link_service.dart';
-import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
 import 'package:eldermin_teacher_app/main.dart' as app;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,12 +50,6 @@ Future<void> signIn(WidgetTester t, String email, String password) async {
   await t.enterText(tf('Password'), password);
   await t.tap(find.text('Sign in'));
   await settle(t, 800);
-}
-
-Future<void> signOutViaController(WidgetTester t) async {
-  Get.find<AuthController>().logout();
-  await waitFor(t, find.text('Sign in'));
-  await settle(t);
 }
 
 void main() {
