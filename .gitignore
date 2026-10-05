@@ -63,3 +63,9 @@ dart_defines*.json
 
 # Dev-only stub credentials/fixtures (Phase 3)
 lib/dev/local/
+
+# Staging/dev credentials for local tooling ONLY (never commit; never print values)
+tool/dev/.env
+tool/dev/.env.*
+!tool/dev/.env.staging.example
+tool/dev/*.secret
