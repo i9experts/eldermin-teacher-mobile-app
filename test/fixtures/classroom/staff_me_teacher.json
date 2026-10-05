@@ -1,0 +1,56 @@
+{
+ "user": {
+  "id": "64a000000000000000000001",
+  "name": "Tess Teacher",
+  "email": "teacher@stub.test",
+  "role": "teacher",
+  "avatarUrl": null
+ },
+ "staffId": "64a0000000000000000000a1",
+ "teacherProfileId": "64a0000000000000000000b1",
+ "teacherProfile": {
+  "employeeId": "EMP-STUB",
+  "designation": "Teacher",
+  "department": "Science",
+  "photoUrl": null,
+  "subjectsCanTeach": [
+   "Science"
+  ],
+  "gradeLevelsCanTeach": [
+   "5"
+  ],
+  "currentAssignments": [
+   {
+    "sectionId": "64a0000000000000000005a1",
+    "sectionName": "A",
+    "subjectName": "Mathematics",
+    "gradeLevel": "Grade 5",
+    "periodsPerWeek": 5
+   },
+   {
+    "sectionId": "64a0000000000000000006b1",
+    "sectionName": "B",
+    "subjectName": "Science",
+    "gradeLevel": "Grade 6",
+    "periodsPerWeek": 4
+   }
+  ],
+  "status": "active",
+  "isClassTeacher": false,
+  "classTeacherOf": null
+ },
+ "department": "Science",
+ "campus": {
+  "id": "64a0000000000000000000c1",
+  "name": "Main Campus"
+ },
+ "institution": {
+  "name": "Demo School (STUB)",
+  "slug": "demo-school",
+  "plan": "pro",
+  "activeModules": [
+   "teaching",
+   "students"
+  ]
+ }
+}

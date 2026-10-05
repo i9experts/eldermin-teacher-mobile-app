@@ -1,0 +1,18 @@
+[
+ {
+  "_id": "absent",
+  "count": 1
+ },
+ {
+  "_id": "excused",
+  "count": 1
+ },
+ {
+  "_id": "present",
+  "count": 24
+ },
+ {
+  "_id": "late",
+  "count": 2
+ }
+]
