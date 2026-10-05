@@ -1,0 +1,55 @@
+{
+ "data": [
+  {
+   "_id": "64f000000000000000000900",
+   "studentId": "64f000000000000000000200",
+   "studentName": "Aarav Ahmed (DUMMY)",
+   "grade": "Grade 5",
+   "campusId": "64a0000000000000000000c1",
+   "section": "A",
+   "period": "Term 1 2026-27",
+   "periodType": "termly",
+   "assessmentDate": "2026-09-15T00:00:00.000Z",
+   "traits": [
+    {
+     "traitKey": "sidq",
+     "score": 5,
+     "observation": "Always honest (DUMMY)"
+    },
+    {
+     "traitKey": "adab",
+     "score": 4
+    },
+    {
+     "traitKey": "sabr",
+     "score": 3
+    }
+   ],
+   "overallScore": 4.0,
+   "overallPercentage": 75.0,
+   "overallRating": "good",
+   "teacherObservations": "A kind and thoughtful student (DUMMY).",
+   "areasOfStrength": [
+    "Truthfulness"
+   ],
+   "areasForImprovement": [
+    "Patience"
+   ],
+   "recommendedActions": "",
+   "assessedBy": "Clara Classteacher",
+   "assessedById": "64a000000000000000000002",
+   "parentShared": false,
+   "schoolSlug": "demo-school",
+   "academicYear": "2026-27",
+   "createdAt": "2026-09-15T07:00:00.000Z",
+   "updatedAt": "2026-09-15T07:00:00.000Z",
+   "__v": 0
+  }
+ ],
+ "meta": {
+  "total": 1,
+  "page": 1,
+  "limit": 20,
+  "pages": 1
+ }
+}

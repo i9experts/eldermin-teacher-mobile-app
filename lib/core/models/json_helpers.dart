@@ -45,3 +45,22 @@ DateTime? readDate(Object? v) {
 
 /// `String` that is never null ('' when missing) - for display fields.
 String readText(Object? v) => readString(v) ?? '';
+
+/// Number reader that accepts ints, doubles and numeric strings (Mongo numbers arrive as JSON numbers).
+double? readNum(Object? v) {
+  if (v is num) return v.toDouble();
+  return double.tryParse(v?.toString() ?? '');
+}
+
+/// The calendar day (y/m/d) a backend `Date` was WRITTEN for, when the writer sent a plain `YYYY-MM-DD` (the web does and so
+/// does this app): Mongo stores UTC midnight, so the UTC components of the stored instant ARE the day, whatever the device
+/// timezone. Returned as a local-midnight [DateTime] of that y/m/d (compare with `DateTime(now.year, now.month, now.day)`).
+DateTime? storedCalendarDay(DateTime? instant) {
+  if (instant == null) return null;
+  final u = instant.toUtc();
+  return DateTime(u.year, u.month, u.day);
+}
+
+/// `YYYY-MM-DD` of a local calendar date: the wire form for date-only fields (valid for `@IsDateString`, stored as UTC midnight).
+String wireDay(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

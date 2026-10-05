@@ -1,0 +1,10 @@
+{
+ "success": true,
+ "data": {
+  "url": "https://eldermin-files.s3.ap-south-1.amazonaws.com/demo-school/homework-attachments/f7907f46-1dbf-4ff5-a4bd-a56ef5f1ead6.pdf",
+  "key": "demo-school/homework-attachments/f7907f46-1dbf-4ff5-a4bd-a56ef5f1ead6.pdf",
+  "fileName": "w.pdf",
+  "fileSize": 3,
+  "fileType": "application/pdf"
+ }
+}
