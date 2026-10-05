@@ -150,19 +150,19 @@ class AppPages {
     GetPage(
         name: Routes.homeworkNew,
         page: () => const HomeworkNewScreen(),
-        binding: HomeworkBinding()),
+        binding: HomeworkFormBinding()),
     GetPage(
         name: Routes.homeworkDetail,
         page: () => const HomeworkDetailScreen(),
-        binding: HomeworkBinding()),
+        binding: HomeworkDetailBinding()),
     GetPage(
         name: Routes.homeworkSubmissions,
         page: () => const HomeworkSubmissionsScreen(),
-        binding: HomeworkBinding()),
+        binding: SubmissionsBinding()),
     GetPage(
         name: Routes.homeworkGrade,
         page: () => const HomeworkGradeScreen(),
-        binding: HomeworkBinding()),
+        binding: SubmissionsBinding()),
     GetPage(
         name: Routes.lessonPlans,
         page: () => const LessonPlansScreen(),

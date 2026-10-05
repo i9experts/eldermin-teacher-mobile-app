@@ -23,6 +23,7 @@ class HarnessApi extends AuthApiService {
   String role = 'teacher';
   List<String>? permissions;
   List<Map<String, Object?>> assignments = const [];
+  List<String> subjects = const [];
 
   @override
   Future<AuthMe> fetchAuthMe({String? token}) async =>
@@ -44,6 +45,7 @@ class HarnessApi extends AuthApiService {
         'campus': {'id': 'c1', 'name': 'Main Campus'},
         'teacherProfile': {
           'isClassTeacher': classTeacher,
+          'subjectsCanTeach': subjects,
           'currentAssignments': assignments,
           'classTeacherOf': classTeacher
               ? {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionName': 'A', 'label': 'Grade 5 - A'}
