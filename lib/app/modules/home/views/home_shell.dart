@@ -12,6 +12,7 @@ import '../../messages/views/messages_screen.dart';
 import '../../more/views/more_screen.dart';
 import '../../timetable/views/timetable_screen.dart';
 import '../bindings/home_binding.dart';
+import '../controllers/home_badges_controller.dart';
 import '../controllers/home_shell_controller.dart';
 import 'home_dashboard_screen.dart';
 
@@ -28,12 +29,14 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   late final HomeShellController shell;
+  late final HomeBadgesController badges;
 
   @override
   void initState() {
     super.initState();
     HomeBinding().dependencies();
     shell = Get.find<HomeShellController>();
+    badges = Get.find<HomeBadgesController>();
     if (widget.initialTab != 0) shell.changeTab(widget.initialTab);
   }
 
@@ -92,10 +95,15 @@ class _HomeShellState extends State<HomeShell> {
                     color: Colors.white.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(13),
                     border: Border.all(color: Colors.white.withOpacity(0.13))),
-                // No unread badge until the notifications module (Phase 7)
-                // can supply a real count - never a fake dot.
-                child: const Center(
-                    child: Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20)),
+                // Badge only from the real unread-count endpoint; none when
+                // unavailable (404/501, not deployed yet) or zero.
+                child: Center(
+                  child: Obx(() => _CountBadge(
+                        key: const Key('bell_badge'),
+                        count: badges.notificationUnread.value,
+                        child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20),
+                      )),
+                ),
               ),
             ),
           ),
@@ -140,7 +148,11 @@ class _HomeShellState extends State<HomeShell> {
               items: [
                 for (var i = 0; i < icons.length; i++)
                   BottomNavigationBarItem(
-                    icon: AnimatedContainer(
+                    icon: _CountBadge(
+                      key: i == HomeShellController.messagesTab ? const Key('messages_badge') : null,
+                      count: i == HomeShellController.messagesTab ? badges.messagesUnread : null,
+                      capped: i == HomeShellController.messagesTab && badges.messagesUnreadCapped,
+                      child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
@@ -152,6 +164,7 @@ class _HomeShellState extends State<HomeShell> {
                         size: 20,
                         color: shell.tabIndex.value == i ? AppColors.blue : AppColors.faint,
                       ),
+                    ),
                     ),
                     label: labels[i],
                   ),
@@ -187,5 +200,21 @@ class _Avatar extends StatelessWidget {
           ? fallback
           : Image.network(url!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => fallback),
     );
+  }
+}
+
+/// Small red count over [child]; nothing when [count] is null or 0.
+class _CountBadge extends StatelessWidget {
+  final int? count;
+  final bool capped;
+  final Widget child;
+  const _CountBadge({super.key, required this.count, required this.child, this.capped = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final n = count ?? 0;
+    if (n <= 0) return child;
+    final text = n > 99 ? '99+' : '$n${capped ? '+' : ''}';
+    return Badge(label: Text(text), backgroundColor: AppColors.red, child: child);
   }
 }

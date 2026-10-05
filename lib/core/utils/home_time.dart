@@ -181,3 +181,9 @@ List<TodayPeriod> annotatePeriods(List<TeacherPeriod> periods, DateTime now) {
 /// Convenience: today's annotated periods for the device-local [now].
 List<TodayPeriod> todayPeriods(List<TeacherPeriod> all, DateTime now) =>
     annotatePeriods(periodsOnDay(all, dayIndexOf(now)), now);
+
+/// "10 Oct" for a date the backend stores as a UTC calendar date (PTM, fixtures).
+String shortUtcDateOf(DateTime d) {
+  final u = d.toUtc();
+  return '${u.day} ${_months[u.month - 1].substring(0, 3)}';
+}

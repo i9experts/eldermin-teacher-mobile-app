@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/home/class_snapshot.dart';
 import '../../../../core/models/home/messaging.dart';
@@ -8,6 +8,8 @@ import '../../../../core/models/home/teaching.dart';
 import '../../../../core/services/home_repository.dart';
 import '../../../../core/services/permission_service.dart';
 import '../../../../core/utils/home_time.dart';
+import '../../../common/module_catalog.dart';
+import '../../../routes/app_routes.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../models/section_state.dart';
 import 'home_badges_controller.dart';
@@ -286,6 +288,23 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
     );
   }
 
+  /// Permission-filtered shortcuts to existing route shells. Attendance is
+  /// class-teacher only (same rule as the Attendance tab).
+  List<QuickAction> get quickActions {
+    final out = <QuickAction>[];
+    if (auth.isClassTeacher && perms.canAccess('students:view')) {
+      out.add(const QuickAction('Attendance', Icons.fact_check_outlined, Routes.attendance));
+    }
+    const ids = ['homework', 'lesson_plans', 'assessments', 'behaviour', 'leave', 'ptm'];
+    for (final id in ids) {
+      final e = ModuleCatalog.all.firstWhere((m) => m.id == id);
+      if (e.isVisibleTo(perms, isClassTeacher: auth.isClassTeacher)) {
+        out.add(QuickAction(e.title, e.icon, e.route));
+      }
+    }
+    return out;
+  }
+
   // ── Derived ──────────────────────────────────────────────────
   /// Today's periods annotated at [now] (recomputed on every tick / rollover).
   List<TodayPeriod> get todayTimetable {
@@ -293,4 +312,11 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
     if (all == null) return const [];
     return todayPeriods(all, now.value);
   }
+}
+
+class QuickAction {
+  final String label;
+  final IconData icon;
+  final String route;
+  const QuickAction(this.label, this.icon, this.route);
 }
