@@ -68,9 +68,9 @@ class TimetableStrip extends StatelessWidget {
       );
     }
     return Column(children: [
-      for (final tp in periods)
+      for (final (i, tp) in periods.indexed)
         _row(
-          key: Key('period_${tp.period.periodNo}_${tp.period.startText}_${tp.phase.name}'),
+          key: ValueKey('period_$i'),
           highlight: tp.phase == PeriodPhase.current,
           leading: SizedBox(
             width: 50,
