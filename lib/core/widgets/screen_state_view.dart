@@ -23,6 +23,7 @@ class ScreenStateView<T> extends StatelessWidget {
   final String? emptySubtitle;
   final int skeletonRows;
   final EdgeInsets padding;
+  final ScrollController? scrollController;
 
   const ScreenStateView({
     super.key,
@@ -36,6 +37,7 @@ class ScreenStateView<T> extends StatelessWidget {
     this.emptySubtitle,
     this.skeletonRows = 5,
     this.padding = const EdgeInsets.fromLTRB(16, 16, 16, 24),
+    this.scrollController,
   });
 
   @override
@@ -43,6 +45,7 @@ class ScreenStateView<T> extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView(
+        controller: scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: padding,
         children: [...header, ..._body()],

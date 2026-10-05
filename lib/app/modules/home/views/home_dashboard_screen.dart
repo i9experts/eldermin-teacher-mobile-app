@@ -59,7 +59,7 @@ class HomeDashboardScreen extends GetView<HomeDashboardController> {
                   onRetry: c.loadClassCard,
                   emptyTitle: 'No class data',
                   skeletonRows: 1,
-                  builder: (s) => ClassTeacherCard(snap: s, onMarkAttendance: () => Get.toNamed(Routes.attendance)),
+                  builder: (s) => ClassTeacherCard(snap: s, onMarkAttendance: () => Get.toNamed(Routes.attendanceMark)),
                 )
               : const SizedBox.shrink()),
           Obx(() => c.showTimetable

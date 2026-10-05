@@ -87,3 +87,17 @@ bool inAnyClass(StudentSummary s, Iterable<ClassRef> classes) => classes.any((c)
       : pick(known?.sections ?? const [], (s) => sameSection(s, cls.section), cls.section);
   return (grades: grades, sections: sections);
 }
+
+/// The academic year to stamp on attendance records: the most common
+/// `currentAcademicYear` of the roster (student.schema.ts:141). Null when no
+/// student has one - then no header is sent and the server falls back to its
+/// hard-coded default ('2025-26', students.controller.ts:31).
+String? academicYearOf(Iterable<StudentSummary> roster) {
+  final counts = <String, int>{};
+  for (final s in roster) {
+    final y = s.academicYear;
+    if (y != null && y.isNotEmpty) counts[y] = (counts[y] ?? 0) + 1;
+  }
+  if (counts.isEmpty) return null;
+  return (counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
+}
