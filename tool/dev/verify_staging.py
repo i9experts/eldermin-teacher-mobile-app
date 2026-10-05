@@ -363,6 +363,62 @@ EXPECTATIONS = {
         ("meta", D, True, None),
         ("meta.total", I, True, None),
     ],
+    # GET /students?grade=..&section=..&status=active&limit=200 (Phase 5a roster). Backend students.controller.ts:54-59 ->
+    # students.service.ts:515-623 (meta :623). App: lib/core/models/classroom/student_models.dart StudentSummary (whitelist: only
+    # these keys are parsed; fee/guardian/contact keys are NEVER checked or printed).
+    "students_list": [
+        ("data", L, True, None),
+        ("data[]._id", S, True, ("fmt", "id")),
+        ("data[].firstName", S, True, None),
+        ("data[].lastName", S, True, None),
+        ("data[].currentGrade", S, True, None),
+        ("data[].currentSection", SN, False, None),
+        ("data[].currentRollNumber", SN, False, None),
+        ("data[].status", S, False, None),
+        ("data[].currentAcademicYear", SN, False, None),
+        ("meta", D, True, None),
+        ("meta.total", I, True, None),
+        ("meta.pages", I, True, None),
+    ],
+    # GET /students/filters/grades-sections. Backend students.service.ts:450-462. App: GradesSections.
+    "grades_sections": [
+        ("grades", L, True, None),
+        ("sections", L, True, None),
+    ],
+    # GET /students/:id/360 (keys the app parses only). Backend students.service.ts:1483-1575. App: student_360.dart Student360.
+    "student_360": [
+        ("student", D, True, None),
+        ("student._id", S, True, ("fmt", "id")),
+        ("student.firstName", S, True, None),
+        ("student.currentGrade", S, True, None),
+        ("student.guardians", L, False, None),
+        ("student.guardians[].name", S, False, None),
+        ("student.guardians[].relation", S, False, None),
+        ("attendance", D, True, None),
+        ("attendance.totalDays", I, True, None),
+        ("attendance.percentage", {"int", "float"}, True, None),
+        ("attendance.recent", L, True, None),
+        ("behaviour", D, True, None),
+        ("behaviour.recent", L, True, None),
+        ("assessments", D, True, None),
+        ("assessments.recent", L, True, None),
+    ],
+    # GET /students/attendance/list (full record keys the app parses). Backend students.service.ts:1825-1852; schema ATT:14-40.
+    # App: attendance_models.dart AttendanceRecord.
+    "attendance_records": [
+        ("data", L, True, None),
+        ("data[].studentId", S, True, ("fmt", "id")),
+        ("data[].date", S, True, ("fmt", "iso")),
+        ("data[].status", S, True, ("enum", ["present", "absent", "late", "excused", "half_day"])),
+        ("meta", D, True, None),
+        ("meta.total", I, True, None),
+        ("meta.pages", I, True, None),
+    ],
+    # GET /students/:id/attendance/summary?month=YYYY-MM: bare array of {_id: status, count}. Backend students.service.ts:1854-1864.
+    "attendance_summary": [
+        ("[]._id", S, False, None),
+        ("[].count", I, False, None),
+    ],
     # GET /students/class-roster-diagnostic?grade&section. Backend students.service.ts:478-513. App: RosterCount.
     "roster": [
         ("activeCount", I, True, None),
@@ -523,6 +579,26 @@ def run_user(rep, who, base, slug, email, password, class_teacher):
         rep.endpoint(who, "GET /students/class-roster-diagnostic?grade&section", st, b, "roster")
         st, b = get("/students/attendance/list", {**q, "from": frm, "to": to, "limit": 1})
         rep.endpoint(who, "GET /students/attendance/list?grade&section&from&to&limit=1", st, b, "attendance_list")
+        # Phase 5a (all GET, read-only): roster, grades/sections, attendance window (noon-bracket), 360 + summary of ONE roster student.
+        st, b = get("/students/filters/grades-sections")
+        rep.endpoint(who, "GET /students/filters/grades-sections", st, b, "grades_sections")
+        st, roster = get("/students", {"grade": grade, **({"section": section} if section else {}), "status": "active", "limit": 200})
+        rep.endpoint(who, "GET /students?grade&section&status=active&limit=200", st, roster, "students_list")
+        win_from = (today - datetime.timedelta(days=1)).isoformat() + "T12:00:00.000Z"
+        win_to = today.isoformat() + "T12:00:00.000Z"
+        st, b = get("/students/attendance/list", {**q, "from": win_from, "to": win_to, "limit": 1000})
+        rep.endpoint(who, "GET /students/attendance/list?grade&section&from&to (noon window)", st, b, "attendance_records")
+        first = None
+        if st == 200 and isinstance(roster, dict) and isinstance(roster.get("data"), list) and roster["data"]:
+            row = roster["data"][0]
+            first = row.get("_id") if isinstance(row, dict) else None
+        if isinstance(first, str) and _FORMATS["id"].match(first):
+            st, b = get(f"/students/{first}/360")
+            rep.endpoint(who, "GET /students/:id/360", st, b, "student_360")
+            st, b = get(f"/students/{first}/attendance/summary", {"month": today.strftime("%Y-%m")})
+            rep.endpoint(who, "GET /students/:id/attendance/summary?month", st, b, "attendance_summary")
+        else:
+            rep.skip(who, "GET /students/:id/360 and attendance/summary", "no roster student to check")
 
 
 def main(argv):

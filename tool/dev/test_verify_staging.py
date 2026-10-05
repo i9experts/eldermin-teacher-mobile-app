@@ -205,5 +205,28 @@ class ExpectationsTableTests(unittest.TestCase):
         self.assertGreaterEqual(src.count("Backend"), 10)
 
 
+class TestPhase5aExpectations(unittest.TestCase):
+    def test_good_students_list_passes_and_ignores_fee_keys(self):
+        body = {"data": [{"_id": SECRET_ID, "firstName": "A", "lastName": "B", "currentGrade": "Grade 5", "currentSection": "A",
+                          "currentRollNumber": "1", "status": "active", "currentAcademicYear": "2026-27",
+                          "monthlyTuitionFee": 18500, "guardians": [{"phone": "0300"}]}],
+                "meta": {"total": 1, "page": 1, "limit": 200, "pages": 1}}
+        res = v.check_expectations(body, v.EXPECTATIONS["students_list"])
+        self.assertFalse([r for r in res if r[1] == "FAIL"])
+        self.assertFalse(any("monthlyTuitionFee" in r[0] or "phone" in r[0] for r in res))
+
+    def test_drifted_attendance_status_is_caught(self):
+        body = {"data": [{"studentId": SECRET_ID, "date": "2026-10-05T00:00:00.000Z", "status": "holiday"}], "meta": {"total": 1, "pages": 1}}
+        failed = {p for p, st, _ in v.check_expectations(body, v.EXPECTATIONS["attendance_records"]) if st == "FAIL"}
+        self.assertEqual(failed, {"data[].status"})
+
+    def test_360_and_summary_shapes(self):
+        body = {"student": {"_id": SECRET_ID, "firstName": "A", "currentGrade": "5", "guardians": [{"name": "G", "relation": "father"}]},
+                "attendance": {"totalDays": 3, "percentage": 66.7, "recent": []}, "behaviour": {"recent": []}, "assessments": {"recent": []}}
+        self.assertFalse([r for r in v.check_expectations(body, v.EXPECTATIONS["student_360"]) if r[1] == "FAIL"])
+        self.assertFalse([r for r in v.check_expectations([{"_id": "present", "count": 2}], v.EXPECTATIONS["attendance_summary"]) if r[1] == "FAIL"])
+        self.assertFalse([r for r in v.check_expectations([], v.EXPECTATIONS["attendance_summary"]) if r[1] == "FAIL"])
+
+
 if __name__ == "__main__":
     unittest.main()
