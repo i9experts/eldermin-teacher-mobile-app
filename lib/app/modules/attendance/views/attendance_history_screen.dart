@@ -42,6 +42,11 @@ class AttendanceHistoryScreen extends GetView<AttendanceHistoryController> {
     final c = controller;
     final s = c.month.value;
     final cls = c.daily.myClass!;
+    // Reactive reads happen here (inside the Obx); the builder and the calendar run outside its tracking.
+    final selected = c.selectedDay.value;
+    final focused = c.focusedMonth.value;
+    final roster = c.daily.students_;
+    final editable = c.canEditSelected;
     return ScreenStateView<MonthAttendance>(
       state: s,
       onRefresh: c.reload,
@@ -51,19 +56,16 @@ class AttendanceHistoryScreen extends GetView<AttendanceHistoryController> {
       emptySubtitle: 'There are no active students in ${cls.label} yet.',
       header: [
         ScreenHeader(title: 'History', caption: cls.label),
-        _Calendar(controller: c, month: s.data),
+        _Calendar(controller: c, month: s.data, selected: selected, focusedMonth: focused),
         const SizedBox(height: 12),
       ],
-      builder: (m) => _detail(m),
+      builder: (m) => _detail(m, selected, roster, editable),
     );
   }
 
-  List<Widget> _detail(MonthAttendance m) {
+  List<Widget> _detail(MonthAttendance m, DateTime d, List<StudentSummary> roster, bool editable) {
     final c = controller;
-    final d = c.selectedDay.value;
     final day = m.day(ymdOf(d));
-    final roster = c.daily.students_;
-    final editable = c.canEditSelected;
     final title = '${longDateOf(d)}${sameSelected(d, c.today) ? ' · Today' : ''}';
     return [
       SubHeading(title),
@@ -147,7 +149,9 @@ bool sameSelected(DateTime a, DateTime b) => a.year == b.year && a.month == b.mo
 class _Calendar extends StatelessWidget {
   final AttendanceHistoryController controller;
   final MonthAttendance? month;
-  const _Calendar({required this.controller, required this.month});
+  final DateTime selected;
+  final DateTime focusedMonth;
+  const _Calendar({required this.controller, required this.month, required this.selected, required this.focusedMonth});
 
   Color _toneColor(DayTone t) {
     switch (t) {
@@ -175,7 +179,7 @@ class _Calendar extends StatelessWidget {
           firstDay: DateTime.utc(2020, 1, 1),
           lastDay: DateTime.utc(today.year, today.month, today.day),
           focusedDay: _focused(today),
-          selectedDayPredicate: (d) => isSameDay(d, c.selectedDay.value),
+          selectedDayPredicate: (d) => isSameDay(d, selected),
           startingDayOfWeek: StartingDayOfWeek.sunday,
           availableCalendarFormats: const {CalendarFormat.month: 'Month'},
           headerStyle: const HeaderStyle(formatButtonVisible: false, titleCentered: true),
@@ -225,8 +229,8 @@ class _Calendar extends StatelessWidget {
   /// `focusedDay` must lie inside [firstDay, lastDay]: the selected day when it is in the focused month,
   /// else the first of the month, never after today.
   DateTime _focused(DateTime today) {
-    final m = controller.focusedMonth.value;
-    final sel = controller.selectedDay.value;
+    final m = focusedMonth;
+    final sel = selected;
     final f = (sel.year == m.year && sel.month == m.month) ? sel : m;
     return f.isAfter(today) ? today : f;
   }

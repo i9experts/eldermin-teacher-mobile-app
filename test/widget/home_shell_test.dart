@@ -14,7 +14,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:eldermin_teacher_app/app/modules/home/controllers/home_badges_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/home/controllers/home_dashboard_controller.dart';
 import 'package:eldermin_teacher_app/core/services/home_repository.dart';
+import '../support/fake_classroom_repositories.dart';
 import '../support/fake_home_repository.dart';
+import 'package:eldermin_teacher_app/app/modules/attendance/controllers/attendance_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/timetable/controllers/timetable_controller.dart';
 
 class _Tokens implements TokenStore {
   @override
@@ -75,6 +78,8 @@ void main() {
     Get.put<HomeRepository>(repo);
     Get.put(HomeBadgesController(repository: repo, auth: auth, autoPoll: false));
     Get.put(HomeDashboardController(repository: repo, auth: auth, tick: null));
+    Get.put(TimetableController(repository: repo, tick: null));
+    Get.put(AttendanceController(students: FakeStudentsRepository(), attendance: FakeAttendanceRepository()));
     await tester.runAsync(auth.bootstrap);
     expect(auth.status.value, AuthStatus.authenticated);
 

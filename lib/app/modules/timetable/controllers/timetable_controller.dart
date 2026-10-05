@@ -27,7 +27,7 @@ class TimetableController extends GetxController with WidgetsBindingObserver {
   final PermissionService? _perms;
   final Clock clock;
 
-  /// How often "now" advances (null = no ticker, for tests).
+  /// How often "now" advances (null = no ticker; [TimetableBinding] enables it for the app).
   final Duration? tick;
 
   TimetableController({
@@ -35,7 +35,7 @@ class TimetableController extends GetxController with WidgetsBindingObserver {
     AuthController? auth,
     PermissionService? permissions,
     Clock? clock,
-    this.tick = const Duration(seconds: 30),
+    this.tick,
   })  : _repo = repository,
         _auth = auth,
         _perms = permissions,

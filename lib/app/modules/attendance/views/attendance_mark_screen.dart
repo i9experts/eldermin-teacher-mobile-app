@@ -202,15 +202,16 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         }
         return [
           for (final s in rows)
-            StudentAttendanceRow(
-              key: ValueKey('row_${s.id}'),
-              student: s,
-              status: c.marks[s.id],
-              legacyStatus: c.legacyStatus[s.id],
-              enabled: c.editable && !c.submitting.value,
-              highlightMissing: c.showUnmarked.value,
-              onSelect: (st) => c.setStatus(s.id, st),
-            ),
+            // Each row observes its own status: the list builder itself runs outside the screen's Obx.
+            Obx(() => StudentAttendanceRow(
+                  key: ValueKey('row_${s.id}'),
+                  student: s,
+                  status: c.marks[s.id],
+                  legacyStatus: c.legacyStatus[s.id],
+                  enabled: c.editable && !c.submitting.value,
+                  highlightMissing: c.showUnmarked.value,
+                  onSelect: (st) => c.setStatus(s.id, st),
+                )),
         ];
       },
     );

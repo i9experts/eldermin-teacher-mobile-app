@@ -20,6 +20,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_harness.dart';
 import '../support/fake_home_repository.dart';
+import 'package:eldermin_teacher_app/app/modules/timetable/controllers/timetable_controller.dart';
 
 const me = '64a0000000000000000000a1';
 
@@ -351,6 +352,7 @@ Future<void> _mountShell(WidgetTester t, FakeHomeRepository repo) async {
   Get.put<HomeRepository>(repo);
   final badges = Get.put(HomeBadgesController(repository: repo, auth: h.auth, autoPoll: false));
   Get.put(HomeDashboardController(repository: repo, auth: h.auth, permissions: h.perms, badges: badges, tick: null));
+  Get.put(TimetableController(repository: repo, tick: null));
   await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: const HomeShell()));
   await t.pump();
 }

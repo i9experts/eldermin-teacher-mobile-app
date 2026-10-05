@@ -6,6 +6,6 @@ class TimetableBinding extends Bindings {
   @override
   void dependencies() {
     if (!Get.isRegistered<HomeRepository>()) Get.lazyPut<HomeRepository>(() => HomeRepository(), fenix: true);
-    Get.lazyPut<TimetableController>(() => TimetableController(), fenix: true);
+    Get.lazyPut<TimetableController>(() => TimetableController(tick: const Duration(seconds: 30)), fenix: true);
   }
 }
