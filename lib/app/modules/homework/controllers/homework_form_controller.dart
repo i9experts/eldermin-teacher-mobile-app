@@ -94,7 +94,7 @@ class HomeworkFormController extends GetxController {
   final HomeworkRepository? _repo;
   final StudentsRepository? _students;
   final AuthController? _auth;
-  final AttachmentPicker _picker;
+  final AttachmentPicker? _picker;
   final HomeworkController? _list;
   final Clock clock;
   final Assignment? editing;
@@ -110,9 +110,13 @@ class HomeworkFormController extends GetxController {
   })  : _repo = repository,
         _students = students,
         _auth = auth,
-        _picker = picker ?? const DeviceAttachmentPicker(),
+        _picker = picker,
         _list = list,
         clock = clock ?? DateTime.now;
+
+  /// The device picker, unless a test/walkthrough registered another [AttachmentPicker] in GetX (native pickers cannot be driven in
+  /// an integration test).
+  AttachmentPicker get picker => _picker ?? (Get.isRegistered<AttachmentPicker>() ? Get.find<AttachmentPicker>() : const DeviceAttachmentPicker());
 
   HomeworkRepository get repo => _repo ?? Get.find<HomeworkRepository>();
   StudentsRepository get students => _students ?? Get.find<StudentsRepository>();
@@ -211,6 +215,7 @@ class HomeworkFormController extends GetxController {
     errors.remove('class');
     final subs = subjects;
     if (subject.value == null || !subs.contains(subject.value)) subject.value = subs.length == 1 ? subs.first : null;
+    if (subject.value != null) errors.remove('subject');
     _loadRoster();
   }
 
@@ -253,8 +258,8 @@ class HomeworkFormController extends GetxController {
 
   // ── attachments ──────────────────────────────────────────────
 
-  Future<void> pickDocuments() => _pick(_picker.pickDocuments);
-  Future<void> pickPhotos() => _pick(_picker.pickPhotos);
+  Future<void> pickDocuments() => _pick(picker.pickDocuments);
+  Future<void> pickPhotos() => _pick(picker.pickPhotos);
 
   Future<void> _pick(Future<List<PickedAttachment>> Function() chooser) async {
     List<PickedAttachment> files;

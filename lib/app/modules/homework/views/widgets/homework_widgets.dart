@@ -84,9 +84,7 @@ class FilterChipsRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadius.pill),
             onTap: tap,
             child: Container(
-              height: 34,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
               decoration: BoxDecoration(
                 color: on ? AppColors.primaryColor : Colors.white,
                 borderRadius: BorderRadius.circular(AppRadius.pill),
