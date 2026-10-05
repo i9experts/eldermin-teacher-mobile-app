@@ -39,6 +39,12 @@ adb shell am start -a android.intent.action.VIEW -d "eldermin-teacher://reset-pa
 ```
 Verified https app links are not enabled yet; see `../eldermin-teacher-app-docs/DEEP_LINKS.md`.
 
+## On-device walkthrough (dev only)
+`integration_test/phase3_demo_test.dart` drives the auth flows on a simulator against the stub and prints
+`SHOT:`/`STUB:` markers for an external script (screenshots, stub control). Deep links are injected via
+`DeepLinkService.handleUri` because iOS shows a system "Open in app?" prompt for `simctl openurl` that cannot be
+tapped without Accessibility access.
+
 ## Checks
 ```
 flutter analyze

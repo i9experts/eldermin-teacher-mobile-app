@@ -29,6 +29,7 @@ class AuthPageShell extends StatelessWidget {
               elevation: 0,
               scrolledUnderElevation: 0,
               foregroundColor: AppColors.primaryColor,
+              iconTheme: const IconThemeData(color: AppColors.primaryColor),
             )
           : null,
       body: SafeArea(
