@@ -161,6 +161,16 @@ void main() {
 
     String allText(WidgetTester t) => t.widgetList<Text>(find.byType(Text)).map((e) => e.data ?? '').join(' | ');
 
+    testWidgets('behaviour card links to the Behaviour module history (a different store than the profile log), only with behaviour:view', (t) async {
+      await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A'}));
+      expect(find.byKey(const Key('student_behaviour_history')), findsOneWidget);
+      Get.reset();
+      Get.testMode = true;
+      repo = FakeStudentsRepository();
+      await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A'}), permissions: ['students:view']);
+      expect(find.byKey(const Key('student_behaviour_history')), findsNothing);
+    });
+
     testWidgets('shows the whitelisted sections and NO fee / contact / income data', (t) async {
       await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A'}));
       expect(find.byKey(const Key('student_profile')), findsOneWidget);
