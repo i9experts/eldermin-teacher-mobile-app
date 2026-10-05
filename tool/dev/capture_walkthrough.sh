@@ -10,6 +10,9 @@ mkdir -p "$OUT"
 python3 tool/dev/stub_server.py --port "$PORT" >/dev/null 2>&1 &
 STUB_PID=$!
 trap 'kill $STUB_PID 2>/dev/null' EXIT
+# fresh state: intro shown, no stored session (iOS keychain survives uninstall, so reset it too)
+xcrun simctl uninstall "$SIM" com.eldermin.elderminTeacherApp >/dev/null 2>&1
+xcrun simctl keychain "$SIM" reset >/dev/null 2>&1
 sleep 1
 flutter test "$TEST" -d "$SIM" --dart-define=API_BASE_URL=http://localhost:$PORT 2>&1 | while IFS= read -r line; do
   case "$line" in

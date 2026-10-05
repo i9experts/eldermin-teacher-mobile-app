@@ -64,7 +64,10 @@ Future<void> signOutViaUi(WidgetTester t, {String? shotName}) async {
   await settle(t, 500);
   await t.tap(find.byKey(const Key('more_sign_out')));
   await waitFor(t, find.text('Sign out of Eldermin Teacher?'));
-  if (shotName != null) await shot(t, shotName, ms: 1200);
+  if (shotName != null) {
+    await settle(t, 1500); // let the dialog finish its fade-in before the external screenshot
+    await shot(t, shotName, ms: 2500);
+  }
   await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
   await waitFor(t, find.text('Sign in'));
   await settle(t);
@@ -199,7 +202,8 @@ void main() {
     // A token link while signed in -> confirmation (never a silent switch). Cancel keeps the session.
     await openLink(t, 'eldermin-teacher://login?token=stub.teacher.dummy&slug=demo-school');
     await waitFor(t, find.text('Switch account?'));
-    await shot(t, '22_deeplink_switch_account_dialog', ms: 1200);
+    await settle(t, 1500);
+    await shot(t, '22_deeplink_switch_account_dialog', ms: 2500);
     await t.tap(find.byKey(const Key('confirm_dialog_cancel')));
     await settle(t, 800);
     expect(find.text('Attendance'), findsWidgets, reason: 'Cancel keeps the signed-in session');

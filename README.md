@@ -45,6 +45,9 @@ Verified https app links are not enabled yet; see `../eldermin-teacher-app-docs/
 `DeepLinkService.handleUri` because iOS shows a system "Open in app?" prompt for `simctl openurl` that cannot be
 tapped without Accessibility access.
 
+`tool/dev/capture_walkthrough.sh <sim-udid> <out-dir> [test-file]` starts the stub, resets the simulator (uninstall + keychain), runs the
+walkthrough and takes a `simctl` screenshot on every `SHOT:` marker. Walkthroughs sign out through the real More-screen UI.
+
 ## Checks
 ```
 flutter analyze
