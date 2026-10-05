@@ -228,6 +228,7 @@ S = {"str"}
 SN = {"str", "null"}
 I = {"int"}
 B = {"bool"}
+NUM = {"int", "float"}
 L = {"list"}
 D = {"dict"}
 DN = {"dict", "null"}
@@ -424,6 +425,80 @@ EXPECTATIONS = {
         ("activeCount", I, True, None),
         ("totalInClass", I, True, None),
     ],
+    # GET /teaching/assignments?teacherId=<my staffId> (Phase 5b). Backend teaching.controller.ts:194-195 -> teaching.service.ts:861-871
+    # (bare array, sorted dueDate desc, unbounded); schema modules/teaching/schemas/assignment.schema.ts:7-33.
+    # App: lib/core/models/homework/homework_models.dart Assignment (whitelist; tenantId/institutionId/campusId never parsed).
+    "assignments": [
+        ("[]._id", S, True, ("fmt", "id")),
+        ("[].teacherId", SN, False, None),
+        ("[].title", S, True, None),
+        ("[].subject", S, True, None),
+        ("[].gradeLevel", S, True, None),
+        ("[].sectionName", SN, False, None),
+        ("[].type", S, False, None),
+        ("[].status", S, True, ("enum", ["draft", "assigned", "submitted", "graded", "overdue"])),
+        ("[].dueDate", SN, False, ("fmt", "iso")),
+        ("[].totalMarks", NUM, False, None),
+        ("[].passingMarks", NUM, False, None),
+        ("[].submissionsCount", I, False, None),
+        ("[].attachmentS3Keys", L, False, None),
+    ],
+    # GET /teaching/assignments/:id/submissions (Phase 5b). Backend teaching.controller.ts:209-210 -> teaching.service.ts:990-1002 ->
+    # { assignment, submissions[] }; schema assignment-submission.schema.ts:14-39. App: homework_models.dart SubmissionsResult/Submission.
+    "submissions": [
+        ("assignment", D, True, None),
+        ("assignment._id", S, True, ("fmt", "id")),
+        ("assignment.totalMarks", NUM, False, None),
+        ("submissions", L, True, None),
+        ("submissions[]._id", S, True, ("fmt", "id")),
+        ("submissions[].studentName", S, False, None),
+        ("submissions[].status", S, True, ("enum", ["pending", "submitted", "late", "graded", "missed"])),
+        ("submissions[].isLate", B, False, None),
+        ("submissions[].maxGrade", NUM, False, None),
+        ("submissions[].grade", NUM | {"null"}, False, None),
+        ("submissions[].submittedAt", SN, False, ("fmt", "iso")),
+        ("submissions[].attachmentS3Keys", L, False, None),
+    ],
+    # GET /behaviour/records?limit=5 (Phase 5b). Backend behaviour.controller.ts:43-47 -> behaviour.service.ts:154-193 ({ data, meta });
+    # schema behaviour/schemas/behaviour.schema.ts:14-106. App: lib/core/models/behaviour/behaviour_models.dart BehaviourRecord/BehaviourPage.
+    # meta.page / meta.limit are echoed as the raw query STRINGS when sent (no DTO) so they are not asserted here.
+    "behaviour_records": [
+        ("data", L, True, None),
+        ("data[]._id", S, True, ("fmt", "id")),
+        ("data[].studentId", S, True, ("fmt", "id")),
+        ("data[].studentName", S, True, None),
+        ("data[].grade", S, True, None),
+        ("data[].section", SN, False, None),
+        ("data[].date", S, True, ("fmt", "iso")),
+        ("data[].type", S, True, ("enum", ["positive", "negative", "neutral"])),
+        ("data[].category", S, True, None),
+        ("data[].title", S, True, None),
+        ("data[].description", S, True, None),
+        ("data[].severity", S, False, ("enum", ["low", "medium", "high", "critical"])),
+        ("data[].points", NUM, False, None),
+        ("data[].resolved", B, False, None),
+        ("data[].reportedBy", S, True, None),
+        ("data[].reportedById", SN, False, None),
+        ("meta", D, True, None),
+        ("meta.total", I, True, None),
+        ("meta.pages", I, True, None),
+    ],
+    # GET /behaviour/tarbiyah?limit=1 (Phase 5b, read-only). Backend behaviour.controller.ts:95-99 -> behaviour.service.ts:319-334;
+    # schema behaviour.schema.ts:147-190. App: behaviour_models.dart TarbiyahAssessment.
+    "tarbiyah": [
+        ("data", L, True, None),
+        ("data[]._id", S, True, ("fmt", "id")),
+        ("data[].studentId", S, True, ("fmt", "id")),
+        ("data[].period", S, True, None),
+        ("data[].assessmentDate", S, True, ("fmt", "iso")),
+        ("data[].traits", L, False, None),
+        ("data[].traits[].traitKey", S, True, None),
+        ("data[].traits[].score", NUM, True, None),
+        ("data[].overallPercentage", NUM, False, None),
+        ("data[].overallRating", S, False, ("enum", ["excellent", "good", "satisfactory", "needs_improvement", "critical"])),
+        ("meta", D, True, None),
+        ("meta.total", I, True, None),
+    ],
 }
 
 # ───────────────────────────── runner ─────────────────────────────
@@ -566,6 +641,26 @@ def run_user(rep, who, base, slug, email, password, class_teacher):
         rep.endpoint(who, "GET /staff-portal/threads?status=open", st, b, "threads_open")
         st, b = get("/staff-portal/notifications/unread-count")
         rep.endpoint(who, "GET /staff-portal/notifications/unread-count", st, b, "unread_count")
+    # Phase 5b (all GET, read-only). Behaviour: first records page + first Tarbiyah page of the campus (no ids are printed).
+    st, b = get("/behaviour/records", {"limit": 5, "page": 1})
+    rep.endpoint(who, "GET /behaviour/records?limit=5", st, b, "behaviour_records")
+    st, b = get("/behaviour/tarbiyah", {"limit": 1, "page": 1})
+    rep.endpoint(who, "GET /behaviour/tarbiyah?limit=1", st, b, "tarbiyah")
+    if not class_teacher:
+        if staff_id:
+            st, lst = get("/teaching/assignments", {"teacherId": staff_id})
+            rep.endpoint(who, "GET /teaching/assignments?teacherId", st, lst, "assignments")
+            first_a = None
+            if st == 200 and isinstance(lst, list):
+                # first NON-draft assignment (drafts have no submission rows)
+                first_a = next((x.get("_id") for x in lst if isinstance(x, dict) and x.get("status") != "draft"), None)
+            if isinstance(first_a, str) and _FORMATS["id"].match(first_a):
+                st, b = get(f"/teaching/assignments/{first_a}/submissions")
+                rep.endpoint(who, "GET /teaching/assignments/:id/submissions", st, b, "submissions")
+            else:
+                rep.skip(who, "GET /teaching/assignments/:id/submissions", "no assignment of mine to check")
+        else:
+            rep.skip(who, "GET /teaching/assignments", "no staffId from /staff-portal/me")
     if class_teacher:
         grade = class_of.get("gradeName") if isinstance(class_of, dict) else None
         section = class_of.get("sectionName") if isinstance(class_of, dict) else None

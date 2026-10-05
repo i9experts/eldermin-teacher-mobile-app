@@ -228,5 +228,49 @@ class TestPhase5aExpectations(unittest.TestCase):
         self.assertFalse([r for r in v.check_expectations([], v.EXPECTATIONS["attendance_summary"]) if r[1] == "FAIL"])
 
 
+class TestPhase5bExpectations(unittest.TestCase):
+    def test_good_assignments_and_submissions_pass(self):
+        a = [{"_id": SECRET_ID, "teacherId": SECRET_ID, "title": "T", "subject": "S", "gradeLevel": "Grade 5", "sectionName": "A", "type": "homework",
+              "status": "assigned", "dueDate": "2026-10-07T00:00:00.000Z", "totalMarks": 100, "passingMarks": 50.5, "submissionsCount": 2,
+              "attachmentS3Keys": [], "tenantId": "x"}]
+        self.assertFalse([r for r in v.check_expectations(a, v.EXPECTATIONS["assignments"]) if r[1] == "FAIL"])
+        sub = {"assignment": {"_id": SECRET_ID, "totalMarks": 20}, "submissions": [
+            {"_id": SECRET_ID, "studentName": "N", "status": "late", "isLate": True, "maxGrade": 20, "grade": None, "submittedAt": "2026-10-04T09:00:00.000Z",
+             "attachmentS3Keys": []}]}
+        self.assertFalse([r for r in v.check_expectations(sub, v.EXPECTATIONS["submissions"]) if r[1] == "FAIL"])
+
+    def test_drifted_assignment_status_and_submission_status_are_caught(self):
+        a = [{"_id": SECRET_ID, "title": "T", "subject": "S", "gradeLevel": "G", "status": "published"}]
+        failed = {p for p, st, _ in v.check_expectations(a, v.EXPECTATIONS["assignments"]) if st == "FAIL"}
+        self.assertEqual(failed, {"[].status"})
+        sub = {"assignment": {"_id": SECRET_ID}, "submissions": [{"_id": SECRET_ID, "status": "done"}]}
+        failed = {p for p, st, _ in v.check_expectations(sub, v.EXPECTATIONS["submissions"]) if st == "FAIL"}
+        self.assertEqual(failed, {"submissions[].status"})
+
+    def test_behaviour_records_and_tarbiyah(self):
+        rec = {"data": [{"_id": SECRET_ID, "studentId": SECRET_ID, "studentName": "N", "grade": "Grade 5", "section": "A",
+                         "date": "2026-10-05T00:00:00.000Z", "type": "positive", "category": "helping_others", "title": "T", "description": "D",
+                         "severity": "low", "points": 5, "resolved": False, "reportedBy": "X", "reportedById": SECRET_ID}],
+               "meta": {"total": 1, "page": "1", "limit": "5", "pages": 1}}
+        self.assertFalse([r for r in v.check_expectations(rec, v.EXPECTATIONS["behaviour_records"]) if r[1] == "FAIL"])
+        bad = {"data": [{"_id": SECRET_ID, "studentId": SECRET_ID, "studentName": "N", "grade": "G", "date": "2026-10-05T00:00:00.000Z",
+                         "type": "merit", "category": "c", "title": "T", "description": "D", "reportedBy": "X"}], "meta": {"total": 1, "pages": 1}}
+        failed = {p for p, st, _ in v.check_expectations(bad, v.EXPECTATIONS["behaviour_records"]) if st == "FAIL"}
+        self.assertEqual(failed, {"data[].type"})
+        tar = {"data": [{"_id": SECRET_ID, "studentId": SECRET_ID, "period": "Term 1", "assessmentDate": "2026-09-01T00:00:00.000Z",
+                         "traits": [{"traitKey": "sidq", "score": 4}], "overallPercentage": 75, "overallRating": "good"}], "meta": {"total": 1}}
+        self.assertFalse([r for r in v.check_expectations(tar, v.EXPECTATIONS["tarbiyah"]) if r[1] == "FAIL"])
+
+    def test_values_are_never_printed_for_the_new_endpoints(self):
+        rep = v.Report()
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rep.endpoint("teacher", "GET /behaviour/records?limit=5", 200,
+                         {"data": [{"_id": SECRET_ID, "studentName": SECRET_NAME, "description": SECRET_EMAIL}], "meta": {"total": 1, "pages": 1}}, "behaviour_records")
+        out = buf.getvalue()
+        for secret in (SECRET_ID, SECRET_NAME, SECRET_EMAIL):
+            self.assertNotIn(secret, out)
+
+
 if __name__ == "__main__":
     unittest.main()
