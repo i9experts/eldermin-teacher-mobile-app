@@ -138,7 +138,7 @@ class _HomeworkGradeScreenState extends State<HomeworkGradeScreen> {
                 : CustomText(text: s.isGraded ? 'Update marks' : 'Save marks', color: Colors.white, fontWeight: FontWeight.w700),
           ),
         ),
-        const Padding(padding: EdgeInsets.only(top: 8), child: CustomText(text: "Saving marks marks this submission as graded. Parents are notified of the mark.", color: AppColors.muted, fontSize: 11)),
+        const Padding(padding: EdgeInsets.only(top: 8), child: CustomText(text: "Saving marks sets this submission to graded. Parents are notified of the mark.", color: AppColors.muted, fontSize: 11)),
       ],
     ];
   }
