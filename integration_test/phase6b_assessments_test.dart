@@ -1,7 +1,7 @@
 // Phase 6b (assessments, marks entry, report remarks, quiz grading, curriculum, library) walkthrough against the LOCAL STUB
 // (tool/dev/stub_server.py + stub_6b.py, dummy data). Prints SHOT:<name> / STUB:<path> markers for tool/dev/capture_walkthrough.sh:
 //   tool/dev/capture_walkthrough.sh <sim> <out-dir> integration_test/phase6b_assessments_test.dart
-import 'package:eldermin_teacher_app/app/modules/assessments/controllers/assessments_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
 import 'package:eldermin_teacher_app/main.dart' as app;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -123,10 +123,10 @@ void main() {
     // ── Save fails (server error): state kept, banner with Retry ──
     await stub(t, '/__stub/mode?feature=marksbulk&value=500');
     await t.tap(find.byKey(const Key('marks_confirm_save')));
-    await waitFor(t, find.byKey(const Key('marks_save_error')));
-    await settle(t, 800);
-    await t.drag(page, const Offset(0, 4000));
+    await settle(t, 2500);
+    await t.drag(page, const Offset(0, 4000)); // the banner sits at the top of the (scrolled) list
     await settle(t, 600);
+    await waitFor(t, find.byKey(const Key('marks_save_error')));
     await shot(t, '6b_23_marks_save_error_state_kept');
     await stub(t, '/__stub/mode?feature=marksbulk&value=ok');
     await t.tap(find.text('Retry'));
@@ -138,8 +138,12 @@ void main() {
     await back(t);
 
     // ── Locked sheets: partly verified (Mid-Term) and results published (Term 1) ──
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 4000));
+    await settle(t, 500);
+    await waitFor(t, find.byKey(const Key('chip_all')));
     await t.tap(find.byKey(const Key('chip_all')));
-    await settle(t, 600);
+    await settle(t, 800);
+    await t.scrollUntilVisible(find.text('Mid-Term Exam (DUMMY)'), 300, scrollable: find.byType(Scrollable).first);
     await t.tap(find.text('Mid-Term Exam (DUMMY)'));
     await waitFor(t, find.byKey(const Key('asm_marks_Mathematics')));
     await t.tap(find.byKey(const Key('asm_marks_Mathematics')));
@@ -148,6 +152,7 @@ void main() {
     await shot(t, '6b_25_marks_partly_verified_locked');
     await back(t);
     await back(t);
+    await t.scrollUntilVisible(find.text('Term 1 Result (DUMMY)'), 300, scrollable: find.byType(Scrollable).first);
     await t.tap(find.text('Term 1 Result (DUMMY)'));
     await waitFor(t, find.byKey(const Key('asm_view_Mathematics')));
     await settle(t, 800);
@@ -160,8 +165,12 @@ void main() {
     await back(t);
 
     // ── Empty grid (Grade 6 B Science, nothing entered yet) ──
-    await t.tap(find.byKey(const Key('chip_open')));
-    await settle(t, 600);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 4000));
+    await settle(t, 500);
+    await waitFor(t, find.byKey(const Key('chip_all')));
+    await t.tap(find.byKey(const Key('chip_all')));
+    await settle(t, 800);
+    await t.scrollUntilVisible(find.text('Class Test - Plants (DUMMY)'), 300, scrollable: find.byType(Scrollable).first);
     await t.tap(find.text('Class Test - Plants (DUMMY)'));
     await waitFor(t, find.byKey(const Key('asm_marks_Science')));
     await t.tap(find.byKey(const Key('asm_marks_Science')));
@@ -173,6 +182,11 @@ void main() {
 
     // ── Large class (229 students, two roster pages) ──
     await stub(t, '/__stub/mode?feature=bigclass&value=on');
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 4000));
+    await settle(t, 500);
+    await t.scrollUntilVisible(find.text('Unit Test 1 - Fractions (DUMMY)'), 300, scrollable: find.byType(Scrollable).first);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 150));
+    await settle(t, 500);
     await t.tap(find.text('Unit Test 1 - Fractions (DUMMY)'));
     await waitFor(t, find.byKey(const Key('asm_marks_Mathematics')));
     await t.tap(find.byKey(const Key('asm_marks_Mathematics')));
@@ -185,7 +199,10 @@ void main() {
 
     // ── Report-card remarks (this teacher becomes the class teacher of Grade 5 A) ──
     await stub(t, '/__stub/class-teacher?email=teacher@stub.test&value=true');
-    await t.runAsync(() => Get.find<AssessmentsController>().reload());
+    await t.runAsync(() => Get.find<AuthController>().refreshProfile(force: true));
+    await settle(t, 500);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 4000));
+    await settle(t, 500);
     await waitFor(t, find.byKey(const Key('asm_remarks_card')));
     await settle(t, 1000);
     await t.tap(find.byKey(const Key('asm_remarks_card')));
