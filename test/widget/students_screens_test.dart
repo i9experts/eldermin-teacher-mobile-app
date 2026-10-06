@@ -243,13 +243,14 @@ void main() {
       await t.pump();
     }
 
-    testWidgets('class teacher: grid with built modules plain and unbuilt ones labelled Coming soon; my classes', (t) async {
+    testWidgets('class teacher: grid with every module live (no Coming soon); my classes', (t) async {
       await bootClasses(t);
       expect(find.byKey(const Key('classes_grid')), findsOneWidget);
       expect(find.byKey(const ValueKey('module_students')), findsOneWidget);
       expect(find.byKey(const ValueKey('module_attendance')), findsOneWidget);
       expect(find.byKey(const ValueKey('module_homework')), findsOneWidget);
-      expect(find.text('Coming soon'), findsNWidgets(1)); // assessments (homework, behaviour, lesson plans and syllabus are live)
+      expect(find.text('Coming soon'), findsNothing); // every Classes module is live in 6b
+      expect(find.byKey(const ValueKey('module_assessments')), findsOneWidget);
       expect(find.text('Grade 5 - A'), findsOneWidget);
     });
 
