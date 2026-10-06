@@ -1,0 +1,194 @@
+[
+ {
+  "_id": "64f000000000000000000d00",
+  "studentId": "64f000000000000000000200",
+  "studentName": "Aarav Ahmed (DUMMY)",
+  "rollNumber": "1",
+  "assessmentId": "64f000000000000000000a06",
+  "assessmentTitle": "Online Quiz - Fractions (DUMMY)",
+  "subject": "Mathematics",
+  "examPaperId": "64f000000000000000000e00",
+  "grade": "Grade 5",
+  "section": "A",
+  "academicYear": "2026-27",
+  "totalMarks": 10,
+  "passingMarks": 4,
+  "answers": [
+   {
+    "questionId": "64f000000000000000000e10",
+    "selectedOptionIndex": 0,
+    "needsManualGrading": false,
+    "isCorrect": true,
+    "marksAwarded": 2
+   },
+   {
+    "questionId": "64f000000000000000000e20",
+    "textAnswer": "You make the bottoms the same, then add the tops (DUMMY answer).",
+    "needsManualGrading": true,
+    "isCorrect": null,
+    "marksAwarded": null
+   },
+   {
+    "questionId": "64f000000000000000000e30",
+    "textAnswer": "8 - 5 = 3 so 3/8 are left (DUMMY answer).",
+    "needsManualGrading": true,
+    "isCorrect": null,
+    "marksAwarded": null
+   }
+  ],
+  "autoGradedMarks": 2,
+  "obtainedMarks": null,
+  "status": "submitted",
+  "attemptNumber": 1,
+  "startedAt": "2026-10-03T08:00:00.000Z",
+  "submittedAt": "2026-10-03T08:30:00.000Z",
+  "schoolSlug": "demo-school",
+  "createdAt": "2026-10-03T08:00:00.000Z",
+  "updatedAt": "2026-10-03T08:30:00.000Z",
+  "__v": 0
+ },
+ {
+  "_id": "64f000000000000000000d03",
+  "studentId": "64f000000000000000000240",
+  "studentName": "Bilal Ahmed (DUMMY)",
+  "rollNumber": "1",
+  "assessmentId": "64f000000000000000000a06",
+  "assessmentTitle": "Online Quiz - Fractions (DUMMY)",
+  "subject": "Mathematics",
+  "examPaperId": "64f000000000000000000e00",
+  "grade": "Grade 5",
+  "section": "B",
+  "academicYear": "2026-27",
+  "totalMarks": 10,
+  "passingMarks": 4,
+  "answers": [
+   {
+    "questionId": "64f000000000000000000e10",
+    "selectedOptionIndex": 0,
+    "needsManualGrading": false,
+    "isCorrect": true,
+    "marksAwarded": 2
+   },
+   {
+    "questionId": "64f000000000000000000e20",
+    "textAnswer": "You make the bottoms the same, then add the tops (DUMMY answer).",
+    "needsManualGrading": true,
+    "isCorrect": null,
+    "marksAwarded": null
+   },
+   {
+    "questionId": "64f000000000000000000e30",
+    "textAnswer": "8 - 5 = 3 so 3/8 are left (DUMMY answer).",
+    "needsManualGrading": true,
+    "isCorrect": null,
+    "marksAwarded": null
+   }
+  ],
+  "autoGradedMarks": 2,
+  "obtainedMarks": null,
+  "status": "submitted",
+  "attemptNumber": 1,
+  "startedAt": "2026-10-03T08:00:00.000Z",
+  "submittedAt": "2026-10-03T08:30:00.000Z",
+  "schoolSlug": "demo-school",
+  "createdAt": "2026-10-03T08:00:00.000Z",
+  "updatedAt": "2026-10-03T08:30:00.000Z",
+  "__v": 0
+ },
+ {
+  "_id": "64f000000000000000000d01",
+  "studentId": "64f000000000000000000201",
+  "studentName": "Zara Qureshi (DUMMY)",
+  "rollNumber": "2",
+  "assessmentId": "64f000000000000000000a06",
+  "assessmentTitle": "Online Quiz - Fractions (DUMMY)",
+  "subject": "Mathematics",
+  "examPaperId": "64f000000000000000000e00",
+  "grade": "Grade 5",
+  "section": "A",
+  "academicYear": "2026-27",
+  "totalMarks": 10,
+  "passingMarks": 4,
+  "answers": [
+   {
+    "questionId": "64f000000000000000000e10",
+    "selectedOptionIndex": 0,
+    "needsManualGrading": false,
+    "isCorrect": true,
+    "marksAwarded": 2
+   },
+   {
+    "questionId": "64f000000000000000000e20",
+    "textAnswer": "You make the bottoms the same, then add the tops (DUMMY answer).",
+    "needsManualGrading": true,
+    "isCorrect": null,
+    "marksAwarded": 2
+   },
+   {
+    "questionId": "64f000000000000000000e30",
+    "textAnswer": "8 - 5 = 3 so 3/8 are left (DUMMY answer).",
+    "needsManualGrading": true,
+    "isCorrect": null,
+    "marksAwarded": null
+   }
+  ],
+  "autoGradedMarks": 2,
+  "obtainedMarks": null,
+  "status": "submitted",
+  "attemptNumber": 1,
+  "startedAt": "2026-10-03T08:00:00.000Z",
+  "submittedAt": "2026-10-04T08:30:00.000Z",
+  "schoolSlug": "demo-school",
+  "createdAt": "2026-10-03T08:00:00.000Z",
+  "updatedAt": "2026-10-03T08:30:00.000Z",
+  "__v": 0
+ },
+ {
+  "_id": "64f000000000000000000d04",
+  "studentId": "64f000000000000000000203",
+  "studentName": "Layla Siddiqui (DUMMY)",
+  "rollNumber": "4",
+  "assessmentId": "64f000000000000000000a06",
+  "assessmentTitle": "Online Quiz - Fractions (DUMMY)",
+  "subject": "English",
+  "examPaperId": "64f000000000000000000e00",
+  "grade": "Grade 5",
+  "section": "A",
+  "academicYear": "2026-27",
+  "totalMarks": 10,
+  "passingMarks": 4,
+  "answers": [
+   {
+    "questionId": "64f000000000000000000e10",
+    "selectedOptionIndex": 0,
+    "needsManualGrading": false,
+    "isCorrect": true,
+    "marksAwarded": 2
+   },
+   {
+    "questionId": "64f000000000000000000e20",
+    "textAnswer": "You make the bottoms the same, then add the tops (DUMMY answer).",
+    "needsManualGrading": true,
+    "isCorrect": null,
+    "marksAwarded": null
+   },
+   {
+    "questionId": "64f000000000000000000e30",
+    "textAnswer": "8 - 5 = 3 so 3/8 are left (DUMMY answer).",
+    "needsManualGrading": true,
+    "isCorrect": null,
+    "marksAwarded": null
+   }
+  ],
+  "autoGradedMarks": 2,
+  "obtainedMarks": null,
+  "status": "submitted",
+  "attemptNumber": 1,
+  "startedAt": "2026-10-03T08:00:00.000Z",
+  "submittedAt": "2026-10-04T08:30:00.000Z",
+  "schoolSlug": "demo-school",
+  "createdAt": "2026-10-03T08:00:00.000Z",
+  "updatedAt": "2026-10-03T08:30:00.000Z",
+  "__v": 0
+ }
+]

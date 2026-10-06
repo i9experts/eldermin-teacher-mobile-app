@@ -1,0 +1,241 @@
+[
+ {
+  "_id": "64f000000000000000000f03",
+  "tenantId": "64f0000000000000000000a1",
+  "institutionId": "64f0000000000000000000a2",
+  "name": "English Grade 5 (SNC)",
+  "framework": "national",
+  "gradeLevel": "Grade 5",
+  "subjectId": "64f000000000000000000f83",
+  "subjectName": "English",
+  "academicYearId": "64f000000000000000000f90",
+  "academicYearLabel": "2026-27",
+  "slos": [
+   {
+    "sloCode": "E5-R-01",
+    "description": "Read a short text and summarise it",
+    "bloomsLevel": "understand",
+    "strand": "Reading",
+    "isAssessed": true,
+    "assessmentType": "written"
+   }
+  ],
+  "standardsMapping": [
+   {
+    "standard": "Pakistan SNC 2020",
+    "code": "M-5-01",
+    "description": "Number and operations (DUMMY)"
+   }
+  ],
+  "status": "active",
+  "createdBy": "64f0000000000000000000c9",
+  "approvedBy": "Admin (DUMMY)",
+  "approvedAt": "2026-08-01T05:00:00.000Z",
+  "createdAt": "2026-07-01T05:00:00.000Z",
+  "updatedAt": "2026-08-01T05:00:00.000Z",
+  "__v": 0
+ },
+ {
+  "_id": "64f000000000000000000f01",
+  "tenantId": "64f0000000000000000000a1",
+  "institutionId": "64f0000000000000000000a2",
+  "name": "Mathematics Grade 5 (SNC)",
+  "framework": "national",
+  "gradeLevel": "Grade 5",
+  "subjectId": "64f000000000000000000f81",
+  "subjectName": "Mathematics",
+  "academicYearId": "64f000000000000000000f90",
+  "academicYearLabel": "2026-27",
+  "slos": [
+   {
+    "sloCode": "M5-N-01",
+    "description": "Add and subtract fractions with unlike denominators",
+    "bloomsLevel": "apply",
+    "strand": "Number",
+    "isAssessed": true,
+    "assessmentType": "written"
+   },
+   {
+    "sloCode": "M5-N-02",
+    "description": "Read, write and round decimals to two places",
+    "bloomsLevel": "understand",
+    "strand": "Number",
+    "isAssessed": true,
+    "assessmentType": "written"
+   },
+   {
+    "sloCode": "M5-M-01",
+    "description": "Calculate perimeter and area of rectangles",
+    "bloomsLevel": "apply",
+    "strand": "Measurement",
+    "isAssessed": true,
+    "assessmentType": "written"
+   },
+   {
+    "sloCode": "M5-M-02",
+    "description": "Solve word problems involving time and money",
+    "bloomsLevel": "analyze",
+    "strand": "Measurement",
+    "isAssessed": false,
+    "assessmentType": ""
+   }
+  ],
+  "standardsMapping": [
+   {
+    "standard": "Pakistan SNC 2020",
+    "code": "M-5-01",
+    "description": "Number and operations (DUMMY)"
+   }
+  ],
+  "status": "active",
+  "createdBy": "64f0000000000000000000c9",
+  "approvedBy": "Admin (DUMMY)",
+  "approvedAt": "2026-08-01T05:00:00.000Z",
+  "createdAt": "2026-07-01T05:00:00.000Z",
+  "updatedAt": "2026-08-01T05:00:00.000Z",
+  "__v": 0
+ },
+ {
+  "_id": "64f000000000000000000f05",
+  "tenantId": "64f0000000000000000000a1",
+  "institutionId": "64f0000000000000000000a2",
+  "name": "Mathematics Grade 5 (draft revision)",
+  "framework": "national",
+  "gradeLevel": "Grade 5",
+  "subjectId": "64f000000000000000000f85",
+  "subjectName": "Mathematics",
+  "academicYearId": "64f000000000000000000f90",
+  "academicYearLabel": "2026-27",
+  "slos": [
+   {
+    "sloCode": "M5-X-01",
+    "description": "Draft SLO (DUMMY)",
+    "bloomsLevel": "apply",
+    "strand": "Number",
+    "isAssessed": true,
+    "assessmentType": "written"
+   }
+  ],
+  "standardsMapping": [
+   {
+    "standard": "Pakistan SNC 2020",
+    "code": "M-5-01",
+    "description": "Number and operations (DUMMY)"
+   }
+  ],
+  "status": "draft",
+  "createdBy": "64f0000000000000000000c9",
+  "approvedBy": "Admin (DUMMY)",
+  "approvedAt": "2026-08-01T05:00:00.000Z",
+  "createdAt": "2026-07-01T05:00:00.000Z",
+  "updatedAt": "2026-08-01T05:00:00.000Z",
+  "__v": 0
+ },
+ {
+  "_id": "64f000000000000000000f06",
+  "tenantId": "64f0000000000000000000a1",
+  "institutionId": "64f0000000000000000000a2",
+  "name": "Mathematics Grade 5 (2024 edition)",
+  "framework": "national",
+  "gradeLevel": "Grade 5",
+  "subjectId": "64f000000000000000000f86",
+  "subjectName": "Mathematics",
+  "academicYearId": "64f000000000000000000f90",
+  "academicYearLabel": "2024-25",
+  "slos": [],
+  "standardsMapping": [
+   {
+    "standard": "Pakistan SNC 2020",
+    "code": "M-5-01",
+    "description": "Number and operations (DUMMY)"
+   }
+  ],
+  "status": "archived",
+  "createdBy": "64f0000000000000000000c9",
+  "approvedBy": "Admin (DUMMY)",
+  "approvedAt": "2026-08-01T05:00:00.000Z",
+  "createdAt": "2026-07-01T05:00:00.000Z",
+  "updatedAt": "2026-08-01T05:00:00.000Z",
+  "__v": 0
+ },
+ {
+  "_id": "64f000000000000000000f02",
+  "tenantId": "64f0000000000000000000a1",
+  "institutionId": "64f0000000000000000000a2",
+  "name": "Science Grade 6 (SNC)",
+  "framework": "national",
+  "gradeLevel": "Grade 6",
+  "subjectId": "64f000000000000000000f82",
+  "subjectName": "Science",
+  "academicYearId": "64f000000000000000000f90",
+  "academicYearLabel": "2026-27",
+  "slos": [
+   {
+    "sloCode": "S6-L-01",
+    "description": "Describe photosynthesis and its inputs and outputs",
+    "bloomsLevel": "understand",
+    "strand": "Living things",
+    "isAssessed": true,
+    "assessmentType": "written"
+   },
+   {
+    "sloCode": "S6-L-02",
+    "description": "Compare plant and animal cells",
+    "bloomsLevel": "analyze",
+    "strand": "Living things",
+    "isAssessed": true,
+    "assessmentType": "written"
+   }
+  ],
+  "standardsMapping": [
+   {
+    "standard": "Pakistan SNC 2020",
+    "code": "M-6-01",
+    "description": "Number and operations (DUMMY)"
+   }
+  ],
+  "status": "active",
+  "createdBy": "64f0000000000000000000c9",
+  "approvedBy": "Admin (DUMMY)",
+  "approvedAt": "2026-08-01T05:00:00.000Z",
+  "createdAt": "2026-07-01T05:00:00.000Z",
+  "updatedAt": "2026-08-01T05:00:00.000Z",
+  "__v": 0
+ },
+ {
+  "_id": "64f000000000000000000f04",
+  "tenantId": "64f0000000000000000000a1",
+  "institutionId": "64f0000000000000000000a2",
+  "name": "Mathematics Grade 7 (SNC)",
+  "framework": "national",
+  "gradeLevel": "Grade 7",
+  "subjectId": "64f000000000000000000f84",
+  "subjectName": "Mathematics",
+  "academicYearId": "64f000000000000000000f90",
+  "academicYearLabel": "2026-27",
+  "slos": [
+   {
+    "sloCode": "M7-A-01",
+    "description": "Solve one-step equations",
+    "bloomsLevel": "apply",
+    "strand": "Algebra",
+    "isAssessed": true,
+    "assessmentType": "written"
+   }
+  ],
+  "standardsMapping": [
+   {
+    "standard": "Pakistan SNC 2020",
+    "code": "M-7-01",
+    "description": "Number and operations (DUMMY)"
+   }
+  ],
+  "status": "active",
+  "createdBy": "64f0000000000000000000c9",
+  "approvedBy": "Admin (DUMMY)",
+  "approvedAt": "2026-08-01T05:00:00.000Z",
+  "createdAt": "2026-07-01T05:00:00.000Z",
+  "updatedAt": "2026-08-01T05:00:00.000Z",
+  "__v": 0
+ }
+]

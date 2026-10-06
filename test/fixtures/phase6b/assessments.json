@@ -1,0 +1,507 @@
+{
+ "data": [
+  {
+   "_id": "64f000000000000000000a04",
+   "title": "Final Exam (DUMMY)",
+   "description": "",
+   "type": "final_exam",
+   "grade": "Grade 5",
+   "academicYear": "2026-27",
+   "term": "Term 3",
+   "subjects": [
+    {
+     "subject": "Mathematics",
+     "totalMarks": 100,
+     "passingMarks": 40,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    }
+   ],
+   "startDate": "2026-11-15T00:00:00.000Z",
+   "endDate": "2026-11-16T00:00:00.000Z",
+   "status": "scheduled",
+   "resultPublished": false,
+   "gradeCardsGenerated": false,
+   "deliveryMode": "teacher_marked",
+   "gradingScale": {
+    "A+": {
+     "min": 90,
+     "gpa": 4.0
+    },
+    "F": {
+     "min": 0,
+     "gpa": 0.0
+    }
+   },
+   "createdBy": "Admin (DUMMY)",
+   "schoolSlug": "demo-school",
+   "campusId": "64a0000000000000000000c1",
+   "createdAt": "2026-09-20T05:00:00.000Z",
+   "updatedAt": "2026-09-21T05:00:00.000Z",
+   "__v": 0,
+   "section": "A"
+  },
+  {
+   "_id": "64f000000000000000000a08",
+   "title": "Draft - Spelling Bee (DUMMY)",
+   "description": "",
+   "type": "oral",
+   "grade": "Grade 5",
+   "academicYear": "2026-27",
+   "term": "Term 1",
+   "subjects": [
+    {
+     "subject": "English",
+     "totalMarks": 20,
+     "passingMarks": 8,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    }
+   ],
+   "startDate": "2026-10-26T00:00:00.000Z",
+   "endDate": "2026-10-27T00:00:00.000Z",
+   "status": "draft",
+   "resultPublished": false,
+   "gradeCardsGenerated": false,
+   "deliveryMode": "teacher_marked",
+   "gradingScale": {
+    "A+": {
+     "min": 90,
+     "gpa": 4.0
+    },
+    "F": {
+     "min": 0,
+     "gpa": 0.0
+    }
+   },
+   "createdBy": "Admin (DUMMY)",
+   "schoolSlug": "demo-school",
+   "campusId": "64a0000000000000000000c1",
+   "createdAt": "2026-09-20T05:00:00.000Z",
+   "updatedAt": "2026-09-21T05:00:00.000Z",
+   "__v": 0,
+   "section": "A"
+  },
+  {
+   "_id": "64f000000000000000000a01",
+   "title": "Unit Test 1 - Fractions (DUMMY)",
+   "description": "",
+   "type": "unit_test",
+   "grade": "Grade 5",
+   "academicYear": "2026-27",
+   "term": "Term 1",
+   "subjects": [
+    {
+     "subject": "Mathematics",
+     "totalMarks": 50,
+     "passingMarks": 20,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    },
+    {
+     "subject": "English",
+     "totalMarks": 30,
+     "passingMarks": 12,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    }
+   ],
+   "startDate": "2026-10-05T00:00:00.000Z",
+   "endDate": "2026-10-06T00:00:00.000Z",
+   "status": "ongoing",
+   "resultPublished": false,
+   "gradeCardsGenerated": false,
+   "deliveryMode": "teacher_marked",
+   "gradingScale": {
+    "A+": {
+     "min": 90,
+     "gpa": 4.0
+    },
+    "F": {
+     "min": 0,
+     "gpa": 0.0
+    }
+   },
+   "createdBy": "Admin (DUMMY)",
+   "schoolSlug": "demo-school",
+   "campusId": "64a0000000000000000000c1",
+   "createdAt": "2026-09-20T05:00:00.000Z",
+   "updatedAt": "2026-09-21T05:00:00.000Z",
+   "__v": 0,
+   "section": "A"
+  },
+  {
+   "_id": "64f000000000000000000a07",
+   "title": "Grade 7 Unit Test (DUMMY)",
+   "description": "",
+   "type": "unit_test",
+   "grade": "Grade 7",
+   "academicYear": "2026-27",
+   "term": "Term 1",
+   "subjects": [
+    {
+     "subject": "Mathematics",
+     "totalMarks": 40,
+     "passingMarks": 16,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    }
+   ],
+   "startDate": "2026-10-05T00:00:00.000Z",
+   "endDate": "2026-10-06T00:00:00.000Z",
+   "status": "ongoing",
+   "resultPublished": false,
+   "gradeCardsGenerated": false,
+   "deliveryMode": "teacher_marked",
+   "gradingScale": {
+    "A+": {
+     "min": 90,
+     "gpa": 4.0
+    },
+    "F": {
+     "min": 0,
+     "gpa": 0.0
+    }
+   },
+   "createdBy": "Admin (DUMMY)",
+   "schoolSlug": "demo-school",
+   "campusId": "64a0000000000000000000c1",
+   "createdAt": "2026-09-20T05:00:00.000Z",
+   "updatedAt": "2026-09-21T05:00:00.000Z",
+   "__v": 0,
+   "section": "A"
+  },
+  {
+   "_id": "64f000000000000000000a0a",
+   "title": "English Dictation (DUMMY)",
+   "description": "",
+   "type": "class_test",
+   "grade": "Grade 5",
+   "academicYear": "2026-27",
+   "term": "Term 1",
+   "subjects": [
+    {
+     "subject": "English",
+     "totalMarks": 25,
+     "passingMarks": 10,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    }
+   ],
+   "startDate": "2026-10-05T00:00:00.000Z",
+   "endDate": "2026-10-06T00:00:00.000Z",
+   "status": "ongoing",
+   "resultPublished": false,
+   "gradeCardsGenerated": false,
+   "deliveryMode": "teacher_marked",
+   "gradingScale": {
+    "A+": {
+     "min": 90,
+     "gpa": 4.0
+    },
+    "F": {
+     "min": 0,
+     "gpa": 0.0
+    }
+   },
+   "createdBy": "Admin (DUMMY)",
+   "schoolSlug": "demo-school",
+   "campusId": "64a0000000000000000000c1",
+   "createdAt": "2026-09-20T05:00:00.000Z",
+   "updatedAt": "2026-09-21T05:00:00.000Z",
+   "__v": 0,
+   "section": "B"
+  },
+  {
+   "_id": "64f000000000000000000a03",
+   "title": "Class Test - Plants (DUMMY)",
+   "description": "",
+   "type": "class_test",
+   "grade": "Grade 6",
+   "academicYear": "2026-27",
+   "term": "Term 1",
+   "subjects": [
+    {
+     "subject": "Science",
+     "totalMarks": 20,
+     "passingMarks": 8,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    }
+   ],
+   "startDate": "2026-10-04T00:00:00.000Z",
+   "endDate": "2026-10-05T00:00:00.000Z",
+   "status": "ongoing",
+   "resultPublished": false,
+   "gradeCardsGenerated": false,
+   "deliveryMode": "teacher_marked",
+   "gradingScale": {
+    "A+": {
+     "min": 90,
+     "gpa": 4.0
+    },
+    "F": {
+     "min": 0,
+     "gpa": 0.0
+    }
+   },
+   "createdBy": "Admin (DUMMY)",
+   "schoolSlug": "demo-school",
+   "campusId": "64a0000000000000000000c1",
+   "createdAt": "2026-09-20T05:00:00.000Z",
+   "updatedAt": "2026-09-21T05:00:00.000Z",
+   "__v": 0,
+   "section": "B"
+  },
+  {
+   "_id": "64f000000000000000000a06",
+   "title": "Online Quiz - Fractions (DUMMY)",
+   "description": "",
+   "type": "quiz",
+   "grade": "Grade 5",
+   "academicYear": "2026-27",
+   "term": "Term 1",
+   "subjects": [
+    {
+     "subject": "Mathematics",
+     "totalMarks": 10,
+     "passingMarks": 4,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": "64f000000000000000000e00",
+     "attemptsAllowed": 2
+    }
+   ],
+   "startDate": "2026-10-03T00:00:00.000Z",
+   "endDate": "2026-10-04T00:00:00.000Z",
+   "status": "ongoing",
+   "resultPublished": false,
+   "gradeCardsGenerated": false,
+   "deliveryMode": "self_paced_online",
+   "gradingScale": {
+    "A+": {
+     "min": 90,
+     "gpa": 4.0
+    },
+    "F": {
+     "min": 0,
+     "gpa": 0.0
+    }
+   },
+   "createdBy": "Admin (DUMMY)",
+   "schoolSlug": "demo-school",
+   "campusId": "64a0000000000000000000c1",
+   "createdAt": "2026-09-20T05:00:00.000Z",
+   "updatedAt": "2026-09-21T05:00:00.000Z",
+   "__v": 0,
+   "section": "A"
+  },
+  {
+   "_id": "64f000000000000000000a09",
+   "title": "Cancelled Quiz (DUMMY)",
+   "description": "",
+   "type": "quiz",
+   "grade": "Grade 5",
+   "academicYear": "2026-27",
+   "term": "Term 1",
+   "subjects": [
+    {
+     "subject": "Mathematics",
+     "totalMarks": 10,
+     "passingMarks": 4,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    }
+   ],
+   "startDate": "2026-09-27T00:00:00.000Z",
+   "endDate": "2026-09-28T00:00:00.000Z",
+   "status": "cancelled",
+   "resultPublished": false,
+   "gradeCardsGenerated": false,
+   "deliveryMode": "teacher_marked",
+   "gradingScale": {
+    "A+": {
+     "min": 90,
+     "gpa": 4.0
+    },
+    "F": {
+     "min": 0,
+     "gpa": 0.0
+    }
+   },
+   "createdBy": "Admin (DUMMY)",
+   "schoolSlug": "demo-school",
+   "campusId": "64a0000000000000000000c1",
+   "createdAt": "2026-09-20T05:00:00.000Z",
+   "updatedAt": "2026-09-21T05:00:00.000Z",
+   "__v": 0,
+   "section": "A"
+  },
+  {
+   "_id": "64f000000000000000000a02",
+   "title": "Mid-Term Exam (DUMMY)",
+   "description": "",
+   "type": "mid_term",
+   "grade": "Grade 5",
+   "academicYear": "2026-27",
+   "term": "Term 1",
+   "subjects": [
+    {
+     "subject": "Mathematics",
+     "totalMarks": 100,
+     "passingMarks": 40,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    },
+    {
+     "subject": "Science",
+     "totalMarks": 100,
+     "passingMarks": 40,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    },
+    {
+     "subject": "English",
+     "totalMarks": 100,
+     "passingMarks": 40,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    }
+   ],
+   "startDate": "2026-09-22T00:00:00.000Z",
+   "endDate": "2026-09-23T00:00:00.000Z",
+   "status": "completed",
+   "resultPublished": false,
+   "gradeCardsGenerated": false,
+   "deliveryMode": "teacher_marked",
+   "gradingScale": {
+    "A+": {
+     "min": 90,
+     "gpa": 4.0
+    },
+    "F": {
+     "min": 0,
+     "gpa": 0.0
+    }
+   },
+   "createdBy": "Admin (DUMMY)",
+   "schoolSlug": "demo-school",
+   "campusId": "64a0000000000000000000c1",
+   "createdAt": "2026-09-20T05:00:00.000Z",
+   "updatedAt": "2026-09-21T05:00:00.000Z",
+   "__v": 0
+  },
+  {
+   "_id": "64f000000000000000000a05",
+   "title": "Term 1 Result (DUMMY)",
+   "description": "",
+   "type": "mid_term",
+   "grade": "Grade 5",
+   "academicYear": "2026-27",
+   "term": "Term 1",
+   "subjects": [
+    {
+     "subject": "Mathematics",
+     "totalMarks": 100,
+     "passingMarks": 40,
+     "examiner": "Exam Cell (DUMMY)",
+     "date": "2026-10-06T00:00:00.000Z",
+     "startTime": "09:00",
+     "duration": 60,
+     "venue": "Hall 1",
+     "examPaperId": null,
+     "attemptsAllowed": 1
+    }
+   ],
+   "startDate": "2026-09-06T00:00:00.000Z",
+   "endDate": "2026-09-07T00:00:00.000Z",
+   "status": "result_published",
+   "resultPublished": true,
+   "gradeCardsGenerated": true,
+   "deliveryMode": "teacher_marked",
+   "gradingScale": {
+    "A+": {
+     "min": 90,
+     "gpa": 4.0
+    },
+    "F": {
+     "min": 0,
+     "gpa": 0.0
+    }
+   },
+   "createdBy": "Admin (DUMMY)",
+   "schoolSlug": "demo-school",
+   "campusId": "64a0000000000000000000c1",
+   "createdAt": "2026-09-20T05:00:00.000Z",
+   "updatedAt": "2026-09-21T05:00:00.000Z",
+   "__v": 0,
+   "section": "A",
+   "resultPublishedAt": "2026-10-01T05:00:00.000Z",
+   "resultPublishedBy": "Admin (DUMMY)"
+  }
+ ],
+ "meta": {
+  "total": 10,
+  "page": 1,
+  "limit": 100,
+  "pages": 1
+ }
+}

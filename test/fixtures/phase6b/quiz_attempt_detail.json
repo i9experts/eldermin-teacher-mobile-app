@@ -1,0 +1,107 @@
+{
+ "_id": "64f000000000000000000d00",
+ "studentId": "64f000000000000000000200",
+ "studentName": "Aarav Ahmed (DUMMY)",
+ "rollNumber": "1",
+ "assessmentId": "64f000000000000000000a06",
+ "assessmentTitle": "Online Quiz - Fractions (DUMMY)",
+ "subject": "Mathematics",
+ "examPaperId": "64f000000000000000000e00",
+ "grade": "Grade 5",
+ "section": "A",
+ "academicYear": "2026-27",
+ "totalMarks": 10,
+ "passingMarks": 4,
+ "answers": [
+  {
+   "questionId": "64f000000000000000000e10",
+   "selectedOptionIndex": 0,
+   "needsManualGrading": false,
+   "isCorrect": true,
+   "marksAwarded": 2,
+   "question": {
+    "_id": "64f000000000000000000e10",
+    "subject": "Mathematics",
+    "grade": "Grade 5",
+    "type": "mcq",
+    "bloomsLevel": "understand",
+    "difficulty": "easy",
+    "questionText": "What is 1/2 + 1/4?",
+    "marks": 2,
+    "tags": [],
+    "usageCount": 3,
+    "options": [
+     {
+      "_id": "64f000000000000000000e11",
+      "text": "3/4",
+      "isCorrect": true
+     },
+     {
+      "_id": "64f000000000000000000e12",
+      "text": "2/6",
+      "isCorrect": false
+     },
+     {
+      "_id": "64f000000000000000000e13",
+      "text": "1/8",
+      "isCorrect": false
+     }
+    ],
+    "schoolSlug": "demo-school"
+   }
+  },
+  {
+   "questionId": "64f000000000000000000e20",
+   "textAnswer": "You make the bottoms the same, then add the tops (DUMMY answer).",
+   "needsManualGrading": true,
+   "isCorrect": null,
+   "marksAwarded": null,
+   "question": {
+    "_id": "64f000000000000000000e20",
+    "subject": "Mathematics",
+    "grade": "Grade 5",
+    "type": "short",
+    "difficulty": "medium",
+    "questionText": "Explain how you add two fractions with different denominators.",
+    "marks": 4,
+    "correctAnswer": "Find a common denominator, convert, add numerators.",
+    "answerExplanation": "Use the LCM (DUMMY).",
+    "options": [],
+    "tags": [],
+    "usageCount": 1,
+    "schoolSlug": "demo-school"
+   }
+  },
+  {
+   "questionId": "64f000000000000000000e30",
+   "textAnswer": "8 - 5 = 3 so 3/8 are left (DUMMY answer).",
+   "needsManualGrading": true,
+   "isCorrect": null,
+   "marksAwarded": null,
+   "question": {
+    "_id": "64f000000000000000000e30",
+    "subject": "Mathematics",
+    "grade": "Grade 5",
+    "type": "long",
+    "difficulty": "hard",
+    "questionText": "A pizza is cut into 8 slices. Aisha eats 3 and Omar eats 2. What fraction is left? Show your working.",
+    "marks": 4,
+    "correctAnswer": "3/8",
+    "options": [],
+    "tags": [],
+    "usageCount": 1,
+    "schoolSlug": "demo-school"
+   }
+  }
+ ],
+ "autoGradedMarks": 2,
+ "obtainedMarks": null,
+ "status": "submitted",
+ "attemptNumber": 1,
+ "startedAt": "2026-10-03T08:00:00.000Z",
+ "submittedAt": "2026-10-03T08:30:00.000Z",
+ "schoolSlug": "demo-school",
+ "createdAt": "2026-10-03T08:00:00.000Z",
+ "updatedAt": "2026-10-03T08:30:00.000Z",
+ "__v": 0
+}

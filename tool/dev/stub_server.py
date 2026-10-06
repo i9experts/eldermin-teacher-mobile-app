@@ -52,6 +52,9 @@ Phase 5b (homework, upload, behaviour) logic lives in stub_5b.py with backend fi
 Phase 6a (lesson plans, syllabus) logic lives in stub_6a.py with backend file:line citations and UNVERIFIED marks. /__stub/mode features:
   lessonplans lpcreate lpupdate lpparse syllabus sylone sylmark planner   (special values: see the stub_6a.py docstring: aioff, badjson,
   googledenied, notfound)   GET /__stub/state -> phase6a: counts + the last PATCH/create keys and parse-upload summary.
+Phase 6b (assessments, marks entry, report remarks, quiz grading, curriculum, library) lives in stub_6b.py (citations, UNVERIFIED marks).
+  /__stub/mode features: assessments assessone marks marksbulk reportcards remarks quizlist quizone quizgrade curriculum curone library
+  specials: marksbulk=partial500, marks=allverified, quizone=nopaper; feature `bigclass`=on -> a 230-student Grade 5 A. GET /__stub/state -> phase6b.
 Home (Phase 4) endpoints, response shapes mirror
 eldermin-teacher-app-docs/phase4/home-endpoint-shapes.md (citations next to each builder below;
 legend: TS=teaching.service.ts S/TT=schemas/timetable.schema.ts STS=students.service.ts SPS=staff-portal.service.ts ...).
@@ -687,6 +690,8 @@ def students_list(q, account):
     if limit > 1000:
         return 400, "limit must not be greater than 1000"
     rows = [dict(s) for s in STUDENTS]
+    if _modes.get("bigclass") == "on":  # Phase 6b: a 230-student Grade 5 A (two 200-row pages)
+        rows += stub_6b.extra_students()
     if q.get("grade"):
         rows = [s for s in rows if s["currentGrade"] in q["grade"]]
     if q.get("section"):
@@ -980,6 +985,8 @@ import stub_5b  # Phase 5b logic (homework, upload, behaviour, tarbiyah)
 stub_5b.bind(_sys.modules[__name__])
 import stub_6a  # Phase 6a logic (lesson plans, syllabus tracking)
 stub_6a.bind(_sys.modules[__name__])
+import stub_6b  # Phase 6b logic (assessments, marks entry, report remarks, quiz grading, curriculum, library)
+stub_6b.bind(_sys.modules[__name__])
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1250,6 +1257,98 @@ class Handler(BaseHTTPRequestHandler):
             self._send(status, body)
         return True
 
+    # -- Phase 6b routes (assessments, marks, report remarks, quiz grading, curriculum, library). True when handled.
+    def _p6b(self, method, path, q):
+        static = ("dashboard", "questions", "marks", "report-cards", "analytics", "timetable", "quiz-attempts", "papers", "omr")
+        m_asm = re.fullmatch(r"/api/v1/assessments/([0-9a-zA-Z\-]+)", path)
+        m_att = re.fullmatch(r"/api/v1/assessments/quiz-attempts/([0-9a-zA-Z]+)", path)
+        m_grade = re.fullmatch(r"/api/v1/assessments/quiz-attempts/([0-9a-zA-Z]+)/grade", path)
+        m_rem = re.fullmatch(r"/api/v1/assessments/report-cards/([0-9a-zA-Z]+)/remarks", path)
+        m_cur = re.fullmatch(r"/api/v1/academics/curriculum/([0-9a-zA-Z]+)", path)
+        feature = None
+        if method == "GET":
+            if path == "/api/v1/assessments":
+                feature = "assessments"
+            elif path == "/api/v1/assessments/marks/list":
+                feature = "marks"
+            elif path == "/api/v1/assessments/report-cards":
+                feature = "reportcards"
+            elif path == "/api/v1/assessments/quiz-attempts":
+                feature = "quizlist"
+            elif m_att:
+                feature = "quizone"
+            elif m_asm and m_asm.group(1) not in static:
+                feature = "assessone"
+            elif path == "/api/v1/academics/curriculum":
+                feature = "curriculum"
+            elif m_cur:
+                feature = "curone"
+            elif path == "/api/v1/academics/library/books":
+                feature = "library"
+        elif method == "POST":
+            if path == "/api/v1/assessments/marks/bulk":
+                feature = "marksbulk"
+            elif m_grade:
+                feature = "quizgrade"
+        elif method == "PATCH" and m_rem:
+            feature = "remarks"
+        if not feature:
+            return False
+        a = self._authed()
+        if not a:
+            return True
+        raw = self._raw() if method in ("POST", "PATCH") else b""
+        gate = self._feature_gate(feature)
+        if gate is True:
+            return True
+        if a["role"] != "teacher":
+            return self._err(403, "Forbidden resource") or True
+        with _lock:
+            special = _modes.get(feature, "ok")
+        empty = gate == "empty"
+        no_page = {"data": [], "meta": {"total": 0, "page": 1, "limit": 20, "pages": 0}}
+
+        def jbody():
+            try:
+                return json.loads(raw or b"{}")
+            except Exception:
+                return {}
+        with _lock:
+            if feature == "assessments":
+                r = (200, no_page) if empty else stub_6b.list_assessments(a, q)
+            elif feature == "assessone":
+                r = stub_6b.get_assessment(a, m_asm.group(1))
+            elif feature == "marks":
+                r = (200, no_page) if empty else stub_6b.list_marks(a, q, mode=special)
+            elif feature == "marksbulk":
+                r = stub_6b.bulk_marks(a, jbody(), mode=special, academic_year_header=self.headers.get("x-academic-year"))
+            elif feature == "reportcards":
+                r = (200, no_page) if empty else stub_6b.list_report_cards(a, q)
+            elif feature == "remarks":
+                r = stub_6b.update_remarks(a, m_rem.group(1), jbody(), mode=special)
+            elif feature == "quizlist":
+                r = (200, []) if empty else stub_6b.list_attempts(a, q)
+            elif feature == "quizone":
+                r = stub_6b.get_attempt(a, m_att.group(1), mode=special)
+            elif feature == "quizgrade":
+                r = stub_6b.grade_attempt(a, m_grade.group(1), jbody(), mode=special)
+            elif feature == "curriculum":
+                r = (200, []) if empty else stub_6b.list_curricula(a, q)
+            elif feature == "curone":
+                r = stub_6b.get_curriculum(a, m_cur.group(1))
+            else:
+                r = (200, no_page) if empty else stub_6b.list_books(a, q)
+        status, body = r
+        if status >= 400:
+            self._err(status, body)
+        elif body is None:  # Nest sends an empty body for a null return
+            self.send_response(status)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+        else:
+            self._send(status, body)
+        return True
+
     def _p5b(self, method, path, q):
         m_asg = re.fullmatch(r"/api/v1/teaching/assignments/([0-9a-f]{24})", path)
         m_grade = re.fullmatch(r"/api/v1/teaching/assignments/([0-9a-f]{24})/submissions/([0-9a-f]{24})", path)
@@ -1340,7 +1439,7 @@ class Handler(BaseHTTPRequestHandler):
             if a["role"] != "teacher":
                 return self._err(403, "Forbidden resource")
             self._send(200, staff_me(a))
-        elif path.startswith("/api/v1/") and self._p6a("GET", path, parse_qs(urlparse(self.path).query)):
+        elif path.startswith("/api/v1/") and (self._p6b("GET", path, parse_qs(urlparse(self.path).query)) or self._p6a("GET", path, parse_qs(urlparse(self.path).query))):
             return
         elif (path.startswith("/api/v1/") or path.startswith("/__stub/files/")) and self._p5b("GET", path, parse_qs(urlparse(self.path).query)):
             return
@@ -1351,13 +1450,13 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/__stub/state":
             with _lock:
                 self._send(200, {"classTeacher": {k: v["classTeacher"] for k, v in ACCOUNTS.items()}, **_state,
-                                 "attendance": {"records": len(ATT), **_att_last}, "phase5b": stub_5b.state_summary(), "phase6a": stub_6a.state_summary()})
+                                 "attendance": {"records": len(ATT), **_att_last}, "phase5b": stub_5b.state_summary(), "phase6a": stub_6a.state_summary(), "phase6b": stub_6b.state_summary()})
         else:
             self._err(404, f"Cannot GET {path}")
 
     def do_PATCH(self):
         path = urlparse(self.path).path
-        if not (self._p6a("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p5b("PATCH", path, parse_qs(urlparse(self.path).query))):
+        if not (self._p6b("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p6a("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p5b("PATCH", path, parse_qs(urlparse(self.path).query))):
             self._err(404, f"Cannot PATCH {path}")
 
     def do_DELETE(self):
@@ -1368,7 +1467,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urlparse(self.path)
         path = u.path
-        if self._p6a("POST", path, parse_qs(u.query)) or self._p5b("POST", path, parse_qs(u.query)):
+        if self._p6b("POST", path, parse_qs(u.query)) or self._p6a("POST", path, parse_qs(u.query)) or self._p5b("POST", path, parse_qs(u.query)):
             return
         if path == "/api/v1/auth/login":
             b = self._json()
@@ -1443,6 +1542,7 @@ class Handler(BaseHTTPRequestHandler):
                 _att_last.update({"academicYearHeader": None, "bulkCalls": 0, "lastBulkSize": 0})
                 stub_5b.reset()
                 stub_6a.reset()
+                stub_6b.reset()
                 ACCOUNTS["teacher"]["classTeacher"] = False
                 ACCOUNTS["classteacher"]["classTeacher"] = True
             return self._send(200, {"ok": True})
