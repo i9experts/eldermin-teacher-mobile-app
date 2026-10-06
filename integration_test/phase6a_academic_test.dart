@@ -100,6 +100,7 @@ void main() {
     await waitFor(t, find.byKey(const Key('lp_edit_rejection')));
     await settle(t, 1000);
     await shot(t, '6a_13_edit_rejected_plan');
+    await t.scrollUntilVisible(find.byKey(const Key('lp_assessment_field')), 250, scrollable: page);
     await t.enterText(find.byKey(const Key('lp_assessment_field')), 'Exit ticket: three fraction questions.');
     await settle(t, 500);
     await t.tap(find.byKey(const Key('lp_submit_approval')));

@@ -110,3 +110,11 @@ flutter build ios --no-codesign --debug
 ## Structure
 `lib/app/{modules,components,config,common,routes,utils}` and `lib/core/{constants,network,services,theme,models,widgets}`.
 Unbuilt screens show `ComingSoonScreen` - never fabricated data.
+
+## Lesson plans and Syllabus (Phase 6a)
+Routes `/lesson-plans[/new|/upload|/:id]`, `/syllabus[/weekly-planner|/:id]`. Stub: `tool/dev/stub_6a.py` (backend file:line citations, UNVERIFIED marks) plus the
+`/__stub/mode` features `lessonplans lpcreate lpupdate lpparse syllabus sylone sylmark planner` (special values `aioff badjson googledenied notfound`,
+see the docstring). Fixtures: `TZ=UTC python3 tool/dev/dump_6a_fixtures.py` -> `test/fixtures/phase6a/`. Tests: `python3 tool/dev/test_stub_6a.py`.
+Walkthrough: `integration_test/phase6a_academic_test.dart` (a test `LessonPlanSourcePicker` stands in for the native document picker). Report:
+`eldermin-teacher-app-docs/phase6/PHASE6A_REPORT.md`.
+
