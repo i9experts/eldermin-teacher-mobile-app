@@ -186,12 +186,18 @@ class HomeworkCard extends StatelessWidget {
 class LessonPlansCard extends StatelessWidget {
   final LessonPlanSummary data;
   final void Function(LessonPlan) onOpen;
-  const LessonPlansCard({super.key, required this.data, required this.onOpen});
+
+  /// Opens the lesson plans list pre-filtered to a status (`'submitted'` / `'rejected'`).
+  final void Function(String status)? onOpenFilter;
+  const LessonPlansCard({super.key, required this.data, required this.onOpen, this.onOpenFilter});
 
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      StatsRow(items: [('${data.submitted.length}', 'Awaiting approval', null), ('${data.rejected.length}', 'Rejected', null)]),
+      StatsRow(
+        items: [('${data.submitted.length}', 'Awaiting approval', null), ('${data.rejected.length}', 'Rejected', null)],
+        onTaps: onOpenFilter == null ? null : [() => onOpenFilter!('submitted'), () => onOpenFilter!('rejected')],
+      ),
       const SizedBox(height: 8),
       for (final p in data.rejected.take(3))
         _row(

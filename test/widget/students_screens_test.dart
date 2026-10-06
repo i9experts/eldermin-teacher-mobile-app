@@ -249,7 +249,7 @@ void main() {
       expect(find.byKey(const ValueKey('module_students')), findsOneWidget);
       expect(find.byKey(const ValueKey('module_attendance')), findsOneWidget);
       expect(find.byKey(const ValueKey('module_homework')), findsOneWidget);
-      expect(find.text('Coming soon'), findsNWidgets(3)); // lesson plans, syllabus, assessments (homework and behaviour are live since 5b)
+      expect(find.text('Coming soon'), findsNWidgets(2)); // syllabus, assessments (homework, behaviour and lesson plans are live)
       expect(find.text('Grade 5 - A'), findsOneWidget);
     });
 

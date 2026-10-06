@@ -170,15 +170,15 @@ class AppPages {
     GetPage(
         name: Routes.lessonPlanNew,
         page: () => const LessonPlanNewScreen(),
-        binding: LessonPlansBinding()),
+        binding: LessonPlanFormBinding()),
     GetPage(
         name: Routes.lessonPlanUpload,
         page: () => const LessonPlanUploadScreen(),
-        binding: LessonPlansBinding()),
+        binding: LessonPlanUploadBinding()),
     GetPage(
         name: Routes.lessonPlanDetail,
         page: () => const LessonPlanDetailScreen(),
-        binding: LessonPlansBinding()),
+        binding: LessonPlanDetailBinding()),
     GetPage(
         name: Routes.syllabus,
         page: () => const SyllabusScreen(),

@@ -242,9 +242,16 @@ class LessonPlanInput {
     final obj = objectives.map(_t).where((e) => e.isNotEmpty).toList();
     if (!_same(obj, orig.learningObjectives)) out['learningObjectives'] = obj;
     final res = resources.map(_t).where((e) => e.isNotEmpty).toList();
-    if (!_same(res, orig.resources)) out['resources'] = res;
+    if (!_sameSet(res, orig.resources)) out['resources'] = res;
     if (status != null) out['status'] = status.wire;
     return out;
+  }
+
+  /// Resources are a set to the teacher: order alone is never a change.
+  static bool _sameSet(List<String> a, List<String> b) {
+    final x = [...a]..sort();
+    final y = [for (final e in b) e.trim()]..sort();
+    return _same(x, y);
   }
 
   static bool _same(List<String> a, List<String> b) {

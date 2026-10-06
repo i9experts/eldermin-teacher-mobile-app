@@ -47,15 +47,18 @@ class AppCard extends StatelessWidget {
 
 class StatsRow extends StatelessWidget {
   final List<(String value, String label, String? trend)> items;
-  const StatsRow({super.key, required this.items});
+
+  /// Optional tap handler per item (same order); a null entry = not tappable.
+  final List<VoidCallback?>? onTaps;
+  const StatsRow({super.key, required this.items, this.onTaps});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: items.asMap().entries.map((e) {
         final isLast = e.key == items.length - 1;
-        return Expanded(
-          child: Container(
+        final tap = onTaps != null && e.key < onTaps!.length ? onTaps![e.key] : null;
+        final tile = Container(
             margin: EdgeInsets.only(right: isLast ? 0 : 8),
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 11),
             decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.line)),
@@ -71,8 +74,9 @@ class StatsRow extends StatelessWidget {
                 ],
               ],
             ),
-          ),
-        );
+          );
+        if (tap == null) return Expanded(child: tile);
+        return Expanded(child: InkWell(key: ValueKey('stat_tap_${e.key}'), borderRadius: BorderRadius.circular(16), onTap: tap, child: tile));
       }).toList(),
     );
   }

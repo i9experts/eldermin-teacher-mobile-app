@@ -103,7 +103,7 @@ class HomeDashboardScreen extends GetView<HomeDashboardController> {
                   emptyIcon: Icons.edit_note_rounded,
                   emptyTitle: 'All caught up',
                   emptySubtitle: 'No plans awaiting approval or rejected.',
-                  builder: (d) => LessonPlansCard(data: d, onOpen: (p) => Get.toNamed(Routes.lessonPlanDetailOf(p.id))),
+                  builder: (d) => LessonPlansCard(data: d, onOpen: (p) => Get.toNamed(Routes.lessonPlanDetailOf(p.id)), onOpenFilter: (s) => Get.toNamed(Routes.lessonPlans, arguments: s)),
                 )
               : const SizedBox.shrink()),
           Obx(() => c.showPtms
