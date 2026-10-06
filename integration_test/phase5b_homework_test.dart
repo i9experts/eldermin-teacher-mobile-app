@@ -23,7 +23,8 @@ Future<void> shot(WidgetTester t, String name, {int ms = 2000}) async {
 
 Future<void> stub(WidgetTester t, String path) async {
   print('STUB:$path');
-  await t.pump(const Duration(milliseconds: 900));
+  await t.runAsync(() => Future<void>.delayed(const Duration(seconds: 2))); // let the capture script apply it
+  await t.pump(const Duration(milliseconds: 300));
 }
 
 Future<void> waitFor(WidgetTester t, Finder f, {int seconds = 25}) async {
@@ -116,6 +117,8 @@ void main() {
     await shot(t, '5b_14_create_attachment_added');
     await stub(t, '/__stub/mode?feature=upload&value=413');
     picker.next = [tempFile('Big scan.jpg', 64 * 1024)];
+    await t.scrollUntilVisible(find.byKey(const Key('hw_add_attachment')), 200, scrollable: page);
+    await scroll(t, 250);
     await t.tap(find.byKey(const Key('hw_add_attachment')));
     await settle(t, 600);
     await t.tap(find.byKey(const Key('hw_pick_photos')));
@@ -123,6 +126,8 @@ void main() {
     await shot(t, '5b_15_create_upload_error');
     // retry succeeds once the server is fine again
     await stub(t, '/__stub/mode?feature=upload&value=ok');
+    await t.scrollUntilVisible(find.textContaining('Retry').first, 200, scrollable: page);
+    await scroll(t, 250);
     await t.tap(find.textContaining('Retry').first);
     await settle(t, 2500);
 
@@ -132,8 +137,9 @@ void main() {
     await waitFor(t, find.byKey(const Key('confirm_dialog_confirm')));
     await shot(t, '5b_16_assign_confirm', ms: 500);
     await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
+    await settle(t, 2500);
+    await t.drag(page, const Offset(0, 4000));
     await waitFor(t, find.byKey(const Key('hw_submit_error')));
-    await t.drag(page, const Offset(0, 2000));
     await settle(t, 800);
     await shot(t, '5b_17_create_server_validation_error');
     await stub(t, '/__stub/mode?feature=hwwrite&value=ok');
@@ -184,7 +190,8 @@ void main() {
     await settle(t, 800);
     await stub(t, '/__stub/mode?feature=homework&value=403');
     await t.drag(page, const Offset(0, 500));
-    await settle(t, 2500);
+    await waitFor(t, find.byKey(const Key('screen_forbidden')));
+    await settle(t, 800);
     await shot(t, '5b_90_homework_403');
     await stub(t, '/__stub/mode?feature=homework&value=ok');
   });

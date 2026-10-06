@@ -459,7 +459,7 @@ EXPECTATIONS = {
         ("submissions[].submittedAt", SN, False, ("fmt", "iso")),
         ("submissions[].attachmentS3Keys", L, False, None),
     ],
-    # GET /behaviour/records?limit=5 (Phase 5b). Backend behaviour.controller.ts:43-47 -> behaviour.service.ts:154-193 ({ data, meta });
+    # GET /behaviour/records?limit=5 (Phase 5b). Backend behaviour.controller.ts:43-47 -> behaviour.service.ts:170-207 ({ data, meta });
     # schema behaviour/schemas/behaviour.schema.ts:14-106. App: lib/core/models/behaviour/behaviour_models.dart BehaviourRecord/BehaviourPage.
     # meta.page / meta.limit are echoed as the raw query STRINGS when sent (no DTO) so they are not asserted here.
     "behaviour_records": [

@@ -13,7 +13,7 @@ enum BehaviourScope { mine, classes }
 /// Behaviour & Tarbiyah home (`/behaviour`): the behaviour records of MY classes' students and the ones I logged.
 ///
 /// Source: `GET /behaviour/records?grade=<raw grade>` per distinct raw grade string of my classes (the route filters by an EXACT grade
-/// string only; no section / reporter / class filter, behaviour.service.ts:154-193), then re-scoped client-side with the tolerant class
+/// string only; no section / reporter / class filter, behaviour.service.ts:170-207), then re-scoped client-side with the tolerant class
 /// matcher so records of other classes (returned by the server) are NEVER shown. "My entries" = [BehaviourRecord.isMine]
 /// (`reportedById` when present, else the `reportedBy` name): there is no server-side "mine" filter.
 class BehaviourController extends GetxController {

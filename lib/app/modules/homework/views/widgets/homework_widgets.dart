@@ -90,7 +90,7 @@ class FilterChipsRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.pill),
                 border: Border.all(color: on ? AppColors.primaryColor : AppColors.line),
               ),
-              child: CustomText(text: '$label  $count', color: on ? Colors.white : AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 11.5),
+              child: CustomText(text: count < 0 ? label : '$label  $count', color: on ? Colors.white : AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 11.5),
             ),
           ),
       ],

@@ -16,7 +16,8 @@ Future<void> shot(WidgetTester t, String name, {int ms = 2000}) async {
 
 Future<void> stub(WidgetTester t, String path) async {
   print('STUB:$path');
-  await t.pump(const Duration(milliseconds: 900));
+  await t.runAsync(() => Future<void>.delayed(const Duration(seconds: 2))); // let the capture script apply it
+  await t.pump(const Duration(milliseconds: 300));
 }
 
 Future<void> waitFor(WidgetTester t, Finder f, {int seconds = 25}) async {
@@ -29,7 +30,7 @@ Future<void> waitFor(WidgetTester t, Finder f, {int seconds = 25}) async {
 
 Finder navLabel(String label) => find.descendant(of: find.byType(BottomNavigationBar), matching: find.text(label));
 
-Finder get page => find.descendant(of: find.byType(ListView).first, matching: find.byType(Scrollable)).first;
+Finder get page => find.descendant(of: find.byType(ListView).last, matching: find.byType(Scrollable)).first;
 
 Future<void> scroll(WidgetTester t, double dy) async {
   await t.drag(page, Offset(0, -dy));
@@ -79,19 +80,21 @@ void main() {
     await shot(t, '5b_44_student_picker');
     await t.enterText(find.byKey(const Key('beh_picker_search')), 'Aarav');
     await settle(t, 600);
-    await t.tap(find.textContaining('Aarav').first);
-    await settle(t, 800);
+    await t.tap(find.text('Aarav Ahmed (DUMMY)'));
+    FocusManager.instance.primaryFocus?.unfocus();
+    await settle(t, 2500);
     await t.tap(find.byKey(const Key('cat_leadership')));
     await settle(t, 400);
     await t.enterText(find.byKey(const Key('beh_description')), 'Organised the group and made sure everyone had a turn.');
     await settle(t, 600);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await settle(t, 1500);
     await shot(t, '5b_45_log_form_filled');
     // server problem (a bare 500, as the backend gives for a body mongoose rejects): everything is kept
     await stub(t, '/__stub/mode?feature=behaviourcreate&value=500');
     await t.tap(find.byKey(const Key('beh_submit')));
+    await settle(t, 1500);
     await waitFor(t, find.byKey(const Key('beh_submit_error')));
-    await settle(t, 600);
-    await t.drag(page, const Offset(0, 2000));
     await settle(t, 600);
     await shot(t, '5b_46_log_server_error');
     await stub(t, '/__stub/mode?feature=behaviourcreate&value=ok');

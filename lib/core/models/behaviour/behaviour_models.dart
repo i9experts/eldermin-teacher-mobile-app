@@ -159,7 +159,7 @@ extension ClassRefBehaviour on ClassRef {
   bool containsRecord(BehaviourRecord r) => sameGrade(r.grade, grade) && (section.isEmpty || sameSection(r.section, section));
 }
 
-/// `{ data, meta:{ total, page, limit, pages } }` (behaviour.service.ts:154-193). `page`/`limit` are echoed as the raw query STRINGS
+/// `{ data, meta:{ total, page, limit, pages } }` (behaviour.service.ts:170-207). `page`/`limit` are echoed as the raw query STRINGS
 /// when sent (the controller has no DTO), hence the tolerant reads.
 class BehaviourPage {
   final List<BehaviourRecord> records;
@@ -203,7 +203,7 @@ class BehaviourDraft {
     required this.reporterId,
   });
 
-  /// Required by the mongoose schema (any failure there is a bare 500, behaviour.service.ts:155-165): studentId, studentName, grade,
+  /// Required by the mongoose schema (any failure there is a bare 500, behaviour.service.ts:159-168): studentId, studentName, grade,
   /// date, type, category, title, description, reportedBy, academicYear (+ schoolSlug, added from the token). Notes:
   ///  * studentName/grade/section/rollNumber are the STUDENT'S OWN stored values (as the web does, index.tsx:568-573).
   ///  * `date` is `YYYY-MM-DD` (as the web); read back as the UTC components.

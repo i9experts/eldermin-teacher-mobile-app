@@ -7,6 +7,7 @@ import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../homework/views/widgets/homework_widgets.dart';
+import '../../home/models/section_state.dart';
 import '../controllers/behaviour_controller.dart';
 import 'widgets/behaviour_widgets.dart';
 
@@ -32,7 +33,7 @@ class _BehaviourScreenState extends State<BehaviourScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const CustomText(text: 'Behaviour & Tarbiyah', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
-      floatingActionButton: Obx(() => c.canView && c.canLog && c.classes.isNotEmpty
+      floatingActionButton: Obx(() => c.canView && c.canLog && c.classes.isNotEmpty && c.state.value.status != SectionStatus.forbidden
           ? FloatingActionButton.extended(
               key: const Key('beh_new_fab'),
               backgroundColor: AppColors.primaryColor,
@@ -80,8 +81,8 @@ class _BehaviourScreenState extends State<BehaviourScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: FilterChipsRow(chips: [
-                ('All classes', 0, filter < 0, () => c.setClassFilter(-1), 'cls_all'),
-                for (var i = 0; i < classes.length; i++) (classes[i].label, 0, filter == i, () => c.setClassFilter(i), 'cls_$i'),
+                ('All classes', -1, filter < 0, () => c.setClassFilter(-1), 'cls_all'),
+                for (var i = 0; i < classes.length; i++) (classes[i].label, -1, filter == i, () => c.setClassFilter(i), 'cls_$i'),
               ]),
             ),
           TextField(

@@ -541,7 +541,7 @@ def _paged(q, rows):
 
 
 def list_records(account, q):
-    """GET /behaviour/records (BC:43-47 -> BS:154-193, verified). Query read straight from @Query() (NO DTO): type, category,
+    """GET /behaviour/records (BC:43-47 -> BS:170-207, verified). Query read straight from @Query() (NO DTO): type, category,
     severity, grade (EXACT string), studentId (ObjectId cast: invalid -> 500), resolved ('true' only is true; any other
     string is false), from/to (date), followUpOverdue, campusId (403 if not my campus, SCOPE:92-94), search (regex over
     studentName/title/description), page (def 1), limit (def 20), sorted date desc. NO section filter, NO reporter filter and
@@ -581,7 +581,7 @@ def list_records(account, q):
 
 
 def create_record(account, body):
-    """POST /behaviour/records (BC:55-65 -> BS:155-165, verified). Body is `any` (NO DTO, no whitelist): the controller adds
+    """POST /behaviour/records (BC:55-65 -> BS:159-168, verified). Body is `any` (NO DTO, no whitelist): the controller adds
     schoolSlug (JWT), academicYear (body || JWT || x-academic-year || '2025-26') and reportedBy (body || JWT name ||
     'Admin'), then `new Model({...dto, studentId: ObjectId, date: new Date(date), campusId: JWT campus})`.save(). Mongoose
     required: studentId, studentName, grade, date, type (enum), category (enum), title, description, reportedBy, schoolSlug,
@@ -634,7 +634,7 @@ def create_record(account, body):
 
 
 def resolve_record(account, rid, body):
-    """PATCH /behaviour/records/:id/resolve { note } (BC:74-82 -> BS:211-218). No role gate. findOneAndUpdate sets resolved,
+    """PATCH /behaviour/records/:id/resolve { note } (BC:74-82 -> BS:219-226). No role gate. findOneAndUpdate sets resolved,
     resolvedDate, resolvedNote, verifiedBy (name); returns the document, or null (empty 200 body) when the id is unknown."""
     seed_behaviour()
     r = next((x for x in _state["records"] if x["_id"] == rid), None)

@@ -72,6 +72,15 @@ attsummary attendance attbulk`; extra values `409` and `drop` (closes the connec
 Fixtures: `TZ=UTC python3 tool/dev/dump_classroom_fixtures.py` -> `test/fixtures/classroom/`. Stub tests:
 `python3 tool/dev/test_stub_attendance.py`. Walkthrough: `integration_test/phase5a_classroom_test.dart`.
 
+## Homework and Behaviour (Phase 5b)
+Routes `/homework[/new|/:id|/:id/submissions|/:id/submissions/:sid/grade]` and `/behaviour[/new|/student/:id]`. The stub serves assignments CRUD,
+submissions + grading, `POST /upload/single/:folder` (real multipart parse), `GET /upload/signed-url`, `GET/POST /behaviour/records`,
+`PATCH records/:id/resolve` and `GET /behaviour/tarbiyah`; logic and backend file:line citations in `tool/dev/stub_5b.py`. Mode features:
+`homework hwwrite hwgrade upload signedurl behaviour behaviourcreate behaviourresolve tarbiyah` with values `400 403 404 413 422 500 drop slow empty`.
+Fixtures: `TZ=UTC python3 tool/dev/dump_5b_fixtures.py` -> `test/fixtures/phase5b/`. Tests: `python3 tool/dev/test_stub_5b.py`.
+Walkthroughs: `integration_test/phase5b_homework_test.dart`, `phase5b_behaviour_test.dart` (a test `AttachmentPicker` stands in for the native pickers).
+Report: `../eldermin-teacher-app-docs/phase5/PHASE5B_REPORT.md`.
+
 ## Staging verification (read-only)
 `python3 tool/dev/verify_staging.py` (credentials in git-ignored `tool/dev/.env.staging`, see `.env.staging.example`) checks the
 keys/types Home parses against a staging server and prints only statuses/types/counts; it hard-blocks the production host and
