@@ -176,8 +176,9 @@ class MarksInvalid extends MarksSaveResult {
 /// INTEGRITY the server does NOT provide (assessment.service.ts:1239-1299; hardening backlog Critical #5) and the app therefore enforces:
 ///  * 0 <= marks <= totalMarks per student (the server accepts any number >= 0);
 ///  * rows with `verified: true` are read-only and never sent (the server would overwrite them and keep them "verified");
-///  * rows written by the online quiz are read-only; online-quiz subjects, results-published, cancelled and not-yet-started assessments
-///    are read-only as a whole ([MarksAccess]); a subject I do not teach is view-only;
+///  * rows written by the online quiz are read-only; online-quiz subjects are read-only as a whole and a subject I do not teach is
+///    view-only ([MarksAccess]); there is NO assessment-status gate (draft..result_published are editable, published/cancelled show a
+///    warning, see [marksStatusWarning]);
 ///  * only CHANGED rows are sent (a minimal overwrite surface), never a blind full-sheet write.
 /// Still open on the server: no ownership / class check, no per-row version (last write wins), no way to clear a saved mark.
 class MarksEntryController extends GetxController {
@@ -230,6 +231,9 @@ class MarksEntryController extends GetxController {
   }
 
   bool get editable => access.value.canEdit;
+
+  /// Non-blocking caution (results published / cancelled); null otherwise.
+  String? get statusWarning => assessment.value == null ? null : marksStatusWarning(assessment.value!);
   int get lockedCount => rows.where((r) => r.locked).length;
   bool get allLocked => rows.isNotEmpty && rows.every((r) => r.locked);
 
@@ -424,6 +428,9 @@ class MarksEntryController extends GetxController {
       saveFailure.value = f;
       _attachServerRowError(f, sending);
       saving.value = false;
+      // 403 / 409 ("verified and locked"): somebody verified a row since this sheet was loaded. Re-read the server's copy so those rows lock
+      // here too; every other typed value stays.
+      if (f.kind == ActionFailureKind.forbidden || f.kind == ActionFailureKind.conflict) await _lockServerVerifiedRows();
       return MarksSaveFailed(f);
     }
     // success: mark the sent rows as saved, then re-read the server's copy (best effort)
@@ -456,6 +463,21 @@ class MarksEntryController extends GetxController {
       revision.value++;
     } catch (_) {}
     return MarksSaved(sending.length);
+  }
+
+  /// Best effort: rows now verified (or quiz-written) on the server become locked and show the server's value; other rows are untouched.
+  Future<void> _lockServerVerifiedRows() async {
+    final token = _token;
+    try {
+      final fresh = await repo.marks(assessmentId, subject);
+      if (token != _token) return;
+      final by = {for (final m in fresh.items) m.studentId: m};
+      state.value = SectionState.data([
+        for (final r in rows)
+          if (!r.locked && ((by[r.student.id]?.verified ?? false) || (by[r.student.id]?.fromOnlineQuiz ?? false))) r.savedAs(by[r.student.id]!) else r
+      ]);
+      revision.value++;
+    } catch (_) {}
   }
 
   /// "marks.3.obtainedMarks must not be less than 0" -> row 3 of what was sent (the server returns the FIRST message only, filters/sentry.filter.ts:43-48).

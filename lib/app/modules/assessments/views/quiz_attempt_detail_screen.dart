@@ -99,7 +99,7 @@ class QuizAttemptDetailScreen extends GetView<QuizAttemptDetailController> {
             body: "Multiple-choice answers were marked automatically (${marksText(a.autoGradedMarks)} so far). Give each written answer a mark from 0 up to its maximum. Once every written answer is marked, the total is recorded as the student's mark for this subject and replaces any mark already there.",
             fg: AppColors.blue,
             bg: AppColors.pale),
-      if (c.failure.value != null) ErrorBanner(bannerKey: const Key('qa_error'), message: c.failure.value!.message, onRetry: c.saving.value ? null : _submit),
+      if (c.failure.value != null) ErrorBanner(bannerKey: const Key('qa_error'), message: c.failure.value!.message, onRetry: c.saving.value || !c.failure.value!.canRetry ? null : _submit),
       for (var i = 0; i < a.answers.length; i++) _answer(i + 1, a.answers[i]),
     ];
   }

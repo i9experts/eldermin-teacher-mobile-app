@@ -9,7 +9,9 @@ import '../../auth/controllers/auth_controller.dart';
 import '../../home/models/section_state.dart';
 
 /// Online-quiz attempts waiting for a teacher (`/assessments/quiz-attempts`). `GET /assessments/quiz-attempts` lists EVERY submitted attempt of
-/// the school, no campus / class scoping (assessment.service.ts:1468-1473), so the app keeps those for my classes AND subjects ([isMyAttempt]).
+/// the school, no campus / class scoping (assessment.service.ts:1468-1473; a server-side class scope for teachers is PLANNED, not verified),
+/// so the app keeps ONLY those for my classes AND subjects ([isMyAttempt], the same tolerant grade/section matcher as the roster) and refuses
+/// to open an attempt outside them even by direct id ([QuizAttemptDetailController.load]).
 class QuizAttemptsController extends GetxController {
   final AssessmentRepository? _repo;
   final AuthController? _auth;
@@ -153,6 +155,18 @@ class QuizAttemptDetailController extends GetxController {
     }
   }
 
+  Future<void> _refreshAfterConflict() async {
+    try {
+      final fresh = await repo.attempt(id);
+      if (!isMyAttempt(fresh, list.myClasses)) return;
+      final keep = failure.value;
+      _seed(fresh);
+      failure.value = keep;
+      state.value = SectionState.data(fresh);
+      if (fresh.isGraded) list.remove(id);
+    } catch (_) {}
+  }
+
   void _seed(QuizAttempt a) {
     final m = {for (final x in a.manualAnswers) x.questionId: x.marksAwarded == null ? '' : marksText(x.marksAwarded!)};
     _original = Map.of(m);
@@ -238,6 +252,8 @@ class QuizAttemptDetailController extends GetxController {
     } catch (e) {
       final f = ActionFailure.from(e, what: 'save these marks', keep: 'Your marks are kept.');
       failure.value = f;
+      // 409: somebody graded this attempt meanwhile. Re-read it so the screen shows the graded (read-only) state; the server message stays.
+      if (f.kind == ActionFailureKind.conflict) await _refreshAfterConflict();
       return GradeFailed(f);
     } finally {
       saving.value = false;

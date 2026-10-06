@@ -1,6 +1,6 @@
 import '../../core/network/api_exception.dart';
 
-enum ActionFailureKind { offline, forbidden, notFound, validation, server, other }
+enum ActionFailureKind { offline, forbidden, notFound, validation, conflict, server, other }
 
 /// Teacher-readable outcome of a failed write (create / edit / delete / grade / upload / log). Maps the real error shape
 /// `{statusCode, message, timestamp, path}` (filters/sentry.filter.ts:43-48; an array `message` is cut to its first element
@@ -22,6 +22,8 @@ class ActionFailure {
         return ActionFailure(ActionFailureKind.forbidden, "You can't $what. ${_pretty(server)}");
       case 404:
         return ActionFailure(ActionFailureKind.notFound, 'This was not found on the server: it may have been removed. ${_pretty(server)}');
+      case 409:
+        return ActionFailure(ActionFailureKind.conflict, _pretty(server).isEmpty ? "Couldn't $what: it changed on the server. Reload and check." : _pretty(server));
       case 400:
       case 413:
       case 422:
@@ -37,4 +39,8 @@ class ActionFailure {
   static String _pretty(String s) => s.isEmpty || s == 'Something went wrong. Please try again.' ? '' : s;
 
   bool get isForbidden => kind == ActionFailureKind.forbidden;
+
+  /// Resending the same request can succeed only after a transient failure (offline / 5xx / unknown). A 400 / 403 / 404 / 409 answer is
+  /// the server's verdict on the content: the teacher has to change something (or reload) first.
+  bool get canRetry => kind == ActionFailureKind.offline || kind == ActionFailureKind.server || kind == ActionFailureKind.other;
 }
