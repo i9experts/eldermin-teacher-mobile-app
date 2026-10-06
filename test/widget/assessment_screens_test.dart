@@ -285,7 +285,7 @@ void main() {
     testWidgets('roster rows with roll number and name, saved marks prefilled, absent / exempt toggles, header with total and pass mark', (t) async {
       final c = await boot(t, marks: [mark(student(1), 42.5), mark(student(2), null, absent: true)]);
       expect(find.text('Unit Test'), findsOneWidget);
-      expect(find.textContaining('Mathematics · Grade 5 - A · out of 50 · pass 20'), findsOneWidget);
+      expect(find.textContaining('Mathematics · Grade 5 - A · out of 50 · pass 20 · 5 students'), findsOneWidget);
       expect(find.text('First1 Last1'), findsOneWidget);
       expect(find.text('First5 Last5'), findsOneWidget);
       expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}'))).controller!.text, '42.5');

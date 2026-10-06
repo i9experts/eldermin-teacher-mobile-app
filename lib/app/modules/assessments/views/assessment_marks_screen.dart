@@ -138,7 +138,7 @@ class _MarksBodyState extends State<_MarksBody> {
         CustomText(text: a.title, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 16, maxLines: 2, overflow: TextOverflow.ellipsis),
         const SizedBox(height: 3),
         CustomText(
-            text: [c.subject, if (cls != null) cls.label, if (cfg != null) 'out of ${marksText(cfg.totalMarks)}', if (cfg != null) 'pass ${marksText(cfg.passingMarks)}'].join(' · '),
+            text: [c.subject, if (cls != null) cls.label, if (cfg != null) 'out of ${marksText(cfg.totalMarks)}', if (cfg != null) 'pass ${marksText(cfg.passingMarks)}', if (c.state.value.hasData) '${c.rows.length} ${c.rows.length == 1 ? 'student' : 'students'}'].join(' · '),
             color: AppColors.muted,
             fontSize: 12),
         const SizedBox(height: 10),

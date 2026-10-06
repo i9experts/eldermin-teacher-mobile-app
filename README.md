@@ -118,3 +118,11 @@ see the docstring). Fixtures: `TZ=UTC python3 tool/dev/dump_6a_fixtures.py` -> `
 Walkthrough: `integration_test/phase6a_academic_test.dart` (a test `LessonPlanSourcePicker` stands in for the native document picker). Report:
 `eldermin-teacher-app-docs/phase6/PHASE6A_REPORT.md`.
 
+## Assessments, marks entry, quiz grading, Curriculum and Library (Phase 6b)
+Routes `/assessments[/:id|/:id/marks?subject=&section=|/report-remarks|/quiz-attempts[/:id]]`, `/curriculum[/:id]`, `/library`. Stub: `tool/dev/stub_6b.py`
+(backend file:line citations, UNVERIFIED marks) plus the `/__stub/mode` features `assessments assessone marks marksbulk reportcards remarks quizlist quizone
+quizgrade curriculum curone library bigclass` (special values `marksbulk=partial500`, `marks=allverified`, `quizone=nopaper`, `bigclass=on` = a 229-student
+class, see the docstring). Fixtures: `TZ=UTC python3 tool/dev/dump_6b_fixtures.py` -> `test/fixtures/phase6b/`. Tests: `python3 tool/dev/test_stub_6b.py`.
+Walkthrough: `integration_test/phase6b_assessments_test.dart`. Report: `eldermin-teacher-app-docs/phase6/PHASE6B_REPORT.md`, summary
+`PHASE6_SUMMARY.md`. The app enforces what the server does not (marks <= total, verified rows read-only, assessment state): see the report.
+
