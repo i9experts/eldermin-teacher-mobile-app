@@ -192,6 +192,17 @@ void main() {
       expect(find.textContaining('Rejected: '), findsOneWidget);
     });
 
+    testWidgets('lesson plans card: the two counters open the list filtered to that status', (t) async {
+      const rejected = LessonPlan(id: '1', topic: 'Fractions', status: 'rejected', rejectionReason: 'Add assessment');
+      const submitted = LessonPlan(id: '2', topic: 'Decimals', status: 'submitted');
+      final opened = <String>[];
+      await t.pumpWidget(host(LessonPlansCard(
+          data: const LessonPlanSummary(submitted: [submitted], rejected: [rejected]), onOpen: (_) {}, onOpenFilter: opened.add)));
+      await t.tap(find.byKey(const ValueKey('stat_tap_1')));
+      await t.tap(find.byKey(const ValueKey('stat_tap_0')));
+      expect(opened, ['rejected', 'submitted']);
+    });
+
     testWidgets('ptm list', (t) async {
       final m = PtmMeeting(id: 'p', studentName: 'Sam', scheduledDate: DateTime.utc(2026, 10, 10), startTime: '10:00', endTime: '10:20', status: 'confirmed');
       await t.pumpWidget(host(PtmList(agenda: PtmAgenda(upcoming: [m]), onOpen: (_) {})));
