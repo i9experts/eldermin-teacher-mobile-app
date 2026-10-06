@@ -4,6 +4,7 @@ import '../modules/about/views/about_screen.dart';
 import '../modules/assessments/bindings/assessments_binding.dart';
 import '../modules/assessments/views/assessment_marks_screen.dart';
 import '../modules/assessments/views/assessment_report_remarks_screen.dart';
+import '../modules/assessments/views/assessment_detail_screen.dart';
 import '../modules/assessments/views/assessments_screen.dart';
 import '../modules/assessments/views/quiz_attempt_detail_screen.dart';
 import '../modules/assessments/views/quiz_attempts_screen.dart';
@@ -18,6 +19,7 @@ import '../modules/behaviour/views/behaviour_student_screen.dart';
 import '../modules/calendar/bindings/calendar_binding.dart';
 import '../modules/calendar/views/calendar_screen.dart';
 import '../modules/curriculum/bindings/curriculum_binding.dart';
+import '../modules/curriculum/views/curriculum_detail_screen.dart';
 import '../modules/curriculum/views/curriculum_screen.dart';
 import '../modules/delete_account/bindings/delete_account_binding.dart';
 import '../modules/delete_account/views/delete_account_screen.dart';
@@ -198,19 +200,23 @@ class AppPages {
     GetPage(
         name: Routes.assessmentReportRemarks,
         page: () => const AssessmentReportRemarksScreen(),
-        binding: AssessmentsBinding()),
+        binding: ReportRemarksBinding()),
     GetPage(
         name: Routes.quizAttempts,
         page: () => const QuizAttemptsScreen(),
-        binding: AssessmentsBinding()),
+        binding: QuizAttemptsBinding()),
     GetPage(
         name: Routes.quizAttemptDetail,
         page: () => const QuizAttemptDetailScreen(),
-        binding: AssessmentsBinding()),
+        binding: QuizAttemptDetailBinding()),
     GetPage(
         name: Routes.assessmentMarks,
         page: () => const AssessmentMarksScreen(),
-        binding: AssessmentsBinding()),
+        binding: AssessmentMarksBinding()),
+    GetPage(
+        name: Routes.assessmentDetail,
+        page: () => const AssessmentDetailScreen(),
+        binding: AssessmentDetailBinding()),
     GetPage(
         name: Routes.behaviour,
         page: () => const BehaviourScreen(),
@@ -267,6 +273,10 @@ class AppPages {
         name: Routes.curriculum,
         page: () => const CurriculumScreen(),
         binding: CurriculumBinding()),
+    GetPage(
+        name: Routes.curriculumDetail,
+        page: () => const CurriculumDetailScreen(),
+        binding: CurriculumDetailBinding()),
     GetPage(
         name: Routes.library,
         page: () => const LibraryScreen(),

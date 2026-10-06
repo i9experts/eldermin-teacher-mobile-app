@@ -49,6 +49,7 @@ abstract class Routes {
   static const quizAttempts = '/assessments/quiz-attempts';
   static const quizAttemptDetail = '/assessments/quiz-attempts/:id';
   static const assessmentMarks = '/assessments/:id/marks';
+  static const assessmentDetail = '/assessments/:id';
   static const behaviour = '/behaviour';
   static const behaviourNew = '/behaviour/new';
   static const behaviourStudent = '/behaviour/student/:id';
@@ -63,6 +64,7 @@ abstract class Routes {
   static const events = '/events';
   static const eventDetail = '/events/:id';
   static const curriculum = '/curriculum';
+  static const curriculumDetail = '/curriculum/:id';
   static const library = '/library';
   static const earlyYears = '/early-years';
   static const safeguardingNew = '/safeguarding/new';
@@ -81,7 +83,14 @@ abstract class Routes {
   static String lessonPlanDetailOf(String id) => '/lesson-plans/$id';
   static String syllabusDetailOf(String id) => '/syllabus/$id';
   static String quizAttemptDetailOf(String id) => '/assessments/quiz-attempts/$id';
-  static String assessmentMarksOf(String id) => '/assessments/$id/marks';
+  static String assessmentMarksOf(String id, {String? subject, String? section}) {
+    final q = {if (subject != null) 'subject': subject, if (section != null && section.isNotEmpty) 'section': section};
+    return '/assessments/$id/marks${q.isEmpty ? '' : '?${q.entries.map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}').join('&')}'}';
+  }
+
+  static String assessmentDetailOf(String id) => '/assessments/$id';
+  static String assessmentReportRemarksOf(String assessmentId) => '/assessments/report-remarks?assessmentId=$assessmentId';
+  static String curriculumDetailOf(String id) => '/curriculum/$id';
   static String behaviourStudentOf(String id) => '/behaviour/student/$id';
   static String ptmDetailOf(String id) => '/ptm/$id';
   static String studentLeaveDetailOf(String id) => '/student-leaves/$id';
@@ -117,6 +126,7 @@ abstract class Routes {
     quizAttempts,
     quizAttemptDetail,
     assessmentMarks,
+    assessmentDetail,
     behaviour,
     behaviourNew,
     behaviourStudent,
@@ -131,6 +141,7 @@ abstract class Routes {
     events,
     eventDetail,
     curriculum,
+    curriculumDetail,
     library,
     earlyYears,
     safeguardingNew,

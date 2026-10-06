@@ -63,7 +63,7 @@ class ModuleCatalog {
     ModuleEntry(id: 'homework', title: 'Homework', subtitle: 'Assign and grade', icon: Icons.menu_book_rounded, route: Routes.homework, placement: ModulePlacement.classes, permission: 'teaching:view', built: true),
     ModuleEntry(id: 'lesson_plans', title: 'Lesson plans', subtitle: 'Plan and submit', icon: Icons.edit_note_rounded, route: Routes.lessonPlans, placement: ModulePlacement.classes, permission: 'teaching:view', built: true),
     ModuleEntry(id: 'syllabus', title: 'Syllabus', subtitle: 'Track coverage', icon: Icons.checklist_rounded, route: Routes.syllabus, placement: ModulePlacement.classes, permission: 'teaching:view', built: true),
-    ModuleEntry(id: 'assessments', title: 'Assessments & marks', subtitle: 'Enter marks, remarks', icon: Icons.fact_check_rounded, route: Routes.assessments, placement: ModulePlacement.classes, permission: 'assessments:view'),
+    ModuleEntry(id: 'assessments', title: 'Assessments & marks', subtitle: 'Enter marks, remarks', icon: Icons.fact_check_rounded, route: Routes.assessments, placement: ModulePlacement.classes, permission: 'assessments:view', built: true),
     ModuleEntry(id: 'behaviour', title: 'Behaviour & Tarbiyah', subtitle: 'Log and review', icon: Icons.emoji_events_rounded, route: Routes.behaviour, placement: ModulePlacement.classes, permission: 'behaviour:view', built: true),
 
     // ── More tab ──
@@ -74,8 +74,8 @@ class ModuleCatalog {
     ModuleEntry(id: 'leave', title: 'My leave', subtitle: 'Balance and requests', icon: Icons.beach_access_rounded, route: Routes.leave, placement: ModulePlacement.more, permission: 'leave:self'),
     ModuleEntry(id: 'calendar', title: 'School calendar', subtitle: 'Dates and circulars', icon: Icons.calendar_month_rounded, route: Routes.calendar, placement: ModulePlacement.more, permission: 'school-calendar:view'),
     ModuleEntry(id: 'events', title: 'Events', subtitle: 'School events', icon: Icons.celebration_rounded, route: Routes.events, placement: ModulePlacement.more, permission: 'events:view'),
-    ModuleEntry(id: 'curriculum', title: 'Curriculum', subtitle: 'Frameworks and subjects', icon: Icons.account_tree_rounded, route: Routes.curriculum, placement: ModulePlacement.more, permission: 'academics:view'),
-    ModuleEntry(id: 'library', title: 'Library', subtitle: 'Search books', icon: Icons.local_library_rounded, route: Routes.library, placement: ModulePlacement.more, permission: 'academics:view'),
+    ModuleEntry(id: 'curriculum', title: 'Curriculum', subtitle: 'Frameworks and subjects', icon: Icons.account_tree_rounded, route: Routes.curriculum, placement: ModulePlacement.more, permission: 'academics:view', built: true),
+    ModuleEntry(id: 'library', title: 'Library', subtitle: 'Search books', icon: Icons.local_library_rounded, route: Routes.library, placement: ModulePlacement.more, permission: 'academics:view', built: true),
     // Slot exists; hidden in v1 (owner decision).
     ModuleEntry(id: 'early_years', title: 'Early Years', subtitle: 'Observations and portfolios', icon: Icons.child_care_rounded, route: Routes.earlyYears, placement: ModulePlacement.more, permission: 'early-years:view', enabledInV1: false),
     // No permission gate: a safeguarding route must never be hidden.
