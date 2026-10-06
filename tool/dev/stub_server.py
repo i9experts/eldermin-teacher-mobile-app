@@ -49,6 +49,9 @@ Phase 5b (homework, upload, behaviour) logic lives in stub_5b.py with backend fi
   behaviour (GET /behaviour/records)  behaviourcreate (POST)  behaviourresolve (PATCH records/:id/resolve)  tarbiyah (GET /behaviour/tarbiyah)
   Extra values on any feature: 400 (validation-style message), 413 (File too large), 422, 403, 404, 500, drop, slow, empty.
   GET /__stub/state -> phase5b: counts + the last upload's {folder,fileType,fileSize}.
+Phase 6a (lesson plans, syllabus) logic lives in stub_6a.py with backend file:line citations and UNVERIFIED marks. /__stub/mode features:
+  lessonplans lpcreate lpupdate lpparse syllabus sylone sylmark planner   (special values: see the stub_6a.py docstring: aioff, badjson,
+  googledenied, notfound)   GET /__stub/state -> phase6a: counts + the last PATCH/create keys and parse-upload summary.
 Home (Phase 4) endpoints, response shapes mirror
 eldermin-teacher-app-docs/phase4/home-endpoint-shapes.md (citations next to each builder below;
 legend: TS=teaching.service.ts S/TT=schemas/timetable.schema.ts STS=students.service.ts SPS=staff-portal.service.ts ...).
@@ -975,6 +978,8 @@ seed_attendance(0)
 import sys as _sys
 import stub_5b  # Phase 5b logic (homework, upload, behaviour, tarbiyah)
 stub_5b.bind(_sys.modules[__name__])
+import stub_6a  # Phase 6a logic (lesson plans, syllabus tracking)
+stub_6a.bind(_sys.modules[__name__])
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1173,6 +1178,78 @@ class Handler(BaseHTTPRequestHandler):
             return None
         return self._send(status, body)
 
+    # -- Phase 6a routes (lesson plans, syllabus). True when handled.
+    def _p6a(self, method, path, q):
+        m_lp = re.fullmatch(r"/api/v1/teaching/lesson-plans/([0-9a-zA-Z]+)", path)
+        m_mark = re.fullmatch(r"/api/v1/syllabus/([0-9a-zA-Z]+)/(mark-topic|mark-sub-topic)", path)
+        m_syl = re.fullmatch(r"/api/v1/syllabus/([0-9a-zA-Z\-]+)", path)
+        feature = None
+        if method == "GET" and path == "/api/v1/teaching/lesson-plans":
+            feature = "lessonplans"
+        elif method == "POST" and path == "/api/v1/teaching/lesson-plans":
+            feature = "lpcreate"
+        elif method == "POST" and path == "/api/v1/teaching/lesson-plans/parse-upload":
+            feature = "lpparse"
+        elif method == "PATCH" and m_lp and m_lp.group(1) not in ("parse-upload",):
+            feature = "lpupdate"
+        elif method == "GET" and path == "/api/v1/syllabus":
+            feature = "syllabus"
+        elif method == "GET" and path == "/api/v1/syllabus/weekly-planner":
+            feature = "planner"
+        elif method == "PATCH" and m_mark:
+            feature = "sylmark"
+        elif method == "GET" and m_syl and m_syl.group(1) not in ("weekly-planner", "dashboard"):
+            feature = "sylone"
+        if not feature:
+            return False
+        a = self._authed()
+        if not a:
+            return True
+        raw = self._raw() if method in ("POST", "PATCH") else b""
+        gate = self._feature_gate(feature)
+        if gate is True:
+            return True
+        if a["role"] != "teacher":
+            return self._err(403, "Forbidden resource") or True
+        with _lock:
+            special = _modes.get(feature, "ok")
+        empty = gate == "empty"
+        ctype = self.headers.get("Content-Type") or ""
+
+        def jbody():
+            try:
+                return json.loads(raw or b"{}")
+            except Exception:
+                return {}
+        with _lock:
+            if feature == "lessonplans":
+                r = (200, []) if empty else stub_6a.list_plans(a, q)
+            elif feature == "lpcreate":
+                r = stub_6a.create_plan(a, jbody())
+            elif feature == "lpupdate":
+                r = stub_6a.update_plan(a, m_lp.group(1), jbody(), mode=special)
+            elif feature == "lpparse":
+                r = stub_6a.parse_upload(a, ctype, raw, mode=special)
+            elif feature == "syllabus":
+                r = (200, []) if empty else stub_6a.list_syllabi(a, q)
+            elif feature == "sylone":
+                r = stub_6a.get_syllabus(a, m_syl.group(1))
+            elif feature == "sylmark":
+                fn = stub_6a.mark_topic if m_mark.group(2) == "mark-topic" else stub_6a.mark_sub_topic
+                r = fn(a, m_mark.group(1), jbody(), mode=special)
+            else:
+                r = (200, []) if empty else stub_6a.weekly_planner(a, q)
+        status, body = r
+        if status >= 400:
+            self._err(status, body)
+        elif body is None:  # Nest sends an empty body for a null return
+            self.send_response(status)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+        else:
+            self._send(status, body)
+        return True
+
     def _p5b(self, method, path, q):
         m_asg = re.fullmatch(r"/api/v1/teaching/assignments/([0-9a-f]{24})", path)
         m_grade = re.fullmatch(r"/api/v1/teaching/assignments/([0-9a-f]{24})/submissions/([0-9a-f]{24})", path)
@@ -1263,6 +1340,8 @@ class Handler(BaseHTTPRequestHandler):
             if a["role"] != "teacher":
                 return self._err(403, "Forbidden resource")
             self._send(200, staff_me(a))
+        elif path.startswith("/api/v1/") and self._p6a("GET", path, parse_qs(urlparse(self.path).query)):
+            return
         elif (path.startswith("/api/v1/") or path.startswith("/__stub/files/")) and self._p5b("GET", path, parse_qs(urlparse(self.path).query)):
             return
         elif path.startswith("/api/v1/") and self._classroom_get(path, parse_qs(urlparse(self.path).query)):
@@ -1272,13 +1351,13 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/__stub/state":
             with _lock:
                 self._send(200, {"classTeacher": {k: v["classTeacher"] for k, v in ACCOUNTS.items()}, **_state,
-                                 "attendance": {"records": len(ATT), **_att_last}, "phase5b": stub_5b.state_summary()})
+                                 "attendance": {"records": len(ATT), **_att_last}, "phase5b": stub_5b.state_summary(), "phase6a": stub_6a.state_summary()})
         else:
             self._err(404, f"Cannot GET {path}")
 
     def do_PATCH(self):
         path = urlparse(self.path).path
-        if not self._p5b("PATCH", path, parse_qs(urlparse(self.path).query)):
+        if not (self._p6a("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p5b("PATCH", path, parse_qs(urlparse(self.path).query))):
             self._err(404, f"Cannot PATCH {path}")
 
     def do_DELETE(self):
@@ -1289,7 +1368,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urlparse(self.path)
         path = u.path
-        if self._p5b("POST", path, parse_qs(u.query)):
+        if self._p6a("POST", path, parse_qs(u.query)) or self._p5b("POST", path, parse_qs(u.query)):
             return
         if path == "/api/v1/auth/login":
             b = self._json()
@@ -1363,6 +1442,7 @@ class Handler(BaseHTTPRequestHandler):
                 seed_attendance(0)
                 _att_last.update({"academicYearHeader": None, "bulkCalls": 0, "lastBulkSize": 0})
                 stub_5b.reset()
+                stub_6a.reset()
                 ACCOUNTS["teacher"]["classTeacher"] = False
                 ACCOUNTS["classteacher"]["classTeacher"] = True
             return self._send(200, {"ok": True})
