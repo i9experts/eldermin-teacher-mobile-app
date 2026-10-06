@@ -82,25 +82,44 @@ class AssessmentTile extends StatelessWidget {
   }
 }
 
-/// A coloured explanation box.
+/// A blue explanation box for a hard block (not my subject / online quiz).
 class AccessNote extends StatelessWidget {
   final MarksAccess access;
   final Key? noteKey;
   const AccessNote({super.key, required this.access, this.noteKey});
 
   @override
+  Widget build(BuildContext context) => _NoteBox(noteKey: noteKey, text: access.explanation, warning: false);
+}
+
+/// An amber, NON-blocking caution (results published / cancelled): the marks stay editable.
+class StatusWarningNote extends StatelessWidget {
+  final String message;
+  final Key? noteKey;
+  const StatusWarningNote({super.key, required this.message, this.noteKey});
+
+  @override
+  Widget build(BuildContext context) => _NoteBox(noteKey: noteKey, text: message, warning: true);
+}
+
+class _NoteBox extends StatelessWidget {
+  final Key? noteKey;
+  final String text;
+  final bool warning;
+  const _NoteBox({this.noteKey, required this.text, required this.warning});
+
+  @override
   Widget build(BuildContext context) {
-    final locked = access == MarksAccess.resultsPublished || access == MarksAccess.cancelled;
     return Container(
       key: noteKey,
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: locked ? AppColors.amberBg : AppColors.pale, borderRadius: BorderRadius.circular(AppRadius.md)),
+      decoration: BoxDecoration(color: warning ? AppColors.amberBg : AppColors.pale, borderRadius: BorderRadius.circular(AppRadius.md)),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(locked ? Icons.lock_outline_rounded : Icons.info_outline_rounded, size: 18, color: locked ? AppColors.amberText : AppColors.blue),
+        Icon(warning ? Icons.warning_amber_rounded : Icons.info_outline_rounded, size: 18, color: warning ? AppColors.amberText : AppColors.blue),
         const SizedBox(width: 8),
-        Expanded(child: CustomText(text: access.explanation, color: locked ? AppColors.amberText : AppColors.blue, fontSize: 12.5, height: 1.35)),
+        Expanded(child: CustomText(text: text, color: warning ? AppColors.amberText : AppColors.blue, fontSize: 12.5, height: 1.35)),
       ]),
     );
   }

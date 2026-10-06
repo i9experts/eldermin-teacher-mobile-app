@@ -151,6 +151,7 @@ class _MarksBodyState extends State<_MarksBody> {
           ]),
         ),
       if (c.state.value.status != SectionStatus.loading && !c.access.value.canEdit && c.state.value.status != SectionStatus.error) AccessNote(noteKey: const Key('marks_access_note'), access: c.access.value),
+      if (c.editable && c.statusWarning != null && c.state.value.status != SectionStatus.loading && c.state.value.status != SectionStatus.error) StatusWarningNote(noteKey: const Key('marks_status_warning'), message: c.statusWarning!),
       if (c.state.value.hasData && c.editable && c.lockedCount > 0)
         Container(
           key: const Key('marks_locked_note'),
@@ -172,7 +173,7 @@ class _MarksBodyState extends State<_MarksBody> {
           ]),
         ),
       if (c.marksTruncated.value) const ErrorBanner(bannerKey: Key('marks_truncated'), message: 'Your school has more marks than the app could load. Some saved marks may not be shown.'),
-      if (c.saveFailure.value != null) ErrorBanner(bannerKey: const Key('marks_save_error'), message: c.saveFailure.value!.message, onRetry: c.saving.value ? null : _doSave),
+      if (c.saveFailure.value != null) ErrorBanner(bannerKey: const Key('marks_save_error'), message: c.saveFailure.value!.message, onRetry: c.saving.value || !c.saveFailure.value!.canRetry ? null : _doSave),
       if (c.showErrors.value && c.invalidRows.isNotEmpty)
         ErrorBanner(bannerKey: const Key('marks_invalid_banner'), message: c.invalidRows.length == 1 ? '1 mark needs fixing before you can save.' : '${c.invalidRows.length} marks need fixing before you can save.'),
     ];

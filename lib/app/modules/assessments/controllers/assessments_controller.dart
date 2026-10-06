@@ -17,15 +17,16 @@ enum AssessmentFilter {
   const AssessmentFilter(this.label);
 }
 
-/// Why marks of one subject can (not) be entered. [editable] is the only state in which the grid accepts input. The rule mirrors the web
-/// (assessments/index.tsx:746-750: "Start ... opens mark entry", "Cancel ... no marks can be entered") plus the server's own data:
-/// the server checks NONE of it (assessment.service.ts:1239-1299), so this is UI-gating and a safety net for the teacher.
+/// Why marks of one subject can (not) be entered. [editable] is the only state in which the grid accepts input.
+///
+/// There is NO assessment-status gate: the web "Mark Entry" tab offers "Enter Marks" with no status condition (OtherTabs.tsx:427, the
+/// "ongoing/completed" wording only feeds a dashboard counter, assessments/index.tsx:955-962), the web modal only rejects marks above the
+/// total (index.tsx:333) and the server's marks/bulk checks no status (assessment.service.ts:1240-1299). Draft, scheduled, ongoing,
+/// completed, cancelled and result_published assessments are all editable; the last two only show a non-blocking warning
+/// ([marksStatusWarning]). The only hard blocks are "not my subject" and the online-quiz subjects (their marks come from quiz grading).
 enum MarksAccess {
   editable,
   notMySubject,
-  notOpenYet,
-  resultsPublished,
-  cancelled,
   onlineQuiz;
 
   bool get canEdit => this == MarksAccess.editable;
@@ -33,20 +34,22 @@ enum MarksAccess {
   String get explanation => switch (this) {
         MarksAccess.editable => '',
         MarksAccess.notMySubject => "You don't teach this subject in this class, so the marks are view-only.",
-        MarksAccess.notOpenYet => 'Marks can be entered once the assessment has started. It is still scheduled.',
-        MarksAccess.resultsPublished => 'Results are published, so these marks are locked.',
-        MarksAccess.cancelled => 'This assessment was cancelled: no marks can be entered.',
         MarksAccess.onlineQuiz => 'Students take this subject as an online quiz. Its marks come from quiz grading, not from this grid.',
       };
 }
 
 MarksAccess marksAccessFor(Assessment a, AssessmentSubject s, {required bool iTeachIt}) {
   if (!iTeachIt) return MarksAccess.notMySubject;
-  if (a.status == AssessmentStatus.cancelled) return MarksAccess.cancelled;
-  if (a.isResultPublished) return MarksAccess.resultsPublished;
   if (a.isOnline && s.hasQuizPaper) return MarksAccess.onlineQuiz;
-  if (a.status != AssessmentStatus.ongoing && a.status != AssessmentStatus.completed) return MarksAccess.notOpenYet;
   return MarksAccess.editable;
+}
+
+/// A non-blocking caution for marks that can still be edited. No code (web or backend) forbids editing after publishing or on a cancelled
+/// assessment, so the app warns instead of locking (owner decision pending, see PHASE6B_REPORT).
+String? marksStatusWarning(Assessment a) {
+  if (a.isResultPublished) return 'Results are published; changes may affect published results.';
+  if (a.status == AssessmentStatus.cancelled) return 'This assessment is cancelled; marks entered here may not be used.';
+  return null;
 }
 
 /// "My assessments" (`/assessments`): every assessment of my campus that falls under one of my classes (a subject I teach there, or I am

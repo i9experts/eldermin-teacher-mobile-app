@@ -137,16 +137,13 @@ void main() {
     });
   });
 
-  group('access matrix (UI-gating the server does not do)', () {
+  group('access matrix (NO assessment-status gate)', () {
     final s = asm('x').subjects.first;
-    test('editable only when ongoing / completed, mine, not online, not published', () {
-      expect(marksAccessFor(asm('x', status: 'ongoing'), s, iTeachIt: true), MarksAccess.editable);
-      expect(marksAccessFor(asm('x', status: 'completed'), s, iTeachIt: true), MarksAccess.editable);
-      expect(marksAccessFor(asm('x', status: 'scheduled'), s, iTeachIt: true), MarksAccess.notOpenYet);
-      expect(marksAccessFor(asm('x', status: 'draft'), s, iTeachIt: true), MarksAccess.notOpenYet);
-      expect(marksAccessFor(asm('x', status: 'cancelled'), s, iTeachIt: true), MarksAccess.cancelled);
-      expect(marksAccessFor(asm('x', status: 'result_published'), s, iTeachIt: true), MarksAccess.resultsPublished);
-      expect(marksAccessFor(asm('x', status: 'completed', published: true), s, iTeachIt: true), MarksAccess.resultsPublished);
+    test('editable for every status when it is my subject; only not-mine and online-quiz subjects are blocked', () {
+      for (final st in ['draft', 'scheduled', 'ongoing', 'completed', 'cancelled', 'result_published']) {
+        expect(marksAccessFor(asm('x', status: st), s, iTeachIt: true), MarksAccess.editable, reason: st);
+      }
+      expect(marksAccessFor(asm('x', status: 'completed', published: true), s, iTeachIt: true), MarksAccess.editable);
       expect(marksAccessFor(asm('x'), s, iTeachIt: false), MarksAccess.notMySubject);
       final q = asm('x', online: true, paperOn: 'Mathematics');
       expect(marksAccessFor(q, q.subjects.first, iTeachIt: true), MarksAccess.onlineQuiz);
@@ -154,23 +151,39 @@ void main() {
       expect(marksAccessFor(q2, q2.subjects.first, iTeachIt: true), MarksAccess.editable);
     });
 
-    for (final (status, access) in [('result_published', MarksAccess.resultsPublished), ('scheduled', MarksAccess.notOpenYet), ('cancelled', MarksAccess.cancelled)]) {
-      test('$status: the grid shows marks but accepts nothing and never calls save', () async {
+    test('warning only for results published / cancelled, never blocking', () {
+      expect(marksStatusWarning(asm('x', status: 'ongoing')), isNull);
+      expect(marksStatusWarning(asm('x', status: 'scheduled')), isNull);
+      expect(marksStatusWarning(asm('x', status: 'draft')), isNull);
+      expect(marksStatusWarning(asm('x', status: 'result_published', published: true)), 'Results are published; changes may affect published results.');
+      expect(marksStatusWarning(asm('x', status: 'completed', published: true)), contains('Results are published'));
+      expect(marksStatusWarning(asm('x', status: 'cancelled')), contains('cancelled'));
+    });
+
+    for (final (status, warns) in [('scheduled', false), ('draft', false), ('ongoing', false), ('result_published', true), ('cancelled', true)]) {
+      test('$status: the grid is editable, saves, and ${warns ? 'warns' : 'shows no warning'}', () async {
         a1 = asm('a1', status: status, published: status == 'result_published');
         repo.onMarks = (_, __) async => AllPages([mark(student(1), 30)]);
         final c = await make();
-        expect(c.access.value, access);
-        expect(c.editable, isFalse);
-        expect(c.canEnter, isFalse);
+        expect(c.access.value, MarksAccess.editable);
+        expect(c.editable, isTrue);
+        expect(c.canEnter, isTrue);
+        expect(c.statusWarning != null, warns);
         c.setMarks(student(2).id, '12');
-        c.setAbsent(student(3).id, true);
-        expect(c.hasUnsavedChanges, isFalse);
-        expect(await c.save(), isA<MarksNothingToSave>());
-        expect(repo.saves, isEmpty);
-        expect(row(c, 1).text, '30');
-        expect(access.explanation, isNotEmpty);
+        expect(c.hasUnsavedChanges, isTrue);
+        expect(await c.save(), isA<MarksSaved>());
+        expect(repo.saves, hasLength(1));
+        expect(repo.saves.single.marks.single['obtainedMarks'], 12);
       });
     }
+
+    test('0..total still enforced when published', () async {
+      a1 = asm('a1', status: 'result_published', published: true);
+      final c = await make();
+      c.setMarks(student(2).id, '51');
+      expect(await c.save(), isA<MarksInvalid>());
+      expect(repo.saves, isEmpty);
+    });
 
     test('online-quiz subject: read-only with an explanation', () async {
       a1 = asm('a1', online: true, paperOn: 'Mathematics');

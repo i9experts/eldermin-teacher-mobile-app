@@ -230,20 +230,23 @@ void main() {
       noAdminActions();
     });
 
-    testWidgets('results published: explanation and View marks, no Enter marks', (t) async {
+    testWidgets('results published: Enter marks stays available with a non-blocking warning', (t) async {
       await boot(t, asm('a1', status: 'result_published', published: true));
-      expect(find.byKey(const Key('asm_marks_Mathematics')), findsNothing);
-      expect(find.byKey(const Key('asm_locked_Mathematics')), findsOneWidget);
-      expect(find.textContaining('Results are published'), findsOneWidget);
-      expect(find.byKey(const Key('asm_view_Mathematics')), findsOneWidget);
+      expect(find.byKey(const Key('asm_marks_Mathematics')), findsOneWidget);
+      expect(find.byKey(const Key('asm_warn_Mathematics')), findsOneWidget);
+      expect(find.textContaining('Results are published; changes may affect published results'), findsOneWidget);
+      expect(find.byKey(const Key('asm_locked_Mathematics')), findsNothing);
     });
 
-    testWidgets('scheduled: says marks open once it has started; nothing to open', (t) async {
-      await boot(t, asm('a1', status: 'scheduled'));
-      expect(find.textContaining('still scheduled'), findsOneWidget);
-      expect(find.byKey(const Key('asm_marks_Mathematics')), findsNothing);
-      expect(find.byKey(const Key('asm_view_Mathematics')), findsNothing);
-    });
+    for (final status in ['scheduled', 'draft', 'ongoing']) {
+      testWidgets('$status: Enter marks is offered, no gate text, no warning', (t) async {
+        await boot(t, asm('a1', status: status));
+        expect(find.byKey(const Key('asm_marks_Mathematics')), findsOneWidget);
+        expect(find.byKey(const Key('asm_warn_Mathematics')), findsNothing);
+        expect(find.textContaining('still scheduled'), findsNothing);
+        expect(find.textContaining('once the assessment has started'), findsNothing);
+      });
+    }
 
     testWidgets('online quiz subject: review quiz answers instead of a grid', (t) async {
       await boot(t, asm('a1', online: true, paperOn: 'Mathematics', type: 'quiz'));
@@ -410,14 +413,42 @@ void main() {
       expect(find.textContaining('All 5 marks are verified'), findsOneWidget);
     });
 
-    testWidgets('results published: read-only banner, fields disabled, no Save', (t) async {
+    testWidgets('results published: warning banner, fields stay editable, Save works', (t) async {
       a1 = asm('a1', status: 'result_published', published: true);
       await boot(t, marks: [mark(student(1), 40)]);
-      expect(find.byKey(const Key('marks_access_note')), findsOneWidget);
-      expect(find.textContaining('Results are published'), findsOneWidget);
-      expect(find.byKey(const Key('marks_save_button')), findsNothing);
-      expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}'))).enabled, isFalse);
-      expect(find.text('Marks'), findsOneWidget); // app bar says Marks, not Enter marks
+      expect(find.byKey(const Key('marks_status_warning')), findsOneWidget);
+      expect(find.byKey(const Key('marks_access_note')), findsNothing);
+      expect(find.textContaining('Results are published; changes may affect published results'), findsOneWidget);
+      expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}'))).enabled, isTrue);
+      await t.enterText(find.byKey(Key('marks_field_${idOf(1)}')), '41');
+      await t.pump();
+      expect(find.byKey(const Key('marks_save_button')), findsOneWidget);
+      expect(find.text('Enter marks'), findsOneWidget); // app bar
+    });
+
+    testWidgets('a scheduled assessment: no gate, no warning, fields editable', (t) async {
+      a1 = asm('a1', status: 'scheduled');
+      await boot(t, marks: [mark(student(1), 40)]);
+      expect(find.byKey(const Key('marks_status_warning')), findsNothing);
+      expect(find.byKey(const Key('marks_access_note')), findsNothing);
+      expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}'))).enabled, isTrue);
+    });
+
+    testWidgets('403 "verified and locked": message shown, the row locks, NO Retry button', (t) async {
+      await boot(t, marks: [mark(student(2), 30)]);
+      await t.enterText(find.byKey(Key('marks_field_${idOf(1)}')), '10');
+      await t.pump();
+      repo.onSave = (_) async => throw ApiException('1 mark is verified and locked: Student 1', statusCode: 403);
+      repo.onMarks = (_, __) async => AllPages([mark(student(1), 25, verified: true)]);
+      await t.tap(find.byKey(const Key('marks_save_button')));
+      await settle(t);
+      await t.tap(find.byKey(const Key('marks_confirm_save')));
+      await settle(t);
+      expect(find.byKey(const Key('marks_save_error')), findsOneWidget);
+      expect(find.textContaining('verified and locked'), findsWidgets);
+      expect(find.widgetWithText(TextButton, 'Retry'), findsNothing);
+      expect(find.byKey(Key('marks_lock_${idOf(1)}')), findsOneWidget);
+      await drain(t);
     });
 
     testWidgets('a saved mark already above the total shows a warning', (t) async {
@@ -594,6 +625,7 @@ void main() {
       await c.load(force: true);
       await settle(t);
       expect(find.text('Nothing waiting for your marks'), findsOneWidget);
+      expect(find.textContaining('Only attempts from your classes'), findsOneWidget);
       repo.onPending = () async => throw ApiException('Forbidden resource', statusCode: 403);
       await c.load(force: true);
       await settle(t);

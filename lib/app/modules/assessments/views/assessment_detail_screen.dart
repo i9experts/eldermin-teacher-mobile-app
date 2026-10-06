@@ -84,15 +84,16 @@ class AssessmentDetailScreen extends GetView<AssessmentDetailController> {
         if (s.examiner.isNotEmpty) CustomText(text: 'Examiner: ${s.examiner}', color: AppColors.muted, fontSize: 12),
         if (mine || sections.any((c) => c.isClassTeacherClass)) ...[
           const SizedBox(height: 8),
-          if (access.canEdit)
-            _action(Key('asm_marks_${s.subject}'), Icons.edit_note_rounded, 'Enter marks', () => Get.toNamed(Routes.assessmentMarksOf(a.id, subject: s.subject)))
-          else ...[
+          if (access.canEdit) ...[
+            if (marksStatusWarning(a) != null)
+              Padding(padding: const EdgeInsets.only(bottom: 4), child: CustomText(key: Key('asm_warn_${s.subject}'), text: marksStatusWarning(a)!, color: AppColors.amberText, fontSize: 12, height: 1.35)),
+            _action(Key('asm_marks_${s.subject}'), Icons.edit_note_rounded, 'Enter marks', () => Get.toNamed(Routes.assessmentMarksOf(a.id, subject: s.subject))),
+          ] else ...[
             if (access == MarksAccess.onlineQuiz)
               _action(Key('asm_quiz_${s.subject}'), Icons.quiz_outlined, 'Review online quiz answers', () => Get.toNamed(Routes.quizAttempts))
             else
               CustomText(key: Key('asm_locked_${s.subject}'), text: access.explanation, color: AppColors.muted, fontSize: 12, height: 1.35),
-            if (access != MarksAccess.notOpenYet && access != MarksAccess.cancelled)
-              _action(Key('asm_view_${s.subject}'), Icons.visibility_outlined, 'View marks', () => Get.toNamed(Routes.assessmentMarksOf(a.id, subject: s.subject))),
+            _action(Key('asm_view_${s.subject}'), Icons.visibility_outlined, 'View marks', () => Get.toNamed(Routes.assessmentMarksOf(a.id, subject: s.subject))),
           ],
         ],
       ]),
