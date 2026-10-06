@@ -321,5 +321,60 @@ class TestPhase6aExpectations(unittest.TestCase):
         self.assertFalse(v.request_allowed("POST", "/teaching/lesson-plans/parse-upload"))
 
 
+class TestPhase6bExpectations(unittest.TestCase):
+    def ok(self, key, body):
+        return [r for r in v.check_expectations(body, v.EXPECTATIONS[key]) if r[1] == "FAIL"]
+
+    def test_good_shapes_pass_and_unread_keys_are_ignored(self):
+        asm = {"data": [{"_id": SECRET_ID, "title": "T", "type": "unit_test", "grade": "Grade 5", "section": None, "academicYear": "2026-27", "term": "Term 1",
+                         "startDate": "2026-10-05T00:00:00.000Z", "status": "ongoing", "resultPublished": False, "gradeCardsGenerated": False,
+                         "deliveryMode": "teacher_marked", "subjects": [{"subject": "Maths", "totalMarks": 50, "passingMarks": 20}],
+                         "gradingScale": {"A": 1}, "createdBy": SECRET_NAME}], "meta": {"total": 1, "pages": 1}}
+        self.assertFalse(self.ok("assessments_list", asm))
+        marks = {"data": [{"_id": SECRET_ID, "studentId": SECRET_ID, "studentName": "N", "rollNumber": "1", "subject": "Maths", "totalMarks": 50,
+                           "obtainedMarks": None, "isAbsent": True, "isExempt": False, "verified": False, "enteredBy": None}], "meta": {"total": 1, "pages": 1}}
+        self.assertFalse(self.ok("marks_list", marks))
+        cards = {"data": [{"_id": SECRET_ID, "studentId": SECRET_ID, "studentName": "N", "grade": "Grade 5", "published": False}], "meta": {"pages": 1}}
+        self.assertFalse(self.ok("report_cards", cards))
+        qa = [{"_id": SECRET_ID, "studentName": "N", "subject": "M", "grade": "G", "status": "submitted", "totalMarks": 10, "answers": [{"questionId": SECRET_ID, "needsManualGrading": True}]}]
+        self.assertFalse(self.ok("quiz_attempts", qa))
+        self.assertFalse(self.ok("quiz_attempts", []))
+        cur = [{"_id": SECRET_ID, "name": "N", "gradeLevel": "G", "status": "active", "slos": [{"sloCode": "A", "description": "d"}]}]
+        self.assertFalse(self.ok("curricula", cur))
+        books = {"data": [{"_id": SECRET_ID, "title": "T", "author": "A", "totalCopies": 3, "availableCopies": 1, "purchasePrice": 99}], "meta": {"total": 1, "pages": 1}}
+        self.assertFalse(self.ok("library_books", books))
+
+    def test_drift_is_caught(self):
+        asm = {"data": [{"_id": SECRET_ID, "title": "T", "type": "x", "grade": "G", "academicYear": "y", "startDate": "2026-10-05", "status": "open", "subjects": [{"subject": "M", "totalMarks": "50"}]}], "meta": {"total": 1, "pages": 1}}
+        failed = {p for p, st, _ in v.check_expectations(asm, v.EXPECTATIONS["assessments_list"]) if st == "FAIL"}
+        self.assertEqual(failed, {"data[].status", "data[].subjects[].totalMarks"})
+        marks = {"data": [{"_id": SECRET_ID, "studentId": SECRET_ID, "studentName": "N", "rollNumber": "1", "subject": "M", "totalMarks": 5, "verified": "yes"}], "meta": {"total": 1, "pages": 1}}
+        self.assertEqual({p for p, st, _ in v.check_expectations(marks, v.EXPECTATIONS["marks_list"]) if st == "FAIL"}, {"data[].verified"})
+        qa = [{"_id": SECRET_ID, "studentName": "N", "subject": "M", "grade": "G", "status": "graded", "totalMarks": 10, "answers": []}]
+        self.assertEqual({p for p, st, _ in v.check_expectations(qa, v.EXPECTATIONS["quiz_attempts"]) if st == "FAIL"}, {"[].status"})
+
+    def test_values_are_never_printed(self):
+        rep = v.Report()
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rep.endpoint("teacher", "GET /assessments", 200, {"data": [{"_id": SECRET_ID, "title": SECRET_NAME, "createdBy": SECRET_EMAIL, "type": "quiz", "grade": "G",
+                                                                        "academicYear": "y", "startDate": "2026-10-05", "status": "ongoing", "subjects": []}], "meta": {"total": 1, "pages": 1}},
+                         "assessments_list")
+        out = buf.getvalue()
+        for secret in (SECRET_ID, SECRET_NAME, SECRET_EMAIL):
+            self.assertNotIn(secret, out)
+
+    def test_only_get_endpoints_are_called_for_6b(self):
+        src = open(v.__file__).read()
+        block = src[src.index("# Phase 6b (all GET"):src.index("    if class_teacher:\n        grade =")]
+        block = "\n".join(l for l in block.splitlines() if not l.strip().startswith("#"))  # the comment names what is NOT called
+        for bad in ('http("POST"', '"PATCH"', '"PUT"', '"DELETE"', "marks/bulk", "marks/verify", "report-cards/generate", "report-cards/publish", "/remarks", "/grade", "library/issue", "library/return", "/slo"):
+            self.assertNotIn(bad, block)
+        self.assertTrue(v.request_allowed("GET", "/assessments/marks/list"))
+        for path in ("/assessments/marks/bulk", "/assessments/marks/verify", "/assessments/report-cards/publish", "/assessments/quiz-attempts/x/grade", "/academics/library/issue"):
+            self.assertFalse(v.request_allowed("POST", path), path)
+        self.assertFalse(v.request_allowed("PATCH", "/assessments/report-cards/x/remarks"))
+
+
 if __name__ == "__main__":
     unittest.main()

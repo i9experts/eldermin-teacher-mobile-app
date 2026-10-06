@@ -373,6 +373,110 @@ EXPECTATIONS = {
         ("[].subTopics[].subTopicName", S, True, None),
         ("[].subTopics[].isCovered", B, False, None),
     ],
+    # GET /assessments?page&limit=100&sortBy=startDate&sortOrder=desc (Phase 6b). Backend assessments/assessment.controller.ts:54-58 ->
+    # assessment.service.ts:994-1021 ({data, meta}; campus-scoped, NOT teacher-scoped); schema schemas/assessment.schema.ts:33-96.
+    # App: lib/core/models/assessments/assessment_models.dart Assessment. Only these keys are read (gradingScale / createdBy / schoolSlug never).
+    "assessments_list": [
+        ("data", L, True, None),
+        ("data[]._id", S, True, ("fmt", "id")),
+        ("data[].title", S, True, None),
+        ("data[].type", S, True, None),
+        ("data[].grade", S, True, None),
+        ("data[].section", SN, False, None),
+        ("data[].academicYear", S, True, None),
+        ("data[].term", SN, False, None),
+        ("data[].startDate", S, True, ("fmt", "iso")),
+        ("data[].status", S, True, ("enum", ["draft", "scheduled", "ongoing", "completed", "result_published", "cancelled"])),
+        ("data[].resultPublished", B, False, None),
+        ("data[].gradeCardsGenerated", B, False, None),
+        ("data[].deliveryMode", SN, False, ("enum", ["teacher_marked", "self_paced_online"])),
+        ("data[].subjects", L, True, None),
+        ("data[].subjects[].subject", S, True, None),
+        ("data[].subjects[].totalMarks", NUM, True, None),
+        ("data[].subjects[].passingMarks", NUM, False, None),
+        ("meta", D, True, None),
+        ("meta.total", I, True, None),
+        ("meta.pages", I, True, None),
+    ],
+    # GET /assessments/marks/list?assessmentId&subject&page&limit=200 (Phase 6b). Backend assessment.controller.ts:78-82 ->
+    # assessment.service.ts:1301-1318 ({data, meta}, schoolSlug only); schema assessment.schema.ts:165-200 (MarkEntry).
+    # App: assessment_models.dart MarkRecord. `verified` drives the read-only lock (the server does not enforce it).
+    "marks_list": [
+        ("data", L, True, None),
+        ("data[]._id", S, True, ("fmt", "id")),
+        ("data[].studentId", S, True, ("fmt", "id")),
+        ("data[].studentName", S, True, None),
+        ("data[].rollNumber", S, True, None),
+        ("data[].subject", S, True, None),
+        ("data[].totalMarks", NUM, True, None),
+        ("data[].obtainedMarks", {"int", "float", "null"}, False, None),
+        ("data[].isAbsent", B, False, None),
+        ("data[].isExempt", B, False, None),
+        ("data[].verified", B, False, None),
+        ("data[].enteredBy", SN, False, None),
+        ("meta", D, True, None),
+        ("meta.total", I, True, None),
+        ("meta.pages", I, True, None),
+    ],
+    # GET /assessments/report-cards?assessmentId&limit (Phase 6b, class teachers). Backend assessment.controller.ts:96-100 ->
+    # assessment.service.ts:1695-1711; schema assessment.schema.ts:225-264. App: assessment_models.dart ReportCard.
+    "report_cards": [
+        ("data", L, True, None),
+        ("data[]._id", S, True, ("fmt", "id")),
+        ("data[].studentId", S, True, ("fmt", "id")),
+        ("data[].studentName", S, True, None),
+        ("data[].grade", S, True, None),
+        ("data[].section", SN, False, None),
+        ("data[].overallPercentage", NUM, False, None),
+        ("data[].classPosition", NUM, False, None),
+        ("data[].classTeacherRemarks", SN, False, None),
+        ("data[].principalRemarks", SN, False, None),
+        ("data[].published", B, True, None),
+        ("meta", D, True, None),
+        ("meta.pages", I, True, None),
+    ],
+    # GET /assessments/quiz-attempts (Phase 6b; status 'submitted' only, bare array, school-wide). Backend assessment.controller.ts:165-169 ->
+    # assessment.service.ts:1468-1473; schema schemas/quiz-attempt.schema.ts:28-60. App: assessment_models.dart QuizAttempt.
+    "quiz_attempts": [
+        ("[]._id", S, True, ("fmt", "id")),
+        ("[].studentName", S, True, None),
+        ("[].subject", S, True, None),
+        ("[].grade", S, True, None),
+        ("[].section", SN, False, None),
+        ("[].status", S, True, ("enum", ["submitted"])),
+        ("[].totalMarks", NUM, True, None),
+        ("[].answers", L, True, None),
+        ("[].answers[].questionId", S, True, ("fmt", "id")),
+        ("[].answers[].needsManualGrading", B, False, None),
+    ],
+    # GET /academics/curriculum?status=active (Phase 6b). Backend modules/academics/academics.controller.ts:111-114 ->
+    # academics.service.ts:375-383 (bare array, tenant-wide); schema schemas/curriculum.schema.ts:6-43. App: reference_models.dart Curriculum.
+    "curricula": [
+        ("[]._id", S, True, ("fmt", "id")),
+        ("[].name", S, True, None),
+        ("[].gradeLevel", S, True, None),
+        ("[].subjectName", SN, False, None),
+        ("[].status", S, True, ("enum", ["active"])),
+        ("[].slos", L, False, None),
+        ("[].slos[].sloCode", SN, False, None),
+        ("[].slos[].description", SN, False, None),
+    ],
+    # GET /academics/library/books?page&limit=20 (Phase 6b, catalogue only). Backend academics.controller.ts:165-168 ->
+    # academics.service.ts:497-518 ({data, meta}); schema schemas/book.schema.ts:24-70. App: reference_models.dart Book (purchasePrice,
+    # copies[] barcodes, issue counters are never read).
+    "library_books": [
+        ("data", L, True, None),
+        ("data[]._id", S, True, ("fmt", "id")),
+        ("data[].title", S, True, None),
+        ("data[].author", S, True, None),
+        ("data[].category", SN, False, None),
+        ("data[].totalCopies", I, False, None),
+        ("data[].availableCopies", I, False, None),
+        ("data[].status", SN, False, None),
+        ("meta", D, True, None),
+        ("meta.total", I, True, None),
+        ("meta.pages", I, True, None),
+    ],
     # GET /teaching/ptm?teacherId&from&to. Backend ptm.service.ts:91-104; schema ptm-meeting.schema.ts:29-68.
     # App: teaching.dart PtmMeeting; agenda rules in lib/core/utils/ptm_agenda.dart.
     "ptm_range": [
@@ -731,6 +835,41 @@ def run_user(rep, who, base, slug, email, password, class_teacher):
         else:
             for lbl in ("lesson-plans (all statuses)", "syllabus", "syllabus/weekly-planner"):
                 rep.skip(who, f"GET /{lbl}", "no staffId from /staff-portal/me")
+    # Phase 6b (all GET, read-only): assessments, ONE assessment's marks, report cards (class teachers), quiz review queue, curriculum, library
+    # catalogue. No write route is ever called (never marks/bulk, marks/verify, report-cards generate / publish / remarks, quiz grade,
+    # assessments POST / PUT / PATCH / DELETE, library issue / return, curriculum POST / PATCH).
+    if not class_teacher:
+        st, asm = get("/assessments", {"limit": 100, "page": 1, "sortBy": "startDate", "sortOrder": "desc"})
+        rep.endpoint(who, "GET /assessments?limit=100", st, asm, "assessments_list")
+        first_a = None
+        if st == 200 and isinstance(asm, dict) and isinstance(asm.get("data"), list):
+            for row in asm["data"]:
+                subj = row.get("subjects") if isinstance(row, dict) else None
+                if isinstance(row, dict) and row.get("status") in ("ongoing", "completed") and isinstance(subj, list) and subj and isinstance(subj[0], dict):
+                    first_a = (row.get("_id"), subj[0].get("subject"))
+                    break
+        if first_a and isinstance(first_a[0], str) and _FORMATS["id"].match(first_a[0]) and isinstance(first_a[1], str):
+            st, b = get("/assessments/marks/list", {"assessmentId": first_a[0], "subject": first_a[1], "limit": 200, "page": 1})
+            rep.endpoint(who, "GET /assessments/marks/list?assessmentId&subject&limit=200", st, b, "marks_list")
+        else:
+            rep.skip(who, "GET /assessments/marks/list", "no ongoing / completed assessment to check")
+        st, b = get("/assessments/quiz-attempts")
+        rep.endpoint(who, "GET /assessments/quiz-attempts", st, b, "quiz_attempts")
+        st, b = get("/academics/curriculum", {"status": "active"})
+        rep.endpoint(who, "GET /academics/curriculum?status=active", st, b, "curricula")
+        st, b = get("/academics/library/books", {"limit": 20, "page": 1})
+        rep.endpoint(who, "GET /academics/library/books?limit=20", st, b, "library_books")
+    else:
+        st, asm = get("/assessments", {"limit": 100, "page": 1, "sortBy": "startDate", "sortOrder": "desc"})
+        rep.endpoint(who, "GET /assessments?limit=100", st, asm, "assessments_list")
+        card_a = None
+        if st == 200 and isinstance(asm, dict) and isinstance(asm.get("data"), list):
+            card_a = next((r.get("_id") for r in asm["data"] if isinstance(r, dict) and r.get("gradeCardsGenerated") is True), None)
+        if isinstance(card_a, str) and _FORMATS["id"].match(card_a):
+            st, b = get("/assessments/report-cards", {"assessmentId": card_a, "limit": 5, "page": 1})
+            rep.endpoint(who, "GET /assessments/report-cards?assessmentId&limit=5", st, b, "report_cards")
+        else:
+            rep.skip(who, "GET /assessments/report-cards", "no assessment with generated report cards")
     if class_teacher:
         grade = class_of.get("gradeName") if isinstance(class_of, dict) else None
         section = class_of.get("sectionName") if isinstance(class_of, dict) else None
