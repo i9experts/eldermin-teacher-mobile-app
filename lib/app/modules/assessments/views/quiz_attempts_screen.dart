@@ -28,7 +28,7 @@ class QuizAttemptsScreen extends GetView<QuizAttemptsController> {
           emptyIcon: Icons.task_alt_rounded,
           emptyTitle: 'Nothing waiting for your marks',
           emptySubtitle: 'Only attempts from your classes (and the subjects you teach there) are shown. When one of your students submits an online quiz with written answers, it appears here.',
-          header: [ScreenHeader(title: 'Quiz grading', caption: state.hasData ? '${c.items.length} waiting for review' : 'Written answers to mark')],
+          header: [ScreenHeader(title: 'Quiz grading', caption: state.hasData ? '${c.items.length} waiting for review · only your classes are shown' : 'Written answers to mark')],
           builder: (items) => [for (final a in items) _tile(a)],
         );
       }),

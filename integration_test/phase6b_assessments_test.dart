@@ -156,13 +156,43 @@ void main() {
     await back(t);
     await t.scrollUntilVisible(find.text('Term 1 Result (DUMMY)'), 300, scrollable: find.byType(Scrollable).first);
     await t.tap(find.text('Term 1 Result (DUMMY)'));
-    await waitFor(t, find.byKey(const Key('asm_view_Mathematics')));
+    await waitFor(t, find.byKey(const Key('asm_warn_Mathematics')));
     await settle(t, 800);
-    await shot(t, '6b_26_detail_results_published');
-    await t.tap(find.byKey(const Key('asm_view_Mathematics')));
-    await waitFor(t, find.byKey(const Key('marks_access_note')));
+    await shot(t, '6b_26_detail_results_published_warning');
+    await t.tap(find.byKey(const Key('asm_marks_Mathematics')));
+    await waitFor(t, find.byKey(const Key('marks_status_warning')));
     await settle(t, 1200);
-    await shot(t, '6b_27_marks_results_published_locked');
+    await shot(t, '6b_27_marks_results_published_warning_editable');
+    await back(t);
+    await back(t);
+
+    // ── A SCHEDULED assessment (Final Exam): no status gate, marks can be entered ──
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 4000));
+    await settle(t, 500);
+    await waitFor(t, find.byKey(const Key('chip_all')));
+    await t.tap(find.byKey(const Key('chip_all')));
+    await settle(t, 800);
+    await t.scrollUntilVisible(find.text('Final Exam (DUMMY)'), 300, scrollable: find.byType(Scrollable).first);
+    await t.tap(find.text('Final Exam (DUMMY)'));
+    await waitFor(t, find.byKey(const Key('asm_marks_Mathematics')));
+    await settle(t, 800);
+    await shot(t, '6b_13_detail_scheduled_enter_marks_available');
+    await t.tap(find.byKey(const Key('asm_marks_Mathematics')));
+    await waitFor(t, find.byKey(const Key('marks_save_button')));
+    await waitFor(t, markField(0));
+    await t.enterText(markField(0), '71');
+    await settle(t, 900);
+    await shot(t, '6b_29_marks_entry_scheduled_no_gate');
+    // PLANNED backend behaviour (UNVERIFIED): the server refuses a row that was verified meanwhile
+    await stub(t, '/__stub/mode?feature=marksbulk&value=lockedrows');
+    await t.tap(find.byKey(const Key('marks_save_button')));
+    await waitFor(t, find.byKey(const Key('marks_confirm_save')));
+    await settle(t, 1500); // let the sheet finish sliding in before tapping its button
+    await t.tap(find.byKey(const Key('marks_confirm_save')));
+    await settle(t, 2500); // no drag here: pulling the list down would trigger pull-to-refresh and clear the banner
+    await waitFor(t, find.byKey(const Key('marks_save_error')));
+    await shot(t, '6b_30_marks_verified_rows_server_message');
+    await stub(t, '/__stub/mode?feature=marksbulk&value=ok');
     await back(t);
     await back(t);
 
