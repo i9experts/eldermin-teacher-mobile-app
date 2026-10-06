@@ -13,8 +13,10 @@ import 'package:integration_test/integration_test.dart';
 Future<void> settle(WidgetTester t, [int ms = 1200]) => t.pump(Duration(milliseconds: ms));
 
 Future<void> shot(WidgetTester t, String name, {int ms = 2000}) async {
+  await t.pump(Duration(milliseconds: ms)); // let transitions finish BEFORE the marker, then give the capture real time
   print('SHOT:$name');
-  await t.pump(Duration(milliseconds: ms));
+  await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 1200)));
+  await t.pump(const Duration(milliseconds: 100));
 }
 
 Future<void> stub(WidgetTester t, String path) async {
@@ -235,7 +237,7 @@ void main() {
     await settle(t, 400);
     await t.tap(find.byKey(const Key('qa_submit')));
     await waitFor(t, find.text('Save partial marks?'));
-    await shot(t, '6b_53_quiz_partial_confirm', ms: 600);
+    await shot(t, '6b_53_quiz_partial_confirm', ms: 1800);
     await t.tap(find.byKey(const Key('confirm_dialog_cancel')));
     await settle(t, 600);
     await back(t);
