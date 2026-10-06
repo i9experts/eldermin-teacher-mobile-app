@@ -19,13 +19,14 @@ _, parsed = p.parse_upload(t, f"multipart/form-data; boundary={b}", body)
 _, created = p.create_plan(t, {"teacherId": t["staffId"], "subject": "Mathematics", "gradeLevel": "Grade 5", "sectionName": "A",
                                "topic": "New", "planDate": "2030-01-05", "objectives": ["a"], "status": "draft"})
 _, syl = p.list_syllabi(t, {"teacherId": [t["staffId"]]})
+syl_all = json.loads(json.dumps(p.list_syllabi(t, {})[1]))
 syl = json.loads(json.dumps(syl))  # snapshot BEFORE the mark below mutates the stub state
 plans = json.loads(json.dumps(plans))
 maths = next(d for d in syl if d["subjectName"] == "Mathematics")
 _, marked = p.mark_sub_topic(t, maths["_id"], {"unitNo": 1, "topicNo": 1, "subTopicNo": 3, "isCovered": True, "coveredBy": "Tess Teacher"})
 p.reset()
 _, planner = p.weekly_planner(t, {"teacherId": [t["staffId"]]})
-files = {"lesson_plans.json": plans, "parse_upload.json": parsed, "lesson_plan_created.json": created, "syllabi.json": syl,
+files = {"lesson_plans.json": plans, "parse_upload.json": parsed, "lesson_plan_created.json": created, "syllabi.json": syl, "syllabi_all.json": syl_all,
          "syllabus_marked.json": marked, "weekly_planner.json": planner}
 for name, data in files.items():
     with open(os.path.join(out, name), "w") as f:

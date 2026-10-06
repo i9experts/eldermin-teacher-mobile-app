@@ -1,5 +1,60 @@
 [
  {
+  "_id": "64f000000000000000000804",
+  "tenantId": "64f0000000000000000000a1",
+  "institutionId": "64f0000000000000000000a2",
+  "campusId": "64a0000000000000000000c1",
+  "subjectName": "English",
+  "gradeLevel": "Grade 5",
+  "academicYearLabel": "2026-27",
+  "term": "Term 1",
+  "framework": "national",
+  "recommendedTextbook": "Maths Today 5 (DUMMY)",
+  "totalWeeks": 12,
+  "totalPeriods": 48,
+  "units": [
+   {
+    "unitNo": 1,
+    "unitName": "Reading",
+    "weeks": 6,
+    "periods": 24,
+    "topics": [
+     {
+      "topicNo": 1,
+      "topicName": "Main idea",
+      "description": "",
+      "learningObjectives": [],
+      "sloReferences": [],
+      "estimatedLessons": 1,
+      "subTopics": [],
+      "lessons": [],
+      "isCovered": false
+     }
+    ]
+   }
+  ],
+  "assessmentBreakdown": {
+   "midTerm": 30,
+   "finalExam": 50,
+   "classwork": 10,
+   "homework": 10
+  },
+  "teacherId": "64a0000000000000000000a9",
+  "teacherName": "Other Teacher",
+  "status": "active",
+  "createdBy": "64f0000000000000000000c9",
+  "createdByName": "Admin (DUMMY)",
+  "publishedToStudents": false,
+  "createdAt": "2026-08-20T05:00:00.000Z",
+  "updatedAt": "2026-10-01T05:00:00.000Z",
+  "__v": 0,
+  "sectionName": "A",
+  "totalTopics": 1,
+  "coveredTopics": 0,
+  "coveragePct": 0,
+  "trackStatus": "not_started"
+ },
+ {
   "_id": "64f000000000000000000801",
   "tenantId": "64f0000000000000000000a1",
   "institutionId": "64f0000000000000000000a2",
@@ -187,6 +242,81 @@
   "trackStatus": "on_track"
  },
  {
+  "_id": "64f000000000000000000803",
+  "tenantId": "64f0000000000000000000a1",
+  "institutionId": "64f0000000000000000000a2",
+  "campusId": "64a0000000000000000000c1",
+  "subjectName": "Mathematics",
+  "gradeLevel": "Grade 5",
+  "academicYearLabel": "2026-27",
+  "term": "Term 1",
+  "framework": "national",
+  "recommendedTextbook": "Maths Today 5 (DUMMY)",
+  "totalWeeks": 12,
+  "totalPeriods": 48,
+  "units": [
+   {
+    "unitNo": 1,
+    "unitName": "Whole grade scheme (DUMMY)",
+    "weeks": 6,
+    "periods": 24,
+    "topics": [
+     {
+      "topicNo": 1,
+      "topicName": "Place value",
+      "description": "",
+      "learningObjectives": [],
+      "sloReferences": [],
+      "estimatedLessons": 2,
+      "subTopics": [
+       {
+        "subTopicNo": 1,
+        "subTopicName": "Thousands",
+        "description": "",
+        "isCovered": true,
+        "plannedWeek": 2,
+        "coveredDate": "2026-10-06T09:58:23.000Z",
+        "coveredBy": "Tess Teacher"
+       }
+      ],
+      "lessons": [],
+      "isCovered": false
+     },
+     {
+      "topicNo": 2,
+      "topicName": "Estimation",
+      "description": "",
+      "learningObjectives": [],
+      "sloReferences": [],
+      "estimatedLessons": 2,
+      "subTopics": [],
+      "lessons": [],
+      "isCovered": false
+     }
+    ]
+   }
+  ],
+  "assessmentBreakdown": {
+   "midTerm": 30,
+   "finalExam": 50,
+   "classwork": 10,
+   "homework": 10
+  },
+  "teacherId": "64a0000000000000000000a9",
+  "teacherName": "Other Teacher",
+  "status": "active",
+  "createdBy": "64f0000000000000000000c9",
+  "createdByName": "Admin (DUMMY)",
+  "publishedToStudents": false,
+  "createdAt": "2026-08-20T05:00:00.000Z",
+  "updatedAt": "2026-10-01T05:00:00.000Z",
+  "__v": 0,
+  "totalTopics": 2,
+  "coveredTopics": 1,
+  "coveragePct": 50,
+  "trackStatus": "on_track"
+ },
+ {
   "_id": "64f000000000000000000807",
   "tenantId": "64f0000000000000000000a1",
   "institutionId": "64f0000000000000000000a2",
@@ -369,6 +499,69 @@
   "updatedAt": "2026-10-01T05:00:00.000Z",
   "__v": 0,
   "sectionName": "B",
+  "totalTopics": 1,
+  "coveredTopics": 0,
+  "coveragePct": 0,
+  "trackStatus": "not_started"
+ },
+ {
+  "_id": "64f000000000000000000805",
+  "tenantId": "64f0000000000000000000a1",
+  "institutionId": "64f0000000000000000000a2",
+  "campusId": "64a0000000000000000000c1",
+  "subjectName": "Mathematics",
+  "gradeLevel": "Grade 7",
+  "academicYearLabel": "2026-27",
+  "term": "Term 1",
+  "framework": "national",
+  "recommendedTextbook": "Maths Today 5 (DUMMY)",
+  "totalWeeks": 12,
+  "totalPeriods": 48,
+  "units": [
+   {
+    "unitNo": 1,
+    "unitName": "Algebra",
+    "weeks": 6,
+    "periods": 24,
+    "topics": [
+     {
+      "topicNo": 1,
+      "topicName": "Expressions",
+      "description": "",
+      "learningObjectives": [],
+      "sloReferences": [],
+      "estimatedLessons": 2,
+      "subTopics": [
+       {
+        "subTopicNo": 1,
+        "subTopicName": "Terms",
+        "description": "",
+        "isCovered": false,
+        "plannedWeek": 5
+       }
+      ],
+      "lessons": [],
+      "isCovered": false
+     }
+    ]
+   }
+  ],
+  "assessmentBreakdown": {
+   "midTerm": 30,
+   "finalExam": 50,
+   "classwork": 10,
+   "homework": 10
+  },
+  "teacherId": "64a0000000000000000000b1",
+  "teacherName": "Tess Teacher",
+  "status": "active",
+  "createdBy": "64f0000000000000000000c9",
+  "createdByName": "Admin (DUMMY)",
+  "publishedToStudents": false,
+  "createdAt": "2026-08-20T05:00:00.000Z",
+  "updatedAt": "2026-10-01T05:00:00.000Z",
+  "__v": 0,
+  "sectionName": "C",
   "totalTopics": 1,
   "coveredTopics": 0,
   "coveragePct": 0,

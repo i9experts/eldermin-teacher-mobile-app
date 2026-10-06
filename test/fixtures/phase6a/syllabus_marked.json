@@ -32,7 +32,7 @@
        "description": "",
        "isCovered": true,
        "plannedWeek": 3,
-       "coveredDate": "2026-10-06T09:50:11.000Z",
+       "coveredDate": "2026-10-06T09:58:23.000Z",
        "coveredBy": "Tess Teacher"
       },
       {
@@ -41,7 +41,7 @@
        "description": "",
        "isCovered": true,
        "plannedWeek": 4,
-       "coveredDate": "2026-10-06T09:50:11.000Z",
+       "coveredDate": "2026-10-06T09:58:23.000Z",
        "coveredBy": "Tess Teacher"
       },
       {
@@ -50,7 +50,7 @@
        "description": "",
        "isCovered": true,
        "plannedWeek": 5,
-       "coveredDate": "2026-10-06T09:50:11.000Z",
+       "coveredDate": "2026-10-06T09:58:23.000Z",
        "coveredBy": "Tess Teacher"
       }
      ],
@@ -78,7 +78,7 @@
       }
      ],
      "isCovered": true,
-     "coveredDate": "2026-10-06T09:50:11.000Z",
+     "coveredDate": "2026-10-06T09:58:23.000Z",
      "coveredBy": "Tess Teacher"
     },
     {
@@ -117,7 +117,7 @@
      "subTopics": [],
      "lessons": [],
      "isCovered": true,
-     "coveredDate": "2026-10-06T09:50:11.000Z",
+     "coveredDate": "2026-10-06T09:58:23.000Z",
      "coveredBy": "Tess Teacher"
     }
    ]
@@ -188,5 +188,5 @@
  "coveredTopics": 4,
  "coveragePct": 44,
  "trackStatus": "on_track",
- "lastTrackedAt": "2026-10-06T09:50:11.000Z"
+ "lastTrackedAt": "2026-10-06T09:58:23.000Z"
 }
