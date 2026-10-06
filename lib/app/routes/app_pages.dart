@@ -186,11 +186,11 @@ class AppPages {
     GetPage(
         name: Routes.syllabusWeeklyPlanner,
         page: () => const SyllabusWeeklyPlannerScreen(),
-        binding: SyllabusBinding()),
+        binding: WeeklyPlannerBinding()),
     GetPage(
         name: Routes.syllabusDetail,
         page: () => const SyllabusDetailScreen(),
-        binding: SyllabusBinding()),
+        binding: SyllabusDetailBinding()),
     GetPage(
         name: Routes.assessments,
         page: () => const AssessmentsScreen(),
