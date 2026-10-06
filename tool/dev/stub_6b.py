@@ -17,20 +17,25 @@ lesson-plan self-approval fix"; read-only). "UNVERIFIED" = cannot be confirmed f
   assessments GET /assessments        assessone GET /assessments/:id        marks GET /assessments/marks/list
   marksbulk   POST /assessments/marks/bulk   special: partial500 (the first half is written, then 500: bulkWrite is ordered, AS:1296)
   reportcards GET /assessments/report-cards  remarks PATCH /assessments/report-cards/:id/remarks
-  quizlist GET /assessments/quiz-attempts    quizone GET /assessments/quiz-attempts/:id   special: nopaper (404 'no quiz paper linked')
+  quizlist GET /assessments/quiz-attempts    quizone GET /assessments/quiz-attempts/:id   special: nopaper (404 'no quiz paper linked'), notmyclass (403)
   quizgrade   POST /assessments/quiz-attempts/:id/grade
   curriculum GET /academics/curriculum       curone GET /academics/curriculum/:id     library GET /academics/library/books
-  PLANNED-BACKEND error modes (UNVERIFIED: they reflect the backend hardening that is PLANNED for marks/bulk, quiz grading and remarks;
-  no backend commit or docs/staff-portal entry has landed yet, so the exact status codes and message texts are ASSUMPTIONS; the real
-  error SHAPE {statusCode,message,timestamp,path} is verified, FLT:43-48). Update the texts once the backend commit lands:
-    marksbulk=toobig         400 'Marks exceed the total (T) for: ...' listing the offending rows (also when the app's own check passed,
-                             e.g. the total was lowered after the sheet loaded)
-    marksbulk=lockedrows     403 'N mark(s) are verified and locked: ...' (the first row of the request is flipped to verified)
-    marksbulk=lockedrows409  the same with 409
-    quizgrade=quizbounds     400 'marksAwarded for question <id> must not exceed <max> (and not be negative)'
-    quizgrade=regrade        409 'This attempt has already been graded and can't be graded again.' (the attempt is flipped to graded)
-    remarks=notclassteacher  403 'Only the class teacher of <grade> <section> can edit these remarks.'
-    remarks=notfound         404 'Report card not found' (instead of today's 200 with an empty body)
+  BACKEND-HARDENING error modes (the hardening has LANDED on eldermin-backend feat/staff-portal, read-only reference: commits 44b0a6e
+  marks/bulk, 8150ffb remarks, 7795f1d quiz grading, 5b1244d quiz queue scope, docs f32d38b docs/staff-portal/PHASE6_FIXES.md; messages
+  copied from src/assessments/assessment.service.ts at HEAD f32d38b: bulkEnterMarks :1267-1300, quiz detail :1542-1546, grade :1563-1585,
+  remarks :1832-1845). They apply to role TEACHER only. VERIFIED BY READING THE CODE; NOT yet exercised against a running backend or
+  staging (UNVERIFIED end to end). The error SHAPE {statusCode,message,timestamp,path} is verified, FLT:43-48.
+    marksbulk=toobig         400 'Marks must be between 0 and T for <subject>. Invalid for N student(s): name (roll R): v; ...'
+                             (the app blocks over-total itself, so this mode simulates the total being lowered after the sheet loaded)
+    marksbulk=lockedrows     409 'Marks for N students are verified and locked: name (roll R); ...' (nothing written; the first row of the
+                             request is flipped to verified, so a reload shows it locked)
+    marksbulk=lockedrows403  the same text with 403 (the backend sends 409; 403 is only an app-defensive variant, NOT backend behaviour)
+    quizgrade=quizbounds     400 'Invalid marks for N question(s): <questionId>: v (allowed 0..max)'
+    quizgrade=regrade        409 'This attempt is already graded.' (the attempt is flipped to graded)
+    quizgrade=notmyclass     403 'You can only grade quiz attempts for classes you teach.'
+    quizone=notmyclass       403 'You can only review quiz attempts for classes you teach.'
+    remarks=notclassteacher  403 'Only the class teacher of this class can edit report card remarks.'
+    remarks=notfound         404 'Report card not found' (instead of the 200-empty answer other roles still get)
   Extra feature `bigclass` (value `on`): Grade 5 A has 230 active students (two 200-row roster pages; the web would silently show 100).
   Extra feature `marks` special `allverified`: every returned mark row is verified (a fully locked sheet).
 """
@@ -407,10 +412,10 @@ def bulk_marks(account, body, mode="ok", academic_year_header=None):
     cfg = next((x for x in a["subjects"] if x["subject"] == body["subject"]), None)
     if not cfg:
         return 400, f"Subject {body['subject']} not in assessment"
-    if mode == "toobig":  # PLANNED backend behaviour, UNVERIFIED (see the module docstring)
-        names = ", ".join(f"{m['studentName']} (roll {m['rollNumber']})" for m in marks[:3])
-        return 400, f"Marks exceed the total ({cfg['totalMarks']:g}) for: {names}"
-    if mode in ("lockedrows", "lockedrows409") and marks:  # PLANNED backend behaviour, UNVERIFIED
+    if mode == "toobig":  # backend 44b0a6e (read from code, see the module docstring)
+        bad = [f"{m['studentName']} (roll {m['rollNumber']}): {cfg['totalMarks'] + 10:g}" for m in marks[:3]]
+        return 400, f"Marks must be between 0 and {cfg['totalMarks']:g} for {body['subject']}. Invalid for {len(bad)} student(s): {'; '.join(bad)}"
+    if mode in ("lockedrows", "lockedrows403") and marks:  # backend 44b0a6e: 409 (read from code); lockedrows403 is app-defensive only
         first = marks[0]
         key = (body["assessmentId"], first["studentId"], body["subject"])
         old = _state["marks"].get(key)
@@ -420,7 +425,7 @@ def bulk_marks(account, body, mode="ok", academic_year_header=None):
         old["verified"] = True
         old["verifiedBy"] = "Admin (DUMMY)"
         _state["marks"][key] = old
-        return (409 if mode == "lockedrows409" else 403), f"1 mark is verified and locked and cannot be changed: {first['studentName']} (roll {first['rollNumber']})"
+        return (403 if mode == "lockedrows403" else 409), f"Marks for 1 students are verified and locked: {first['studentName']} (roll {first['rollNumber']})"
     _state["bulk_calls"] += 1
     _state["last_academic_year_header"] = academic_year_header
     _state["last_bulk"] = {"size": len(marks), "assessmentId": body["assessmentId"], "subject": body["subject"], "grade": body["grade"],
@@ -480,9 +485,9 @@ def update_remarks(account, cid, body, mode="ok"):
     raw findOneAndUpdate {$set: dto}: an UNKNOWN id answers 200 with an EMPTY body (null), an invalid id a CastError (500). No
     class-teacher / published check: a teacher can also write principalRemarks and edit a published card."""
     seed()
-    if mode == "notclassteacher":  # PLANNED backend behaviour, UNVERIFIED (see the module docstring)
-        return 403, "Only the class teacher of this class can edit these remarks."
-    if mode == "notfound":  # PLANNED backend behaviour, UNVERIFIED
+    if mode == "notclassteacher":  # backend 8150ffb (read from code, see the module docstring)
+        return 403, "Only the class teacher of this class can edit report card remarks."
+    if mode == "notfound":  # backend 8150ffb
         return 404, "Report card not found"
     for k in ("classTeacherRemarks", "principalRemarks"):
         if body.get(k) is not None and not isinstance(body.get(k), str):
@@ -528,6 +533,8 @@ def get_attempt(account, aid, mode="ok"):
     att = _state["attempts"].get(aid)
     if not att:
         return 404, "Quiz attempt not found"
+    if mode == "notmyclass":  # backend 5b1244d (read from code)
+        return 403, "You can only review quiz attempts for classes you teach."
     if mode == "nopaper":
         return 404, "This subject has no quiz paper linked - ask your teacher to link one in Paper Generation."
     qs = _questions(att["examPaperId"])
@@ -559,20 +566,20 @@ def grade_attempt(account, aid, body, mode="ok"):
         return 404, "Quiz attempt not found"
     if att["status"] == "in_progress":
         return 400, "This attempt has not been submitted yet."
-    if mode == "quizbounds":  # PLANNED backend behaviour, UNVERIFIED (see the module docstring)
+    if mode == "notmyclass":  # backend 7795f1d
+        return 403, "You can only grade quiz attempts for classes you teach."
+    if mode == "quizbounds":  # backend 7795f1d (read from code, see the module docstring)
         qs = _questions(att["examPaperId"])
-        for g in grades:
-            q = qs.get(g["questionId"])
-            if q and (g["marksAwarded"] < 0 or g["marksAwarded"] > q["marks"]):
-                return 400, f"marksAwarded for question {g['questionId']} must be between 0 and {q['marks']:g}"
-        return 400, "marksAwarded is out of bounds for at least one question"
-    if mode == "regrade":  # PLANNED backend behaviour, UNVERIFIED
+        bad = [f"{g['questionId']}: {g['marksAwarded']:g} (allowed 0..{qs[g['questionId']]['marks']:g})" for g in grades
+               if g["questionId"] in qs and not 0 <= g["marksAwarded"] <= qs[g["questionId"]]["marks"]]
+        return 400, f"Invalid marks for {max(len(bad), 1)} question(s): {'; '.join(bad) or 'out of bounds'}"
+    if mode == "regrade":  # backend 7795f1d: 409 on a graded attempt (the stub flips the attempt to graded first)
         att["status"] = "graded"
         for a in att["answers"]:
             if a["needsManualGrading"] and a["marksAwarded"] is None:
                 a["marksAwarded"] = 1
         att["obtainedMarks"] = sum((a["marksAwarded"] or 0) for a in att["answers"])
-        return 409, "This attempt has already been graded and cannot be graded again."
+        return 409, "This attempt is already graded."
     by_q = {g["questionId"]: g["marksAwarded"] for g in grades}
     _state["last_grade"] = {"attemptId": aid, "grades": [{"questionId": k, "marksAwarded": v} for k, v in by_q.items()]}
     for a in att["answers"]:

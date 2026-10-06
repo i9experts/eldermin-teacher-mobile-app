@@ -54,7 +54,8 @@ Phase 6a (lesson plans, syllabus) logic lives in stub_6a.py with backend file:li
   googledenied, notfound)   GET /__stub/state -> phase6a: counts + the last PATCH/create keys and parse-upload summary.
 Phase 6b (assessments, marks entry, report remarks, quiz grading, curriculum, library) lives in stub_6b.py (citations, UNVERIFIED marks).
   /__stub/mode features: assessments assessone marks marksbulk reportcards remarks quizlist quizone quizgrade curriculum curone library
-  specials: marksbulk=partial500, marks=allverified, quizone=nopaper; feature `bigclass`=on -> a 230-student Grade 5 A. GET /__stub/state -> phase6b.
+  specials: marksbulk=partial500|toobig|lockedrows|lockedrows403, marks=allverified, quizone=nopaper|notmyclass, quizgrade=quizbounds|regrade|notmyclass,
+  remarks=notclassteacher|notfound (the error modes copy the landed backend hardening, see stub_6b.py); feature `bigclass`=on -> a 230-student Grade 5 A. GET /__stub/state -> phase6b.
 Home (Phase 4) endpoints, response shapes mirror
 eldermin-teacher-app-docs/phase4/home-endpoint-shapes.md (citations next to each builder below;
 legend: TS=teaching.service.ts S/TT=schemas/timetable.schema.ts STS=students.service.ts SPS=staff-portal.service.ts ...).

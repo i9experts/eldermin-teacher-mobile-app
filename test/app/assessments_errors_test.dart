@@ -17,9 +17,10 @@ import '../support/fake_assessment_repositories.dart';
 import '../support/fake_classroom_repositories.dart';
 
 /// The error the backend really sends: `{statusCode, message, timestamp, path}` (filters/sentry.filter.ts:43-48), run through the app's own
-/// Dio mapping. The status codes and TEXTS of the new hardening errors (marks above the total, verified rows, quiz bounds, re-grade,
-/// remarks for a non-class-teacher, unknown report card) are PLANNED backend behaviour, UNVERIFIED until the backend commit lands; the
-/// app shows the server message verbatim whatever it says.
+/// Dio mapping. The status codes and TEXTS of the hardening errors are copied from the landed backend commits (read from code, not run
+/// end to end): 44b0a6e marks/bulk (400 'Marks must be between 0 and T for S. Invalid for N student(s): ...', 409 'Marks for N students
+/// are verified and locked: ...'), 7795f1d quiz grading (400 'Invalid marks for N question(s): ...', 409 'This attempt is already
+/// graded.', 403), 5b1244d quiz detail 403, 8150ffb remarks (403, 404 'Report card not found'). The app shows the server message verbatim.
 ApiException serverError(int status, String message, {String path = '/api/v1/assessments/marks/bulk'}) {
   final ro = RequestOptions(path: path);
   return DioExceptionHandler.handle(DioException(
@@ -66,13 +67,13 @@ void main() {
 
   group('ActionFailure mapping of the real error shape', () {
     test('400 / 403 / 404 / 409 show the SERVER message; retry only for offline / 5xx', () {
-      final bad = ActionFailure.from(serverError(400, 'Marks exceed the total (50) for: Ayesha (roll 1)'), what: 'save these marks');
-      expect((bad.kind, bad.message, bad.canRetry), (ActionFailureKind.validation, 'Marks exceed the total (50) for: Ayesha (roll 1)', false));
-      final locked = ActionFailure.from(serverError(409, '1 mark is verified and locked'), what: 'save these marks');
-      expect((locked.kind, locked.message, locked.canRetry), (ActionFailureKind.conflict, '1 mark is verified and locked', false));
-      final forbidden = ActionFailure.from(serverError(403, 'Only the class teacher can edit these remarks.'), what: 'save these remarks');
+      final bad = ActionFailure.from(serverError(400, 'Marks must be between 0 and 50 for Mathematics. Invalid for 1 student(s): Ayesha (roll 1): 60'), what: 'save these marks');
+      expect((bad.kind, bad.message, bad.canRetry), (ActionFailureKind.validation, 'Marks must be between 0 and 50 for Mathematics. Invalid for 1 student(s): Ayesha (roll 1): 60', false));
+      final locked = ActionFailure.from(serverError(409, 'Marks for 1 students are verified and locked: Ayesha (roll 1)'), what: 'save these marks');
+      expect((locked.kind, locked.message, locked.canRetry), (ActionFailureKind.conflict, 'Marks for 1 students are verified and locked: Ayesha (roll 1)', false));
+      final forbidden = ActionFailure.from(serverError(403, 'Only the class teacher of this class can edit report card remarks.'), what: 'save these remarks');
       expect(forbidden.kind, ActionFailureKind.forbidden);
-      expect(forbidden.message, contains('Only the class teacher can edit these remarks.'));
+      expect(forbidden.message, contains('Only the class teacher of this class can edit report card remarks.'));
       expect(forbidden.canRetry, isFalse);
       final gone = ActionFailure.from(serverError(404, 'Report card not found'), what: 'save these remarks');
       expect(gone.kind, ActionFailureKind.notFound);
@@ -103,10 +104,10 @@ void main() {
       final c = await make();
       c.setMarks(student(1).id, '40');
       c.setMarks(student(2).id, '30');
-      repo.onSave = (_) async => throw serverError(400, 'Marks exceed the total (50) for: Student 1 (roll 1), Student 2 (roll 2)');
+      repo.onSave = (_) async => throw serverError(400, 'Marks must be between 0 and 50 for Mathematics. Invalid for 2 student(s): Student 1 (roll 1): 60; Student 2 (roll 2): 70');
       final r = await c.save();
       expect(r, isA<MarksSaveFailed>());
-      expect(c.saveFailure.value!.message, 'Marks exceed the total (50) for: Student 1 (roll 1), Student 2 (roll 2)');
+      expect(c.saveFailure.value!.message, 'Marks must be between 0 and 50 for Mathematics. Invalid for 2 student(s): Student 1 (roll 1): 60; Student 2 (roll 2): 70');
       expect(c.saveFailure.value!.canRetry, isFalse);
       expect(row(c, 1).text, '40');
       expect(row(c, 2).text, '30');
@@ -120,7 +121,7 @@ void main() {
         final c = await make();
         c.setMarks(student(1).id, '40');
         c.setMarks(student(2).id, '30');
-        repo.onSave = (_) async => throw serverError(status, '1 mark is verified and locked and cannot be changed: Student 1 (roll 1)');
+        repo.onSave = (_) async => throw serverError(status, 'Marks for 1 students are verified and locked: Student 1 (roll 1)');
         repo.onMarks = (_, __) async => AllPages([mark(student(1), 25, verified: true)]); // verified meanwhile by the coordinator
         final r = await c.save();
         expect(r, isA<MarksSaveFailed>());
@@ -168,9 +169,9 @@ void main() {
     test('400 bounds: server message shown, typed marks kept, no retry button', () async {
       final r = await open();
       r.d.setMark('q2', '3');
-      repo.onGrade = (_, __) async => throw serverError(400, 'marksAwarded for question q2 must be between 0 and 4', path: '/api/v1/assessments/quiz-attempts/t1/grade');
+      repo.onGrade = (_, __) async => throw serverError(400, 'Invalid marks for 1 question(s): q2: 9 (allowed 0..4)', path: '/api/v1/assessments/quiz-attempts/t1/grade');
       expect(await r.d.submit(), isA<GradeFailed>());
-      expect(r.d.failure.value!.message, 'marksAwarded for question q2 must be between 0 and 4');
+      expect(r.d.failure.value!.message, 'Invalid marks for 1 question(s): q2: 9 (allowed 0..4)');
       expect(r.d.failure.value!.canRetry, isFalse);
       expect(r.d.inputs['q2'], '3');
       expect(r.d.editable, isTrue);
@@ -180,13 +181,32 @@ void main() {
     test('409 already graded: the attempt is re-read, becomes read-only, leaves the queue, the message stays', () async {
       final r = await open();
       r.d.setMark('q2', '3');
-      repo.onGrade = (_, __) async => throw serverError(409, 'This attempt has already been graded and cannot be graded again.');
+      repo.onGrade = (_, __) async => throw serverError(409, 'This attempt is already graded.');
       repo.onAttempt = (id) async => attempt(id, status: 'graded', awarded: [2, 2], obtained: 8);
       expect(await r.d.submit(), isA<GradeFailed>());
-      expect(r.d.failure.value!.message, contains('already been graded'));
+      expect(r.d.failure.value!.message, contains('already graded'));
       expect(r.d.editable, isFalse);
       expect(r.d.attempt!.isGraded, isTrue);
       expect(r.list.state.value.status, SectionStatus.empty);
+    });
+
+    test('403 on the grade call (not my class): server message shown, no retry, typed marks kept', () async {
+      final r = await open();
+      r.d.setMark('q2', '3');
+      repo.onGrade = (_, __) async => throw serverError(403, 'You can only grade quiz attempts for classes you teach.');
+      expect(await r.d.submit(), isA<GradeFailed>());
+      expect(r.d.failure.value!.message, contains('You can only grade quiz attempts for classes you teach.'));
+      expect(r.d.failure.value!.canRetry, isFalse);
+      expect(r.d.inputs['q2'], '3');
+    });
+
+    test('403 when opening an attempt of a class that is not mine: no-access state, nothing shown', () async {
+      final r = await open();
+      repo.onAttempt = (_) async => throw serverError(403, 'You can only review quiz attempts for classes you teach.');
+      final d = QuizAttemptDetailController(id: 'foreign', list: r.list, repository: repo);
+      await d.load();
+      expect(d.state.value.status, SectionStatus.forbidden);
+      expect(d.attempt, isNull);
     });
 
     test('409 whose re-read fails keeps the typed marks and the message', () async {
@@ -272,11 +292,11 @@ void main() {
 
     test('403 for a non-class-teacher: server message shown, the typed text stays, no retry', () async {
       final c = await make();
-      repo.onRemarks = (_, __) async => throw serverError(403, 'Only the class teacher of Grade 5 A can edit these remarks.', path: '/api/v1/assessments/report-cards/c1/remarks');
+      repo.onRemarks = (_, __) async => throw serverError(403, 'Only the class teacher of this class can edit report card remarks.', path: '/api/v1/assessments/report-cards/c1/remarks');
       final r = await c.saveRemarks(c.cards.single, 'Good');
       expect(r, isA<RemarksFailed>());
       final f = (r as RemarksFailed).failure;
-      expect(f.message, contains('Only the class teacher of Grade 5 A can edit these remarks.'));
+      expect(f.message, contains('Only the class teacher of this class can edit report card remarks.'));
       expect(f.canRetry, isFalse);
       expect(c.cards.single.classTeacherRemarks, ''); // the card in the list is unchanged
       expect(c.saving, isEmpty);

@@ -438,7 +438,7 @@ void main() {
       await boot(t, marks: [mark(student(2), 30)]);
       await t.enterText(find.byKey(Key('marks_field_${idOf(1)}')), '10');
       await t.pump();
-      repo.onSave = (_) async => throw ApiException('1 mark is verified and locked: Student 1', statusCode: 403);
+      repo.onSave = (_) async => throw ApiException('Marks for 1 students are verified and locked: Student 1', statusCode: 403);
       repo.onMarks = (_, __) async => AllPages([mark(student(1), 25, verified: true)]);
       await t.tap(find.byKey(const Key('marks_save_button')));
       await settle(t);

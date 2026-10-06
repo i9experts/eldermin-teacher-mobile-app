@@ -24,7 +24,7 @@ class MarkEntryRow {
   final bool exempt;
   final String remarks;
 
-  /// Read-only row: verified by a coordinator (the server does NOT lock it, assessment.service.ts:1239-1299) or written by the online quiz.
+  /// Read-only row: verified by a coordinator (the server refuses a teacher's write to it with 409, backend 44b0a6e) or written by the online quiz.
   final bool locked;
   final String? lockReason;
 
@@ -173,7 +173,8 @@ class MarksInvalid extends MarksSaveResult {
 /// existing marks (`GET /assessments/marks/list`, all pages), lets me enter `obtainedMarks` / absent / exempt / remarks per student and saves with
 /// `POST /assessments/marks/bulk` (ONE endpoint, no draft / submit distinction in the DTO: assessment.dto.ts:161-171, so one "Save").
 ///
-/// INTEGRITY the server does NOT provide (assessment.service.ts:1239-1299; hardening backlog Critical #5) and the app therefore enforces:
+/// INTEGRITY: since backend 44b0a6e the server enforces the 0..total and verified-row rules for role teacher too (400 / 409, assessment.service.ts
+/// :1267-1300; read from code, not yet seen on staging), and the app STILL enforces them first so the teacher never hits those errors:
 ///  * 0 <= marks <= totalMarks per student (the server accepts any number >= 0);
 ///  * rows with `verified: true` are read-only and never sent (the server would overwrite them and keep them "verified");
 ///  * rows written by the online quiz are read-only; online-quiz subjects are read-only as a whole and a subject I do not teach is

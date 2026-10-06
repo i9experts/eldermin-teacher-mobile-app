@@ -325,8 +325,8 @@ class Http(unittest.TestCase):
         self.assertEqual((r["meta"]["total"], r["meta"]["pages"], len(r["data"])), (227, 2, 200))
         self.assertEqual(len(self.call("GET", f"/api/v1/students?{q}&limit=200&page=2")[1]["data"]), 27)
 
-    def test_planned_backend_error_modes_use_the_real_error_shape(self):
-        """PLANNED backend behaviour (UNVERIFIED until the backend commit lands): status codes / texts are assumptions, the SHAPE is real."""
+    def test_backend_hardening_error_modes_use_the_real_error_shape(self):
+        """Texts/codes copied from backend commits 44b0a6e, 8150ffb, 7795f1d, 5b1244d (read from code, not run end to end)."""
         p.seed()
         a1 = asm("Unit Test 1")
         st0 = roster_5a()[26]
@@ -335,30 +335,38 @@ class Http(unittest.TestCase):
         self.call("POST", "/__stub/mode?feature=marksbulk&value=toobig")
         st, err = self.call("POST", "/api/v1/assessments/marks/bulk", body)
         self.assertEqual((st, set(err)), (400, keys))
-        self.assertIn("exceed the total (50)", err["message"])
+        self.assertIn("Marks must be between 0 and 50 for Mathematics. Invalid for 1 student(s)", err["message"])
         self.call("POST", "/__stub/mode?feature=marksbulk&value=lockedrows")
         st, err = self.call("POST", "/api/v1/assessments/marks/bulk", body)
-        self.assertEqual((st, set(err)), (403, keys))
-        self.assertIn("verified and locked", err["message"])
+        self.assertEqual((st, set(err)), (409, keys))
+        self.assertIn("are verified and locked", err["message"])
         # the row is verified on the server now: a reload shows it locked
         marks = self.call("GET", f"/api/v1/assessments/marks/list?assessmentId={a1['_id']}&subject=Mathematics&limit=200")[1]["data"]
         self.assertTrue(next(m for m in marks if m["studentId"] == st0["_id"])["verified"])
-        self.call("POST", "/__stub/mode?feature=marksbulk&value=lockedrows409")
-        self.assertEqual(self.call("POST", "/api/v1/assessments/marks/bulk", body)[0], 409)
+        self.call("POST", "/__stub/mode?feature=marksbulk&value=lockedrows403")
+        self.assertEqual(self.call("POST", "/api/v1/assessments/marks/bulk", body)[0], 403)
         att = next(a for a in p._state["attempts"].values() if a["status"] == "submitted" and a["section"] == "A" and a["subject"] == "Mathematics")
         qs = [a["questionId"] for a in att["answers"]]
         self.call("POST", "/__stub/mode?feature=quizgrade&value=quizbounds")
         st, err = self.call("POST", f"/api/v1/assessments/quiz-attempts/{att['_id']}/grade", {"grades": [{"questionId": qs[1], "marksAwarded": 9}]})
         self.assertEqual((st, set(err)), (400, keys))
-        self.assertIn("between 0 and 4", err["message"])
+        self.assertIn("Invalid marks for 1 question(s)", err["message"])
+        self.assertIn("(allowed 0..4)", err["message"])
+        self.call("POST", "/__stub/mode?feature=quizgrade&value=notmyclass")
+        st, err = self.call("POST", f"/api/v1/assessments/quiz-attempts/{att['_id']}/grade", {"grades": [{"questionId": qs[1], "marksAwarded": 1}]})
+        self.assertEqual((st, err["message"]), (403, "You can only grade quiz attempts for classes you teach."))
+        self.call("POST", "/__stub/mode?feature=quizone&value=notmyclass")
+        self.assertEqual(self.call("GET", f"/api/v1/assessments/quiz-attempts/{att['_id']}")[0], 403)
         self.call("POST", "/__stub/mode?feature=quizgrade&value=regrade")
         st, err = self.call("POST", f"/api/v1/assessments/quiz-attempts/{att['_id']}/grade", {"grades": [{"questionId": qs[1], "marksAwarded": 1}]})
-        self.assertEqual((st, set(err)), (409, keys))
+        self.assertEqual((st, set(err), err["message"]), (409, keys, "This attempt is already graded."))
+        self.call("POST", "/__stub/mode?feature=quizone&value=ok")
         self.assertEqual(self.call("GET", f"/api/v1/assessments/quiz-attempts/{att['_id']}")[1]["status"], "graded")
         card = self.call("GET", "/api/v1/assessments/report-cards?limit=1")[1]["data"][0]["_id"]
         self.call("POST", "/__stub/mode?feature=remarks&value=notclassteacher")
         st, err = self.call("PATCH", f"/api/v1/assessments/report-cards/{card}/remarks", {"classTeacherRemarks": "x"})
         self.assertEqual((st, set(err)), (403, keys))
+        self.assertIn("Only the class teacher of this class", err["message"])
         self.call("POST", "/__stub/mode?feature=remarks&value=notfound")
         self.assertEqual(self.call("PATCH", f"/api/v1/assessments/report-cards/{card}/remarks", {"classTeacherRemarks": "x"})[0], 404)
 
