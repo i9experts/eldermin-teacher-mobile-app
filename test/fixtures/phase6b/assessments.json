@@ -430,7 +430,7 @@
    "endDate": "2026-09-23T00:00:00.000Z",
    "status": "completed",
    "resultPublished": false,
-   "gradeCardsGenerated": false,
+   "gradeCardsGenerated": true,
    "deliveryMode": "teacher_marked",
    "gradingScale": {
     "A+": {

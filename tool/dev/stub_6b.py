@@ -181,6 +181,12 @@ def seed():
     ros_b = _roster("5", "b")
     for i, s in enumerate(ros[:12] + ros_b[:3]):
         _state["cards"][f"{a2['_id']}:{s['_id']}"] = _card(len(_state["cards"]), a2, s, i)
+    a2["gradeCardsGenerated"] = True  # AS:1678-1681 sets it (with status 'completed') when report cards are generated
+    for i, s in enumerate(ros[:5]):  # Term 1: published cards (read-only in the app)
+        c = _card(len(_state["cards"]), a5, s, i)
+        c["published"] = True
+        c["publishedAt"] = "2026-10-01T05:00:00.000Z"
+        _state["cards"][f"{a5['_id']}:{s['_id']}"] = c
     # quiz attempts (QA:28-60), the questions live in _questions()
     for n, (s, subj, status, grade, section, obtained, marks) in enumerate([
         (ros[0], "Mathematics", "submitted", "Grade 5", "A", None, [None, None]),

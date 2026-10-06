@@ -145,6 +145,7 @@ class ApiConstants {
 
   // ── Academics (curriculum / library) ─────────────────────────
   static const String curriculum = '$apiPrefix/academics/curriculum';
+  static String curriculumById(String id) => '$apiPrefix/academics/curriculum/$id';
   static const String subjects = '$apiPrefix/academics/subjects';
   static const String libraryBooks = '$apiPrefix/academics/library/books';
   static const String librarySearch = '$apiPrefix/academics/library/search';
