@@ -1,0 +1,23 @@
+{
+ "topic": "Equivalent fractions (DUMMY parse)",
+ "description": "Students explore equivalent fractions with paper strips.",
+ "durationMins": 45,
+ "teachingMethodology": "activity",
+ "objectives": [
+  "Students will be able to find two equivalent fractions",
+  "Students will be able to simplify a fraction"
+ ],
+ "resources": [
+  "Textbook",
+  "Handouts"
+ ],
+ "otherResource": "Paper strips; coloured pencils",
+ "homework": "Worksheet 3, questions 1-8",
+ "subjectGuess": "Maths",
+ "gradeLevelGuess": "Grade 5",
+ "warnings": [
+  "No clear duration found; check the 45 minutes",
+  "Could not find an assessment section"
+ ],
+ "sourceFileName": "plan.docx"
+}

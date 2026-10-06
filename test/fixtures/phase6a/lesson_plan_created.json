@@ -1,0 +1,24 @@
+{
+ "_id": "64f000000000000000000901",
+ "tenantId": "64f0000000000000000000a1",
+ "institutionId": "64f0000000000000000000a2",
+ "teacherId": "64a0000000000000000000a1",
+ "campusId": "64a0000000000000000000c1",
+ "durationMins": 40,
+ "learningObjectives": [
+  "a"
+ ],
+ "resources": [],
+ "sloTags": [],
+ "syllabusPageFrom": 0,
+ "syllabusPageTo": 0,
+ "status": "draft",
+ "createdAt": "2026-10-06T09:50:11.000Z",
+ "updatedAt": "2026-10-06T09:50:11.000Z",
+ "__v": 0,
+ "subject": "Mathematics",
+ "gradeLevel": "Grade 5",
+ "sectionName": "A",
+ "topic": "New",
+ "planDate": "2030-01-05T00:00:00.000Z"
+}

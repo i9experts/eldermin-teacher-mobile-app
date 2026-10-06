@@ -1,0 +1,47 @@
+[
+ {
+  "syllabusId": "64f000000000000000000801",
+  "subjectName": "Mathematics",
+  "gradeLevel": "Grade 5",
+  "currentWeek": 5,
+  "subTopics": [
+   {
+    "unitNo": 1,
+    "unitName": "Numbers and operations",
+    "topicNo": 1,
+    "topicName": "Adding fractions",
+    "subTopicNo": 3,
+    "subTopicName": "Mixed numbers",
+    "isCovered": false
+   },
+   {
+    "unitNo": 1,
+    "unitName": "Numbers and operations",
+    "topicNo": 2,
+    "topicName": "Decimals",
+    "subTopicNo": 1,
+    "subTopicName": "Place value",
+    "isCovered": false
+   }
+  ],
+  "sectionName": "A"
+ },
+ {
+  "syllabusId": "64f000000000000000000802",
+  "subjectName": "Science",
+  "gradeLevel": "Grade 6",
+  "currentWeek": 5,
+  "subTopics": [
+   {
+    "unitNo": 1,
+    "unitName": "Plants",
+    "topicNo": 1,
+    "topicName": "Photosynthesis",
+    "subTopicNo": 3,
+    "subTopicName": "Chlorophyll",
+    "isCovered": false
+   }
+  ],
+  "sectionName": "B"
+ }
+]

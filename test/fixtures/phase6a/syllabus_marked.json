@@ -1,0 +1,192 @@
+{
+ "_id": "64f000000000000000000801",
+ "tenantId": "64f0000000000000000000a1",
+ "institutionId": "64f0000000000000000000a2",
+ "campusId": "64a0000000000000000000c1",
+ "subjectName": "Mathematics",
+ "gradeLevel": "Grade 5",
+ "academicYearLabel": "2026-27",
+ "term": "Term 1",
+ "framework": "national",
+ "recommendedTextbook": "Maths Today 5 (DUMMY)",
+ "totalWeeks": 12,
+ "totalPeriods": 48,
+ "units": [
+  {
+   "unitNo": 1,
+   "unitName": "Numbers and operations",
+   "weeks": 6,
+   "periods": 24,
+   "topics": [
+    {
+     "topicNo": 1,
+     "topicName": "Adding fractions",
+     "description": "",
+     "learningObjectives": [],
+     "sloReferences": [],
+     "estimatedLessons": 4,
+     "subTopics": [
+      {
+       "subTopicNo": 1,
+       "subTopicName": "Like denominators",
+       "description": "",
+       "isCovered": true,
+       "plannedWeek": 3,
+       "coveredDate": "2026-10-06T09:50:11.000Z",
+       "coveredBy": "Tess Teacher"
+      },
+      {
+       "subTopicNo": 2,
+       "subTopicName": "Unlike denominators",
+       "description": "",
+       "isCovered": true,
+       "plannedWeek": 4,
+       "coveredDate": "2026-10-06T09:50:11.000Z",
+       "coveredBy": "Tess Teacher"
+      },
+      {
+       "subTopicNo": 3,
+       "subTopicName": "Mixed numbers",
+       "description": "",
+       "isCovered": true,
+       "plannedWeek": 5,
+       "coveredDate": "2026-10-06T09:50:11.000Z",
+       "coveredBy": "Tess Teacher"
+      }
+     ],
+     "lessons": [
+      {
+       "lessonNo": 1,
+       "title": "Fractions explained (video)",
+       "description": "",
+       "type": "video",
+       "url": "https://example.test/video/fractions",
+       "order": 0,
+       "addedBy": "Admin (DUMMY)",
+       "addedAt": "2026-09-01T05:00:00.000Z"
+      },
+      {
+       "lessonNo": 2,
+       "title": "Practice sheet",
+       "description": "",
+       "type": "document",
+       "fileUrl": "https://example.test/files/practice.pdf",
+       "fileName": "practice.pdf",
+       "order": 1,
+       "addedBy": "Admin (DUMMY)",
+       "addedAt": "2026-09-01T05:00:00.000Z"
+      }
+     ],
+     "isCovered": true,
+     "coveredDate": "2026-10-06T09:50:11.000Z",
+     "coveredBy": "Tess Teacher"
+    },
+    {
+     "topicNo": 2,
+     "topicName": "Decimals",
+     "description": "",
+     "learningObjectives": [],
+     "sloReferences": [],
+     "estimatedLessons": 2,
+     "subTopics": [
+      {
+       "subTopicNo": 1,
+       "subTopicName": "Place value",
+       "description": "",
+       "isCovered": false,
+       "plannedWeek": 5
+      },
+      {
+       "subTopicNo": 2,
+       "subTopicName": "Rounding",
+       "description": "",
+       "isCovered": false,
+       "plannedWeek": 6
+      }
+     ],
+     "lessons": [],
+     "isCovered": false
+    },
+    {
+     "topicNo": 3,
+     "topicName": "Number patterns",
+     "description": "",
+     "learningObjectives": [],
+     "sloReferences": [],
+     "estimatedLessons": 1,
+     "subTopics": [],
+     "lessons": [],
+     "isCovered": true,
+     "coveredDate": "2026-10-06T09:50:11.000Z",
+     "coveredBy": "Tess Teacher"
+    }
+   ]
+  },
+  {
+   "unitNo": 2,
+   "unitName": "Measurement",
+   "weeks": 6,
+   "periods": 24,
+   "topics": [
+    {
+     "topicNo": 1,
+     "topicName": "Perimeter and area",
+     "description": "",
+     "learningObjectives": [],
+     "sloReferences": [],
+     "estimatedLessons": 2,
+     "subTopics": [
+      {
+       "subTopicNo": 1,
+       "subTopicName": "Perimeter",
+       "description": "",
+       "isCovered": false,
+       "plannedWeek": 7
+      },
+      {
+       "subTopicNo": 2,
+       "subTopicName": "Area of rectangles",
+       "description": "",
+       "isCovered": false,
+       "plannedWeek": 8
+      }
+     ],
+     "lessons": [],
+     "isCovered": false
+    },
+    {
+     "topicNo": 2,
+     "topicName": "Time and money",
+     "description": "",
+     "learningObjectives": [],
+     "sloReferences": [],
+     "estimatedLessons": 3,
+     "subTopics": [],
+     "lessons": [],
+     "isCovered": false
+    }
+   ]
+  }
+ ],
+ "assessmentBreakdown": {
+  "midTerm": 30,
+  "finalExam": 50,
+  "classwork": 10,
+  "homework": 10
+ },
+ "teacherId": "64a0000000000000000000a1",
+ "teacherName": "Tess Teacher",
+ "status": "active",
+ "createdBy": "64f0000000000000000000c9",
+ "createdByName": "Admin (DUMMY)",
+ "publishedToStudents": false,
+ "createdAt": "2026-08-20T05:00:00.000Z",
+ "updatedAt": "2026-10-01T05:00:00.000Z",
+ "__v": 0,
+ "sectionName": "A",
+ "totalTopics": 9,
+ "coveredTopics": 4,
+ "coveragePct": 44,
+ "trackStatus": "on_track",
+ "lastTrackedAt": "2026-10-06T09:50:11.000Z"
+}
