@@ -272,5 +272,54 @@ class TestPhase5bExpectations(unittest.TestCase):
             self.assertNotIn(secret, out)
 
 
+class TestPhase6aExpectations(unittest.TestCase):
+    def test_good_lesson_plans_syllabi_and_planner_pass(self):
+        lp = [{"_id": SECRET_ID, "topic": "T", "subject": "S", "gradeLevel": "Grade 5", "sectionName": "A", "teacherId": SECRET_ID,
+               "planDate": "2026-10-07T00:00:00.000Z", "durationMins": 40, "learningObjectives": ["a"], "resources": [], "teachingMethodology": "lecture",
+               "status": "rejected", "rejectionReason": "r", "tenantId": "x"}]
+        self.assertFalse([r for r in v.check_expectations(lp, v.EXPECTATIONS["lesson_plans_mine"]) if r[1] == "FAIL"])
+        syl = [{"_id": SECRET_ID, "subjectName": "Maths", "gradeLevel": "Grade 5", "academicYearLabel": "2026-27", "status": "active", "trackStatus": "on_track",
+                "teacherId": SECRET_ID, "totalTopics": 3, "coveredTopics": 1, "coveragePct": 33,
+                "units": [{"unitNo": 1, "topics": [{"topicNo": 1, "topicName": "T", "isCovered": False, "subTopics": [], "lessons": []}]}]}]
+        self.assertFalse([r for r in v.check_expectations(syl, v.EXPECTATIONS["syllabi"]) if r[1] == "FAIL"])
+        pl = [{"syllabusId": SECRET_ID, "subjectName": "S", "gradeLevel": "G", "currentWeek": 5,
+               "subTopics": [{"unitNo": 1, "topicNo": 1, "subTopicNo": 2, "subTopicName": "N", "isCovered": False}]}]
+        self.assertFalse([r for r in v.check_expectations(pl, v.EXPECTATIONS["weekly_planner"]) if r[1] == "FAIL"])
+        self.assertFalse([r for r in v.check_expectations([], v.EXPECTATIONS["weekly_planner"]) if r[1] == "FAIL"])
+
+    def test_drift_is_caught(self):
+        lp = [{"_id": SECRET_ID, "topic": "T", "subject": "S", "gradeLevel": "G", "teacherId": SECRET_ID, "planDate": "2026-10-07", "status": "published"}]
+        failed = {p for p, st, _ in v.check_expectations(lp, v.EXPECTATIONS["lesson_plans_mine"]) if st == "FAIL"}
+        self.assertEqual(failed, {"[].status"})
+        syl = [{"_id": SECRET_ID, "subjectName": "S", "gradeLevel": "G", "academicYearLabel": "y", "status": "live", "units": {}}]
+        failed = {p for p, st, _ in v.check_expectations(syl, v.EXPECTATIONS["syllabi"]) if st == "FAIL"}
+        self.assertEqual(failed, {"[].status", "[].units"})
+        pl = [{"syllabusId": SECRET_ID, "subjectName": "S", "gradeLevel": "G", "currentWeek": "5", "subTopics": []}]
+        failed = {p for p, st, _ in v.check_expectations(pl, v.EXPECTATIONS["weekly_planner"]) if st == "FAIL"}
+        self.assertEqual(failed, {"[].currentWeek"})
+
+    def test_values_are_never_printed_for_the_new_endpoints(self):
+        rep = v.Report()
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rep.endpoint("teacher", "GET /teaching/lesson-plans?teacherId", 200,
+                         [{"_id": SECRET_ID, "topic": SECRET_NAME, "rejectionReason": SECRET_EMAIL, "status": "draft", "subject": "S", "gradeLevel": "G",
+                           "teacherId": SECRET_ID, "planDate": "2026-10-07"}], "lesson_plans_mine")
+        out = buf.getvalue()
+        for secret in (SECRET_ID, SECRET_NAME, SECRET_EMAIL):
+            self.assertNotIn(secret, out)
+
+    def test_only_get_endpoints_are_called_for_6a(self):
+        src = open(v.__file__).read()
+        block = src[src.index("# Phase 6a (all GET"):src.index("    if class_teacher:\n        grade =")]
+        self.assertNotIn('http("POST"', block)
+        self.assertNotIn('"PATCH"', block)
+        self.assertNotIn("mark-topic", block)
+        self.assertNotIn("parse-upload", block)
+        self.assertTrue(v.request_allowed("GET", "/syllabus"))
+        self.assertFalse(v.request_allowed("PATCH", "/syllabus/x/mark-topic"))
+        self.assertFalse(v.request_allowed("POST", "/teaching/lesson-plans/parse-upload"))
+
+
 if __name__ == "__main__":
     unittest.main()

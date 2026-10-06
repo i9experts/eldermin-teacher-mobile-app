@@ -315,6 +315,64 @@ EXPECTATIONS = {
         ("[].status", S, True, ("enum", ["draft", "submitted", "approved", "rejected", "overdue"])),
         ("[].planDate", S, False, ("fmt", "iso")),
     ],
+    # GET /teaching/lesson-plans?teacherId=<my staffId> (Phase 6a, the full MY-plans list). Backend teaching.controller.ts:59-60 ->
+    # teaching.service.ts:151-162 (bare array, planDate desc, hard limit 100); schema lesson-plan.schema.ts:7-42.
+    # App: lib/core/models/academic/lesson_plan_models.dart LessonPlanRecord. rejectionReason / approverNotes are optional (set by approve / reject).
+    "lesson_plans_mine": [
+        ("[]._id", S, True, ("fmt", "id")),
+        ("[].topic", S, True, None),
+        ("[].subject", S, True, None),
+        ("[].gradeLevel", S, True, None),
+        ("[].sectionName", SN, False, None),
+        ("[].teacherId", SN, True, None),
+        ("[].planDate", S, True, ("fmt", "iso")),
+        ("[].durationMins", NUM, False, None),
+        ("[].learningObjectives", L, False, None),
+        ("[].resources", L, False, None),
+        ("[].teachingMethodology", SN, False, None),
+        ("[].status", S, True, ("enum", ["draft", "submitted", "approved", "rejected", "overdue"])),
+        ("[].rejectionReason", SN, False, None),
+        ("[].approverNotes", SN, False, None),
+    ],
+    # GET /syllabus?teacherId=<my staffId> (Phase 6a). Backend syllabus.controller.ts:106-109 -> syllabus.service.ts:95-110 (bare array of FULL
+    # documents, no pagination); schema syllabus.schema.ts:19-183; DTO syllabus.dto.ts:152-161. App: syllabus_models.dart Syllabus.
+    "syllabi": [
+        ("[]._id", S, True, ("fmt", "id")),
+        ("[].subjectName", S, True, None),
+        ("[].gradeLevel", S, True, None),
+        ("[].sectionName", SN, False, None),
+        ("[].term", SN, False, None),
+        ("[].academicYearLabel", S, True, None),
+        ("[].status", S, True, ("enum", ["draft", "active", "approved", "archived"])),
+        ("[].trackStatus", S, False, ("enum", ["not_started", "on_track", "behind", "completed"])),
+        ("[].teacherId", SN, False, None),
+        ("[].totalTopics", I, False, None),
+        ("[].coveredTopics", I, False, None),
+        ("[].coveragePct", NUM, False, None),
+        ("[].units", L, True, None),
+        ("[].units[].unitNo", NUM, True, None),
+        ("[].units[].topics", L, False, None),
+        ("[].units[].topics[].topicNo", NUM, True, None),
+        ("[].units[].topics[].topicName", S, True, None),
+        ("[].units[].topics[].isCovered", B, False, None),
+        ("[].units[].topics[].subTopics", L, False, None),
+        ("[].units[].topics[].lessons", L, False, None),
+    ],
+    # GET /syllabus/weekly-planner?teacherId=<my staffId> (Phase 6a; CURRENT week only). Backend syllabus.controller.ts:31-37 ->
+    # syllabus.service.ts:301-332. App: syllabus_models.dart PlannerEntry. An empty array is a legitimate answer.
+    "weekly_planner": [
+        ("[].syllabusId", S, True, ("fmt", "id")),
+        ("[].subjectName", S, True, None),
+        ("[].gradeLevel", S, True, None),
+        ("[].sectionName", SN, False, None),
+        ("[].currentWeek", I, True, None),
+        ("[].subTopics", L, True, None),
+        ("[].subTopics[].unitNo", NUM, True, None),
+        ("[].subTopics[].topicNo", NUM, True, None),
+        ("[].subTopics[].subTopicNo", NUM, True, None),
+        ("[].subTopics[].subTopicName", S, True, None),
+        ("[].subTopics[].isCovered", B, False, None),
+    ],
     # GET /teaching/ptm?teacherId&from&to. Backend ptm.service.ts:91-104; schema ptm-meeting.schema.ts:29-68.
     # App: teaching.dart PtmMeeting; agenda rules in lib/core/utils/ptm_agenda.dart.
     "ptm_range": [
@@ -661,6 +719,18 @@ def run_user(rep, who, base, slug, email, password, class_teacher):
                 rep.skip(who, "GET /teaching/assignments/:id/submissions", "no assignment of mine to check")
         else:
             rep.skip(who, "GET /teaching/assignments", "no staffId from /staff-portal/me")
+    # Phase 6a (all GET, read-only): my lesson plans, my syllabi, the weekly planner. No write route is ever called.
+    if not class_teacher:
+        if staff_id:
+            st, b = get("/teaching/lesson-plans", {"teacherId": staff_id})
+            rep.endpoint(who, "GET /teaching/lesson-plans?teacherId (all statuses)", st, b, "lesson_plans_mine")
+            st, b = get("/syllabus", {"teacherId": staff_id})
+            rep.endpoint(who, "GET /syllabus?teacherId", st, b, "syllabi")
+            st, b = get("/syllabus/weekly-planner", {"teacherId": staff_id})
+            rep.endpoint(who, "GET /syllabus/weekly-planner?teacherId", st, b, "weekly_planner")
+        else:
+            for lbl in ("lesson-plans (all statuses)", "syllabus", "syllabus/weekly-planner"):
+                rep.skip(who, f"GET /{lbl}", "no staffId from /staff-portal/me")
     if class_teacher:
         grade = class_of.get("gradeName") if isinstance(class_of, dict) else None
         section = class_of.get("sectionName") if isinstance(class_of, dict) else None
