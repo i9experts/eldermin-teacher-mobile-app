@@ -8,10 +8,10 @@ import '../../../common/action_failure.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../home/models/section_state.dart';
 
-/// Online-quiz attempts waiting for a teacher (`/assessments/quiz-attempts`). `GET /assessments/quiz-attempts` lists EVERY submitted attempt of
-/// the school, no campus / class scoping (assessment.service.ts:1468-1473; a server-side class scope for teachers is PLANNED, not verified),
-/// so the app keeps ONLY those for my classes AND subjects ([isMyAttempt], the same tolerant grade/section matcher as the roster) and refuses
-/// to open an attempt outside them even by direct id ([QuizAttemptDetailController.load]).
+/// Online-quiz attempts waiting for a teacher (`/assessments/quiz-attempts`). The server list may be broader than what a teacher may see, so
+/// the app keeps ONLY the attempts allowed by [isMyAttempt] (class teacher: all subjects of their own class; subject teacher: their subjects
+/// in the classes they teach; union when both) and refuses to open an attempt outside that rule even by direct id
+/// ([QuizAttemptDetailController.load]). A subject chip row (All + one per subject present) narrows the visible list.
 class QuizAttemptsController extends GetxController {
   final AssessmentRepository? _repo;
   final AuthController? _auth;
@@ -37,6 +37,30 @@ class QuizAttemptsController extends GetxController {
   List<ClassRef> get myClasses => teacherClassesOf(auth.staffMe.value?.teacherProfile);
   List<QuizAttempt> get items => state.value.data ?? const [];
 
+  /// True when /staff-portal/me gives this teacher no class and no subject at all (the empty state then explains why).
+  bool get hasNoScope => myClasses.isEmpty;
+
+  /// Selected subject chip; null = All.
+  final subjectFilter = RxnString();
+
+  /// Subjects present in the visible attempts (chip row).
+  List<String> get subjects => attemptSubjects(items);
+
+  /// [items] narrowed by [subjectFilter].
+  List<QuizAttempt> get visible {
+    final f = subjectFilter.value?.trim().toLowerCase();
+    return f == null ? items : [for (final a in items) if (a.subject.trim().toLowerCase() == f) a];
+  }
+
+  int countFor(String? subject) => subject == null ? items.length : items.where((a) => a.subject.trim().toLowerCase() == subject.trim().toLowerCase()).length;
+
+  void setSubjectFilter(String? subject) => subjectFilter.value = subject;
+
+  void _fixFilter() {
+    final f = subjectFilter.value;
+    if (f != null && !subjects.any((s) => s.toLowerCase() == f.toLowerCase())) subjectFilter.value = null;
+  }
+
   @override
   void onReady() {
     super.onReady();
@@ -56,6 +80,7 @@ class QuizAttemptsController extends GetxController {
       if (token != _token) return;
       final mine = [for (final a in all) if (a.isPending && isMyAttempt(a, myClasses)) a];
       state.value = mine.isEmpty ? const SectionState.empty() : SectionState.data(mine);
+      _fixFilter();
     } catch (e) {
       if (token != _token) return;
       state.value = SectionState<List<QuizAttempt>>.fromError(e);
@@ -71,6 +96,7 @@ class QuizAttemptsController extends GetxController {
   void remove(String id) {
     final rest = [for (final a in items) if (a.id != id) a];
     state.value = rest.isEmpty ? const SectionState.empty() : SectionState.data(rest);
+    _fixFilter();
   }
 }
 
@@ -145,7 +171,7 @@ class QuizAttemptDetailController extends GetxController {
       }
       final a = await repo.attempt(id);
       if (!isMyAttempt(a, list.myClasses)) {
-        state.value = const SectionState.error("This quiz attempt isn't from one of your classes and subjects.");
+        state.value = const SectionState.error("This quiz attempt isn't from your class or one of your subjects.");
         return;
       }
       _seed(a);

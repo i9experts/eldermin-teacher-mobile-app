@@ -256,6 +256,106 @@ void main() {
       expect(c.state.value.status, SectionStatus.error);
     });
 
+    group('visibility rule: class teacher = all subjects of own class; subject teacher = own subjects in classes taught; union', () {
+      Future<QuizAttemptsController> quizFor({bool classTeacher = false, List<Map<String, Object?>> assignments = const [maths5a, sci6b]}) async {
+        final r = await makeList(classTeacher: classTeacher, assignments: assignments);
+        return QuizAttemptsController(repository: repo, auth: r.h.auth, permissions: r.h.perms);
+      }
+
+      final all = [
+        attempt('m5a'), // Maths, 5-A
+        attempt('e5a', subject: 'English'), // English, 5-A
+        attempt('s5a', subject: 'Science'), // Science, 5-A
+        attempt('m5b', section: 'B'), // Maths, 5-B
+        attempt('e6b', subject: 'English', grade: 'Grade 6', section: 'B'),
+        attempt('s6b', subject: 'Science', grade: 'Grade 6', section: 'B'),
+        attempt('m7c', grade: 'Grade 7', section: 'C'),
+      ];
+
+      test('class teacher of 5-A (teaches nothing there): ALL subjects of 5-A, nothing else', () async {
+        repo.onPending = () async => all;
+        final c = await quizFor(classTeacher: true, assignments: const []);
+        await c.load();
+        expect(c.items.map((a) => a.id).toSet(), {'m5a', 'e5a', 's5a'});
+        expect(c.subjects, ['English', 'Mathematics', 'Science']);
+      });
+
+      test('subject teacher: only their subjects in the classes they teach', () async {
+        repo.onPending = () async => all;
+        final c = await quizFor(); // Maths in 5-A, Science in 6-B, class teacher of nothing
+        await c.load();
+        expect(c.items.map((a) => a.id).toSet(), {'m5a', 's6b'});
+        expect(c.subjects, ['Mathematics', 'Science']);
+      });
+
+      test('UNION: class teacher of 5-A who also teaches English in 6-B = all of 5-A + English in 6-B', () async {
+        repo.onPending = () async => all;
+        final c = await quizFor(classTeacher: true, assignments: const [
+          {'gradeLevel': 'Grade 6', 'sectionName': 'B', 'subjectName': 'English'}
+        ]);
+        await c.load();
+        expect(c.items.map((a) => a.id).toSet(), {'m5a', 'e5a', 's5a', 'e6b'});
+      });
+
+      test('class teacher who also teaches in their own class: still every subject there; other classes only their subject', () async {
+        repo.onPending = () async => all;
+        final c = await quizFor(classTeacher: true, assignments: const [maths5a, sci6b]);
+        await c.load();
+        expect(c.items.map((a) => a.id).toSet(), {'m5a', 'e5a', 's5a', 's6b'});
+      });
+
+      test('tolerant matching: "5"/"a" spellings and a subject spelled in another case', () async {
+        repo.onPending = () async => [attempt('x1', grade: '5', section: 'a', subject: 'MATHEMATICS'), attempt('x2', grade: 'Class 6', section: 'Section B', subject: 'science'), attempt('x3', grade: '5', section: 'a', subject: 'English')];
+        final c = await quizFor();
+        await c.load();
+        expect(c.items.map((a) => a.id).toSet(), {'x1', 'x2'});
+      });
+
+      test('a teacher with NEITHER role: empty, hasNoScope explains why', () async {
+        repo.onPending = () async => all;
+        final c = await quizFor(assignments: const []);
+        await c.load();
+        expect(c.state.value.status, SectionStatus.empty);
+        expect(c.hasNoScope, isTrue);
+        expect((await quizFor()).hasNoScope, isFalse);
+      });
+
+      test('subject chips: All + one per subject present; filter narrows; a vanished subject falls back to All', () async {
+        repo.onPending = () async => all;
+        final c = await quizFor(classTeacher: true, assignments: const []);
+        await c.load();
+        expect(c.subjectFilter.value, isNull);
+        expect(c.visible, hasLength(3));
+        c.setSubjectFilter('English');
+        expect(c.visible.map((a) => a.id), ['e5a']);
+        expect(c.countFor('Mathematics'), 1);
+        expect(c.countFor(null), 3);
+        c.remove('e5a'); // the filtered subject has no attempt left
+        expect(c.subjectFilter.value, isNull);
+        expect(c.visible.map((a) => a.id).toSet(), {'m5a', 's5a'});
+      });
+
+      test('direct open by id follows the same rule: class teacher may open another subject of her class, not another class', () async {
+        repo.onPending = () async => all;
+        final c = await quizFor(classTeacher: true, assignments: const []);
+        await c.load();
+        repo.onAttempt = (id) async => attempt(id, subject: 'English');
+        final ok = QuizAttemptDetailController(id: 'e5a', list: c, repository: repo);
+        await ok.load();
+        expect(ok.state.value.status, SectionStatus.data);
+        repo.onAttempt = (id) async => attempt(id, subject: 'English', section: 'B');
+        final no = QuizAttemptDetailController(id: 'e5b', list: c, repository: repo);
+        await no.load();
+        expect(no.state.value.status, SectionStatus.error);
+        expect(no.state.value.message, contains("isn't from your class or one of your subjects"));
+        final subjOnly = await quizFor();
+        repo.onAttempt = (id) async => attempt(id, subject: 'English');
+        final no2 = QuizAttemptDetailController(id: 'e5a', list: subjOnly, repository: repo);
+        await no2.load();
+        expect(no2.state.value.status, SectionStatus.error);
+      });
+    });
+
     Future<({QuizAttemptDetailController d, QuizAttemptsController list})> openDetail({QuizAttempt? a}) async {
       final list = await makeQuiz();
       repo.onPending = () async => [attempt('t1')];

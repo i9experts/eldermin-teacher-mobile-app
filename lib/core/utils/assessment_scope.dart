@@ -45,8 +45,23 @@ List<Assessment> myAssessments(Iterable<Assessment> all, Iterable<ClassRef> clas
 /// Class-teacher classes that fall under [a] (for report-card remarks).
 List<ClassRef> myClassTeacherClassesFor(Assessment a, Iterable<ClassRef> classes) => [for (final c in myClassesFor(a, classes)) if (c.isClassTeacherClass) c];
 
-/// A quiz attempt is mine when it is for one of my classes AND one of my subjects there.
-bool isMyAttempt(QuizAttempt t, Iterable<ClassRef> classes) => classes.any((c) => classMatches(c, t.grade, t.section) && _teaches(c, t.subject));
+/// Quiz-attempt visibility rule (owner decision 2026-10-07), evaluated per attempt over my classes (UNION of both roles):
+///  * a CLASS TEACHER sees ALL subjects' attempts of THEIR OWN class ([ClassRef.isClassTeacherClass], from /staff-portal/me classTeacherOf);
+///  * a SUBJECT teacher sees only attempts of the subjects they teach in a class they teach (currentAssignments).
+/// So class teacher of 5-A who also teaches English in 6-B sees every subject in 5-A plus English in 6-B. Grade / section use the same
+/// tolerant matcher as the roster; subject names compare case-insensitively. A teacher with no classes sees nothing.
+bool isMyAttempt(QuizAttempt t, Iterable<ClassRef> classes) =>
+    classes.any((c) => classMatches(c, t.grade, t.section) && (c.isClassTeacherClass || _teaches(c, t.subject)));
+
+/// The distinct subjects of [attempts] (case-insensitive, first spelling kept, sorted) for the subject filter chips.
+List<String> attemptSubjects(Iterable<QuizAttempt> attempts) {
+  final seen = <String, String>{};
+  for (final a in attempts) {
+    final name = a.subject.trim();
+    if (name.isNotEmpty) seen.putIfAbsent(name.toLowerCase(), () => name);
+  }
+  return seen.values.toList()..sort((x, y) => x.toLowerCase().compareTo(y.toLowerCase()));
+}
 
 /// A report card belongs to my class-teacher class (grade + section both match; a card without a section matches a whole-grade class only).
 bool isCardOfClass(ReportCard card, ClassRef cls) => sameGrade(card.grade, cls.grade) && (cls.section.isEmpty || sameSection(card.section, cls.section));

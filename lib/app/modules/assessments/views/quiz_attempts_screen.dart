@@ -25,13 +25,41 @@ class QuizAttemptsScreen extends GetView<QuizAttemptsController> {
           state: c.canView ? state : const SectionState<List<QuizAttempt>>.forbidden(),
           onRefresh: c.reload,
           onRetry: () => c.load(force: true),
-          emptyIcon: Icons.task_alt_rounded,
-          emptyTitle: 'Nothing waiting for your marks',
-          emptySubtitle: 'Only attempts from your classes (and the subjects you teach there) are shown. When one of your students submits an online quiz with written answers, it appears here.',
-          header: [ScreenHeader(title: 'Quiz grading', caption: state.hasData ? '${c.items.length} waiting for review · only your classes are shown' : 'Written answers to mark')],
-          builder: (items) => [for (final a in items) _tile(a)],
+          emptyIcon: c.hasNoScope && c.canView ? Icons.school_outlined : Icons.task_alt_rounded,
+          emptyTitle: c.hasNoScope ? "You aren't assigned to a class or subject" : 'Nothing waiting for your marks',
+          emptySubtitle: c.hasNoScope
+              ? "Quiz attempts are shown for the class you are class teacher of (all subjects) and for the subjects you teach in your other classes. You don't have either yet, so there is nothing to show. Ask your school admin if this looks wrong."
+              : 'Attempts appear here for every subject of your own class (if you are a class teacher) and for the subjects you teach in your other classes. When a student submits an online quiz with written answers, it shows up here.',
+          header: [
+            ScreenHeader(title: 'Quiz grading', caption: state.hasData ? '${c.items.length} waiting for review · your class and your subjects' : 'Written answers to mark'),
+            if (state.hasData) _chips(c),
+          ],
+          builder: (_) => [for (final a in c.visible) _tile(a)],
         );
       }),
+    );
+  }
+
+  Widget _chips(QuizAttemptsController c) {
+    final selected = c.subjectFilter.value;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: SingleChildScrollView(
+        key: const Key('quiz_subject_chips'),
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          for (final s in <String?>[null, ...c.subjects])
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                key: Key('quiz_chip_${s ?? 'all'}'),
+                label: Text('${s ?? 'All'} (${c.countFor(s)})'),
+                selected: s == null ? selected == null : selected?.toLowerCase() == s.toLowerCase(),
+                onSelected: (_) => c.setSubjectFilter(s),
+              ),
+            ),
+        ]),
+      ),
     );
   }
 

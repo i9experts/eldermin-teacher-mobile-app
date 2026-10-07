@@ -24,13 +24,13 @@ import '../support/fake_classroom_repositories.dart';
 
 const maths5a = {'gradeLevel': 'Grade 5', 'sectionName': 'A', 'subjectName': 'Mathematics'};
 
-QuizAttempt attempt(String id, {String status = 'submitted', List<double?> awarded = const [null, null], double? obtained}) => QuizAttempt.fromJson({
+QuizAttempt attempt(String id, {String status = 'submitted', String subject = 'Mathematics', String grade = 'Grade 5', String section = 'A', List<double?> awarded = const [null, null], double? obtained}) => QuizAttempt.fromJson({
       '_id': id,
       'studentName': 'Aarav Ahmed',
       'assessmentTitle': 'Online Quiz',
-      'subject': 'Mathematics',
-      'grade': 'Grade 5',
-      'section': 'A',
+      'subject': subject,
+      'grade': grade,
+      'section': section,
       'totalMarks': 10,
       'autoGradedMarks': 2,
       'obtainedMarks': obtained,
@@ -625,7 +625,7 @@ void main() {
       await c.load(force: true);
       await settle(t);
       expect(find.text('Nothing waiting for your marks'), findsOneWidget);
-      expect(find.textContaining('Only attempts from your classes'), findsOneWidget);
+      expect(find.textContaining('every subject of your own class'), findsOneWidget);
       repo.onPending = () async => throw ApiException('Forbidden resource', statusCode: 403);
       await c.load(force: true);
       await settle(t);
@@ -634,6 +634,38 @@ void main() {
       await c.load(force: true);
       await settle(t);
       expect(find.byKey(const Key('screen_error')), findsOneWidget);
+    });
+
+    testWidgets('subject chips: All + one per subject present, tapping narrows the list', (t) async {
+      final h = await signIn(t, classTeacher: true, assignments: const []);
+      repo.onPending = () async => [attempt('t1'), attempt('t2'), attempt('t3', subject: 'Science'), attempt('t4', subject: 'Science', section: 'B')];
+      final c = Get.put(QuizAttemptsController(repository: repo, auth: h.auth, permissions: h.perms));
+      await open(t, const QuizAttemptsScreen());
+      await c.load();
+      await settle(t);
+      expect(find.byKey(const Key('quiz_chip_all')), findsOneWidget);
+      expect(find.text('All (3)'), findsOneWidget); // t4 is another class of the same grade: not mine
+      expect(find.text('Mathematics (2)'), findsOneWidget);
+      expect(find.text('Science (1)'), findsOneWidget);
+      expect(find.byKey(const ValueKey('qa_t3')), findsOneWidget);
+      await t.tap(find.byKey(const Key('quiz_chip_Mathematics')));
+      await settle(t);
+      expect(find.byKey(const ValueKey('qa_t1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('qa_t3')), findsNothing);
+      await t.tap(find.byKey(const Key('quiz_chip_all')));
+      await settle(t);
+      expect(find.byKey(const ValueKey('qa_t3')), findsOneWidget);
+    });
+
+    testWidgets('a teacher with no class/subject: empty state explains why', (t) async {
+      final h = await signIn(t, assignments: const []);
+      repo.onPending = () async => [attempt('t1')];
+      final c = Get.put(QuizAttemptsController(repository: repo, auth: h.auth, permissions: h.perms));
+      await open(t, const QuizAttemptsScreen());
+      await c.load();
+      await settle(t);
+      expect(find.text("You aren't assigned to a class or subject"), findsOneWidget);
+      expect(find.textContaining('class teacher of (all subjects)'), findsOneWidget);
     });
 
     Future<QuizAttemptDetailController> bootDetail(WidgetTester t, QuizAttempt a) async {
