@@ -68,7 +68,7 @@ class CurriculumController extends GetxController {
     try {
       final all = await repo.curricula();
       if (token != _token) return;
-      final mine = all.where((c) => c.status == 'active' && forMyGrade(c)).toList()
+      final mine = all.where((c) => c.isVisibleToTeachers && forMyGrade(c)).toList()
         ..sort((a, b) {
           final g = a.gradeLevel.compareTo(b.gradeLevel);
           return g != 0 ? g : a.subjectName.compareTo(b.subjectName);
@@ -146,7 +146,11 @@ class CurriculumDetailController extends GetxController {
     }
     try {
       final one = await repo.curriculum(id);
-      if (one.status != 'active' || !list.forMyGrade(one)) {
+      if (!one.isVisibleToTeachers) {
+        state.value = const SectionState.error('This curriculum is not available.'); // a draft / archived one opened by id
+        return;
+      }
+      if (!list.forMyGrade(one)) {
         state.value = const SectionState.error("This curriculum isn't available for your classes.");
         return;
       }

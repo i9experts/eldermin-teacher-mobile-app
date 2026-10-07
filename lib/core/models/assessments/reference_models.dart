@@ -70,6 +70,11 @@ class Curriculum {
         standards: asJsonMapList(j['standardsMapping']).map(StandardMapping.fromJson).toList(),
       );
 
+  /// Teachers only ever see PUBLISHED curricula. The schema's status enum is `draft | active | archived` (default `draft`):
+  /// eldermin-backend/src/modules/academics/schemas/curriculum.schema.ts:38; `active` is the published state (the dashboard counts
+  /// `status: 'active'`, academics.service.ts:60). Everything else (draft, archived, a missing or unknown status) is hidden.
+  bool get isVisibleToTeachers => status.trim().toLowerCase() == 'active';
+
   /// SLOs grouped by strand, in first-seen order ('General' for none).
   Map<String, List<Slo>> get byStrand {
     final out = <String, List<Slo>>{};

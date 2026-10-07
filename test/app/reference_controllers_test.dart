@@ -107,6 +107,44 @@ void main() {
     });
   });
 
+  group('Curriculum drafts are never shown to teachers', () {
+    Future<CurriculumController> make() async {
+      final h = await boot();
+      return CurriculumController(repository: repo, auth: h.auth, permissions: h.perms);
+    }
+
+    test('only status "active" is visible: draft, archived, unknown and missing status are hidden (case-tolerant)', () {
+      expect(cur('a', 'Grade 5', 'Maths').isVisibleToTeachers, isTrue);
+      expect(Curriculum.fromJson({'_id': 'u', 'status': ' ACTIVE '}).isVisibleToTeachers, isTrue);
+      for (final st in ['draft', 'archived', 'pending', '']) {
+        expect(cur('x', 'Grade 5', 'Maths', status: st).isVisibleToTeachers, isFalse, reason: st);
+      }
+      expect(Curriculum.fromJson({'_id': 'n'}).isVisibleToTeachers, isFalse);
+    });
+
+    test('a server that returns drafts anyway: the list hides them; only drafts = empty state', () async {
+      repo.onCurricula = () async => [cur('1', 'Grade 5', 'Mathematics'), cur('d', 'Grade 5', 'Mathematics', status: 'draft'), cur('z', 'Grade 5', 'Mathematics', status: 'archived')];
+      final c = await make();
+      await c.load();
+      expect(c.items.map((e) => e.id), ['1']);
+      repo.onCurricula = () async => [cur('d', 'Grade 5', 'Mathematics', status: 'draft')];
+      await c.load(force: true);
+      expect(c.state.value.status, SectionStatus.empty);
+    });
+
+    test('opening a draft / archived curriculum by id shows "not available"', () async {
+      repo.onCurricula = () async => [cur('1', 'Grade 5', 'Mathematics')];
+      final list = await make();
+      for (final st in ['draft', 'archived']) {
+        repo.onCurriculum = (id) async => cur(id, 'Grade 5', 'Mathematics', status: st);
+        final d = CurriculumDetailController(id: 'dr', list: list, repository: repo);
+        await d.load();
+        expect(d.state.value.status, SectionStatus.error, reason: st);
+        expect(d.state.value.message, 'This curriculum is not available.');
+      }
+    });
+  });
+
   group('LibraryController', () {
     Future<LibraryController> make({List<String>? permissions}) async {
       final h = await boot(permissions: permissions);
