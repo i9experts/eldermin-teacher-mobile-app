@@ -5,6 +5,7 @@ import '../models/json_helpers.dart';
 import '../models/paginated.dart';
 import '../network/api_exception.dart';
 import '../network/base_client.dart';
+import '../network/response_shape.dart';
 import '../network/dio_exception_handler.dart';
 
 /// One row of `POST /assessments/marks/bulk` (SingleMarkDto, assessment.dto.ts:150-159).
@@ -71,11 +72,11 @@ class AssessmentRepository {
     }
   }
 
-  Future<AllPages<T>> _allPages<T>(String url, Map<String, Object?> query, int pageSize, T Function(Map<String, dynamic>) parse) async {
+  Future<AllPages<T>> _allPages<T>(String url, Map<String, Object?> query, int pageSize, T Function(Map<String, dynamic>) parse, {required String what}) async {
     final out = <T>[];
     for (var page = 1; page <= maxPages; page++) {
       final res = await _client.get(url, queryParameters: {...query, 'page': page, 'limit': pageSize});
-      final p = Paginated<T>.fromJson(res.data, parse);
+      final p = Paginated<T>.parse(res.data, parse, what: what);
       out.addAll(p.items);
       if (!p.hasMore) return AllPages(out);
     }
@@ -89,12 +90,13 @@ class AssessmentRepository {
         {'sortBy': 'startDate', 'sortOrder': 'desc'},
         assessmentPageSize,
         Assessment.fromJson,
+        what: 'assessments',
       ).then((r) => AllPages([...r.items.where((a) => a.id.isNotEmpty)], truncated: r.truncated)));
 
   /// `GET /assessments/:id` (AC:195-199): 404 "Assessment not found".
   Future<Assessment> assessment(String id) => _guard(() async {
         final res = await _client.get(ApiConstants.assessment(id));
-        final a = Assessment.fromJson(asJsonMap(res.data));
+        final a = Assessment.fromJson(expectMap(res.data, what: 'this assessment'));
         if (a.id.isEmpty) throw ApiException('Assessment not found', statusCode: 404);
         return a;
       });
@@ -106,6 +108,7 @@ class AssessmentRepository {
         {'assessmentId': assessmentId, 'subject': subject},
         markPageSize,
         MarkRecord.fromJson,
+        what: 'marks',
       ).then((r) => AllPages([...r.items.where((m) => m.studentId.isNotEmpty)], truncated: r.truncated)));
 
   /// `POST /assessments/marks/bulk` -> 201 `{message, subject}` (AC:349-354 -> AS:1239-1299): body
@@ -126,6 +129,7 @@ class AssessmentRepository {
         {'assessmentId': assessmentId},
         cardPageSize,
         ReportCard.fromJson,
+        what: 'report cards',
       ).then((r) => AllPages([...r.items.where((c) => c.id.isNotEmpty)], truncated: r.truncated)));
 
   /// `PATCH /assessments/report-cards/:id/remarks` `{classTeacherRemarks}` ONLY (UpdateReportCardRemarksDto, AD:196-199; principalRemarks
@@ -141,14 +145,14 @@ class AssessmentRepository {
   /// Bare array, no pagination, no class scoping.
   Future<List<QuizAttempt>> pendingAttempts() => _guard(() async {
         final res = await _client.get(ApiConstants.quizAttempts);
-        final rows = res.data is List ? asJsonMapList(res.data) : asJsonMapList(asJsonMap(res.data)['data']);
+        final rows = expectRows(res.data, what: 'quiz attempts');
         return rows.map(QuizAttempt.fromJson).where((a) => a.id.isNotEmpty).toList();
       });
 
   /// `GET /assessments/quiz-attempts/:attemptId` (AC:171-175 -> AS:1475-1484): answers with the hydrated question (answer key included).
   Future<QuizAttempt> attempt(String id) => _guard(() async {
         final res = await _client.get(ApiConstants.quizAttempt(id));
-        final a = QuizAttempt.fromJson(asJsonMap(res.data));
+        final a = QuizAttempt.fromJson(expectMap(res.data, what: 'this quiz attempt'));
         if (a.id.isEmpty) throw ApiException('Quiz attempt not found', statusCode: 404);
         return a;
       });

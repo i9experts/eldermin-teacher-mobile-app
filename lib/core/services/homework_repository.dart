@@ -4,6 +4,7 @@ import '../models/homework/homework_models.dart';
 import '../models/json_helpers.dart';
 import '../network/api_exception.dart';
 import '../network/base_client.dart';
+import '../network/response_shape.dart';
 import '../network/dio_exception_handler.dart';
 
 /// Homework (assignments), submissions, grading and attachments.
@@ -30,8 +31,7 @@ class HomeworkRepository {
   /// The result is re-filtered to [staffId] here as well (defence in depth: the unfiltered endpoint returns every teacher's).
   Future<List<Assignment>> fetchMine(String staffId) => _guard(() async {
         final res = await _client.get(ApiConstants.assignments, queryParameters: {'teacherId': staffId});
-        final data = res.data;
-        final list = data is List ? asJsonMapList(data) : asJsonMapList(asJsonMap(data)['data']);
+        final list = expectRows(res.data, what: 'homework');
         return list.map(Assignment.fromJson).where((a) => a.id.isNotEmpty && a.teacherId == staffId).toList();
       });
 
@@ -56,7 +56,9 @@ class HomeworkRepository {
   /// Includes the roster snapshot (`pending` / `missed` rows = students who have NOT turned work in).
   Future<SubmissionsResult> fetchSubmissions(String assignmentId) => _guard(() async {
         final res = await _client.get(ApiConstants.assignmentSubmissions(assignmentId));
-        return SubmissionsResult.fromJson(asJsonMap(res.data));
+        final body = expectMap(res.data, what: 'submissions');
+        expectKeyRows(body, 'submissions', what: 'submissions');
+        return SubmissionsResult.fromJson(body);
       });
 
   /// `PATCH /teaching/assignments/:id/submissions/:sid` { grade, feedback? } (GradeSubmissionDto, assignment.dto.ts:50-53; :1004-1027).

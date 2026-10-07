@@ -8,6 +8,7 @@ import '../models/home/timetable.dart';
 import '../models/json_helpers.dart';
 import '../network/api_exception.dart';
 import '../network/base_client.dart';
+import '../network/response_shape.dart';
 import '../network/dio_exception_handler.dart';
 
 /// Read-only network calls behind the Home dashboard, grouped per endpoint
@@ -31,11 +32,8 @@ class HomeRepository {
     }
   }
 
-  /// Bare JSON arrays are the norm; tolerate a `{ data: [...] }` wrapper.
-  List<Map<String, dynamic>> _list(Object? body) {
-    if (body is Map && body['data'] is List) return asJsonMapList(body['data']);
-    return asJsonMapList(body);
-  }
+  /// Bare JSON arrays are the norm; tolerate a `{ data: [...] }` wrapper. Anything else is [UnexpectedResponseShape] (never an empty list).
+  List<Map<String, dynamic>> _list(Object? body, String what) => expectRows(body, what: what);
 
   String _iso(DateTime d) => d.toUtc().toIso8601String();
 
@@ -43,7 +41,7 @@ class HomeRepository {
   /// `GET /teaching/timetable/teacher/:staffId` -> whole class documents.
   Future<List<TimetableDoc>> fetchTeacherTimetable(String staffId) => _guard(() async {
         final res = await _client.get(ApiConstants.timetableForTeacher(staffId));
-        return _list(res.data).map(TimetableDoc.fromJson).toList();
+        return _list(res.data, 'the timetable').map(TimetableDoc.fromJson).toList();
       });
 
   /// `GET /staff-portal/timetable?date=YYYY-MM-DD` (when [from] and [to] are the same calendar day)
@@ -56,7 +54,9 @@ class HomeRepository {
         final f = _ymd(from), t = _ymd(to);
         final res = await _client.get(ApiConstants.myTimetable,
             queryParameters: f == t ? {'date': f} : {'from': f, 'to': t});
-        return MyTimetable.fromJson(asJsonMap(res.data));
+        final body = expectMap(res.data, what: 'the timetable');
+        expectKeyRows(body, 'days', what: 'the timetable');
+        return MyTimetable.fromJson(body);
       });
 
   String _ymd(DateTime d) =>
@@ -67,7 +67,7 @@ class HomeRepository {
   Future<RosterCount> fetchRoster({required String grade, String? section}) => _guard(() async {
         final res = await _client.get(ApiConstants.classRosterDiagnostic,
             queryParameters: {'grade': grade, if (section != null && section.isNotEmpty) 'section': section});
-        return RosterCount.fromJson(asJsonMap(res.data));
+        return RosterCount.fromJson(expectMap(res.data, what: 'the class roster'));
       });
 
   /// `GET /students/attendance/list?grade&section&from&to&limit=1` -> `meta.total`.
@@ -85,20 +85,20 @@ class HomeRepository {
           'to': _iso(to),
           'limit': 1,
         });
-        return attendanceTotalFromJson(asJsonMap(res.data));
+        return attendanceTotalFromJson(expectMap(res.data, what: 'attendance'));
       });
 
   // ── Homework ──────────────────────────────────────────────────
   /// `GET /teaching/assignments?teacherId=<staffId>` (sorted dueDate desc, unbounded).
   Future<List<HomeworkAssignment>> fetchAssignments(String staffId) => _guard(() async {
         final res = await _client.get(ApiConstants.assignments, queryParameters: {'teacherId': staffId});
-        return _list(res.data).map(HomeworkAssignment.fromJson).toList();
+        return _list(res.data, 'homework').map(HomeworkAssignment.fromJson).toList();
       });
 
   /// `GET /teaching/assignments/:id/submissions` -> `submissions[]`.
   Future<List<HomeworkSubmission>> fetchSubmissions(String assignmentId) => _guard(() async {
         final res = await _client.get(ApiConstants.assignmentSubmissions(assignmentId));
-        return asJsonMapList(asJsonMap(res.data)['submissions']).map(HomeworkSubmission.fromJson).toList();
+        return expectKeyRows(expectMap(res.data, what: 'submissions'), 'submissions', what: 'submissions').map(HomeworkSubmission.fromJson).toList();
       });
 
   /// `GET /staff-portal/homework/pending-grading?limit=` -> ungraded counts per assignment in one
@@ -106,7 +106,9 @@ class HomeRepository {
   Future<PendingGrading> getPendingGrading({int? limit}) => _guard(() async {
         final res = await _client.get(ApiConstants.pendingGrading,
             queryParameters: {if (limit != null) 'limit': limit});
-        return PendingGrading.fromJson(asJsonMap(res.data));
+        final body = expectMap(res.data, what: 'pending grading');
+        expectKeyRows(body, 'items', what: 'pending grading');
+        return PendingGrading.fromJson(body);
       });
 
   // ── Lesson plans ──────────────────────────────────────────────
@@ -114,14 +116,14 @@ class HomeRepository {
   Future<List<LessonPlan>> fetchLessonPlans(String staffId, String status) => _guard(() async {
         final res = await _client
             .get(ApiConstants.lessonPlans, queryParameters: {'teacherId': staffId, 'status': status});
-        return _list(res.data).map(LessonPlan.fromJson).toList();
+        return _list(res.data, 'lesson plans').map(LessonPlan.fromJson).toList();
       });
 
   // ── PTM ───────────────────────────────────────────────────────
   /// `GET /teaching/ptm/upcoming/mine?teacherId=<staffId>`.
   Future<List<PtmMeeting>> fetchUpcomingPtms(String staffId) => _guard(() async {
         final res = await _client.get(ApiConstants.ptmUpcomingMine, queryParameters: {'teacherId': staffId});
-        return _list(res.data).map(PtmMeeting.fromJson).toList();
+        return _list(res.data, 'parent-teacher meetings').map(PtmMeeting.fromJson).toList();
       });
 
   /// `GET /teaching/ptm?teacherId=<staffId>&from=<ISO>&to=<ISO>` (ptm.controller.ts:18-21 ->
@@ -132,7 +134,7 @@ class HomeRepository {
       _guard(() async {
         final res = await _client.get(ApiConstants.ptm,
             queryParameters: {'teacherId': staffId, 'from': _iso(from), 'to': _iso(to)});
-        return _list(res.data).map(PtmMeeting.fromJson).toList();
+        return _list(res.data, 'parent-teacher meetings').map(PtmMeeting.fromJson).toList();
       });
 
   // ── Substitutions ─────────────────────────────────────────────
@@ -141,19 +143,23 @@ class HomeRepository {
       _guard(() async {
         final res = await _client.get(ApiConstants.fixtures,
             queryParameters: {'teacherId': staffId, 'from': _iso(from), 'to': _iso(to)});
-        return _list(res.data).map(Substitution.fromJson).toList();
+        return _list(res.data, 'substitutions').map(Substitution.fromJson).toList();
       });
 
   // ── Messaging / notifications (NOT deployed to production yet) ──
   /// `GET /staff-portal/threads?status=open`.
   Future<ThreadsResult> fetchOpenThreads() => _guard(() async {
         final res = await _client.get(ApiConstants.threads, queryParameters: {'status': 'open'});
-        return ThreadsResult.fromJson(asJsonMap(res.data));
+        final body = expectMap(res.data, what: 'messages');
+        expectKeyRows(body, 'items', what: 'messages');
+        return ThreadsResult.fromJson(body);
       });
 
   /// `GET /staff-portal/notifications/unread-count` -> `{ unreadCount }`.
   Future<int> fetchNotificationUnreadCount() => _guard(() async {
         final res = await _client.get(ApiConstants.notificationsUnreadCount);
-        return readInt(asJsonMap(res.data)['unreadCount']) ?? 0;
+        final n = readInt(expectMap(res.data, what: 'notifications')['unreadCount']);
+        if (n == null) throw UnexpectedResponseShape('notifications', 'unreadCount missing');
+        return n;
       });
 }

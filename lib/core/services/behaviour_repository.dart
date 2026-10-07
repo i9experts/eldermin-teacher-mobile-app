@@ -4,6 +4,7 @@ import '../models/behaviour/behaviour_models.dart';
 import '../models/json_helpers.dart';
 import '../network/dio_exception_handler.dart';
 import '../network/base_client.dart';
+import '../network/response_shape.dart';
 
 /// Behaviour & Tarbiyah (store B: `BehaviourRecord`, the one the parent app reads).
 ///
@@ -30,7 +31,9 @@ class BehaviourRepository {
         final out = <BehaviourRecord>[];
         for (var page = 1; page <= maxPagesPerGrade; page++) {
           final res = await _client.get(ApiConstants.behaviourRecords, queryParameters: {'grade': rawGrade, 'limit': pageSize, 'page': page});
-          final p = BehaviourPage.fromJson(asJsonMap(res.data));
+          final body = expectMap(res.data, what: 'behaviour records');
+          expectKeyRows(body, 'data', what: 'behaviour records');
+          final p = BehaviourPage.fromJson(body);
           out.addAll(p.records);
           if (page >= p.pages) break;
         }
@@ -40,7 +43,9 @@ class BehaviourRepository {
   /// One student's records: `GET /behaviour/records?studentId=&limit=50` (newest first, server sort by date desc).
   Future<List<BehaviourRecord>> fetchStudentRecords(String studentId) => _guard(() async {
         final res = await _client.get(ApiConstants.behaviourRecords, queryParameters: {'studentId': studentId, 'limit': 50, 'page': 1});
-        return BehaviourPage.fromJson(asJsonMap(res.data)).records.where((r) => r.studentId == studentId).toList();
+        final body = expectMap(res.data, what: 'behaviour records');
+        expectKeyRows(body, 'data', what: 'behaviour records');
+        return BehaviourPage.fromJson(body).records.where((r) => r.studentId == studentId).toList();
       });
 
   /// `POST /behaviour/records` (behaviour.controller.ts:55-65 -> behaviour.service.ts:159-168). Body is `any` on the server (no DTO): the
@@ -54,7 +59,7 @@ class BehaviourRepository {
   /// `GET /behaviour/tarbiyah?studentId=&limit=20` (behaviour.controller.ts:95-99 -> :319-334), read-only.
   Future<List<TarbiyahAssessment>> fetchTarbiyah(String studentId) => _guard(() async {
         final res = await _client.get(ApiConstants.behaviourTarbiyah, queryParameters: {'studentId': studentId, 'limit': 20, 'page': 1});
-        final body = asJsonMap(res.data);
-        return asJsonMapList(body['data']).map(TarbiyahAssessment.fromJson).where((t) => t.studentId == studentId).toList();
+        final body = expectMap(res.data, what: 'Tarbiyah assessments');
+        return expectKeyRows(body, 'data', what: 'Tarbiyah assessments').map(TarbiyahAssessment.fromJson).where((t) => t.studentId == studentId).toList();
       });
 }

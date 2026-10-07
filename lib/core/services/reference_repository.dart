@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
-import '../models/json_helpers.dart';
 import '../models/paginated.dart';
 import '../models/assessments/reference_models.dart';
 import '../network/api_exception.dart';
 import '../network/base_client.dart';
+import '../network/response_shape.dart';
 import '../network/dio_exception_handler.dart';
 
 /// Read-only curriculum and library catalogue (eldermin-backend/src/modules/academics/: ACC controller, ACS service).
@@ -28,14 +28,14 @@ class ReferenceRepository {
   /// `GET /academics/curriculum?status=active` (ACC:111-114 -> ACS:375-383): bare array, tenant-wide, no teacher/campus scoping.
   Future<List<Curriculum>> curricula() => _guard(() async {
         final res = await _client.get(ApiConstants.curriculum, queryParameters: {'status': 'active'});
-        final rows = res.data is List ? asJsonMapList(res.data) : asJsonMapList(asJsonMap(res.data)['data']);
+        final rows = expectRows(res.data, what: 'the curriculum');
         return rows.map(Curriculum.fromJson).where((c) => c.id.isNotEmpty).toList();
       });
 
   /// `GET /academics/curriculum/:id` (ACC:123-126): 404 "Curriculum not found".
   Future<Curriculum> curriculum(String id) => _guard(() async {
         final res = await _client.get(ApiConstants.curriculumById(id));
-        final c = Curriculum.fromJson(asJsonMap(res.data));
+        final c = Curriculum.fromJson(expectMap(res.data, what: 'this curriculum'));
         if (c.id.isEmpty) throw ApiException('Curriculum not found', statusCode: 404);
         return c;
       });
@@ -50,7 +50,7 @@ class ReferenceRepository {
           if (category.isNotEmpty) 'category': category,
           if (availableOnly) 'available': 'true',
         });
-        final p = Paginated<Book>.fromJson(res.data, Book.fromJson);
+        final p = Paginated<Book>.parse(res.data, Book.fromJson, what: 'library books');
         return Paginated<Book>(items: [...p.items.where((b) => b.id.isNotEmpty)], total: p.total, page: p.page, limit: p.limit, pages: p.pages);
       });
 }

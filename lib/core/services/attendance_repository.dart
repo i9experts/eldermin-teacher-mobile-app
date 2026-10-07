@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
 import '../models/classroom/attendance_models.dart';
-import '../models/json_helpers.dart';
 import '../network/base_client.dart';
+import '../network/response_shape.dart';
 import '../network/dio_exception_handler.dart';
 
 /// One record of a bulk write. `date` is sent as noon UTC of [day] (see attendance_models.dart).
@@ -76,7 +76,9 @@ class AttendanceRepository {
             'limit': pageSize,
             'page': page,
           });
-          final p = AttendancePage.fromJson(asJsonMap(res.data));
+          final body = expectMap(res.data, what: 'attendance');
+          expectKeyRows(body, 'data', what: 'attendance');
+          final p = AttendancePage.fromJson(body);
           out.addAll(p.records);
           if (page >= p.pages) break;
         }

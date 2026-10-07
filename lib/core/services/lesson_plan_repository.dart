@@ -4,6 +4,7 @@ import '../models/academic/lesson_plan_models.dart';
 import '../models/json_helpers.dart';
 import '../network/api_exception.dart';
 import '../network/base_client.dart';
+import '../network/response_shape.dart';
 import '../network/dio_exception_handler.dart';
 
 /// Lesson plans: list mine, create, patch (draft edits and submit), and the AI-assisted parse-upload.
@@ -23,7 +24,7 @@ class LessonPlanRepository {
     }
   }
 
-  static List<Map<String, dynamic>> _rows(Object? data) => data is List ? asJsonMapList(data) : asJsonMapList(asJsonMap(data)['data']);
+  static List<Map<String, dynamic>> _rows(Object? data) => expectRows(data, what: 'lesson plans');
 
   /// `GET /teaching/lesson-plans?teacherId=<id>` for every id in [teacherIds] (my Staff id, plus my TeacherProfile id: the web writes
   /// plans with the profile id and the backend tolerates both, teaching.service.ts:381-392; real data UNVERIFIED), merged by `_id`,

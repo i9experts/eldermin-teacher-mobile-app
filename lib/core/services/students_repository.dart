@@ -5,6 +5,7 @@ import '../models/classroom/student_360.dart';
 import '../models/classroom/student_models.dart';
 import '../models/json_helpers.dart';
 import '../network/base_client.dart';
+import '../network/response_shape.dart';
 import '../network/dio_exception_handler.dart';
 import '../utils/roster_scope.dart';
 
@@ -34,7 +35,9 @@ class StudentsRepository {
   /// `GET /students/filters/grades-sections` (students.controller.ts:61-66): school-wide RAW strings.
   Future<GradesSections> fetchGradesSections() => _guard(() async {
         final res = await _client.get(ApiConstants.studentGradesSections);
-        return GradesSections.fromJson(asJsonMap(res.data));
+        final body = expectMap(res.data, what: 'the class list');
+        if (body['grades'] is! List) throw UnexpectedResponseShape('the class list', '"grades" is not a list');
+        return GradesSections.fromJson(body);
       });
 
   /// Active students of [cls]:
@@ -53,8 +56,8 @@ class StudentsRepository {
             'limit': rosterPageSize,
             'page': page,
           });
-          final body = asJsonMap(res.data);
-          all.addAll(asJsonMapList(body['data']).map(StudentSummary.fromJson));
+          final body = expectMap(res.data, what: 'students');
+          all.addAll(expectKeyRows(body, 'data', what: 'students').map(StudentSummary.fromJson));
           final pages = readInt(asJsonMap(body['meta'])['pages']) ?? 1;
           if (page >= pages) break;
         }
@@ -64,7 +67,7 @@ class StudentsRepository {
   /// `GET /students/:id/360` -> [Student360] (whitelisted; `fees` etc. dropped).
   Future<Student360> fetchStudent360(String id) => _guard(() async {
         final res = await _client.get(ApiConstants.student360(id));
-        return Student360.fromJson(asJsonMap(res.data));
+        return Student360.fromJson(expectMap(res.data, what: 'this student'));
       });
 
   /// `GET /students/:id/attendance/summary?month=YYYY-MM` -> counts per status
@@ -72,6 +75,7 @@ class StudentsRepository {
   Future<StatusCounts> fetchAttendanceSummary(String id, {required int year, required int month}) => _guard(() async {
         final res = await _client.get(ApiConstants.attendanceSummary(id),
             queryParameters: {'month': '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}'});
+        if (res.data is! List && res.data is! Map) throw UnexpectedResponseShape('attendance', 'expected a list');
         return StatusCounts.fromSummary(res.data);
       });
 }

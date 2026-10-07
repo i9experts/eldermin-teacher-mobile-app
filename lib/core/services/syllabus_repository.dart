@@ -4,6 +4,7 @@ import '../models/academic/syllabus_models.dart';
 import '../models/json_helpers.dart';
 import '../network/api_exception.dart';
 import '../network/base_client.dart';
+import '../network/response_shape.dart';
 import '../network/dio_exception_handler.dart';
 
 /// Syllabus tracking: list, one, mark topic / sub-topic, weekly planner.
@@ -24,19 +25,19 @@ class SyllabusRepository {
     }
   }
 
-  static List<Map<String, dynamic>> _rows(Object? data) => data is List ? asJsonMapList(data) : asJsonMapList(asJsonMap(data)['data']);
+  static List<Map<String, dynamic>> _rows(Object? data, String what) => expectRows(data, what: what);
 
   /// `GET /syllabus` with [query] (any of `teacherId` (MongoId), `gradeLevel`, `sectionName`, `subjectName`, `academicYearLabel`,
   /// `term`, `status`, `trackStatus`: SyllabusQueryDto, syllabus.dto.ts:152-161). Bare array of FULL documents, no pagination.
   Future<List<Syllabus>> list(Map<String, String> query) => _guard(() async {
         final res = await _client.get(ApiConstants.syllabus, queryParameters: query);
-        return _rows(res.data).map(Syllabus.fromJson).where((s) => s.id.isNotEmpty).toList();
+        return _rows(res.data, 'the syllabus').map(Syllabus.fromJson).where((s) => s.id.isNotEmpty).toList();
       });
 
   /// `GET /syllabus/:id` (tenant check only: no campus / owner check, syllabus.service.ts:112-116).
   Future<Syllabus> one(String id) => _guard(() async {
         final res = await _client.get(ApiConstants.syllabusById(id));
-        final s = Syllabus.fromJson(asJsonMap(res.data));
+        final s = Syllabus.fromJson(expectMap(res.data, what: 'this syllabus'));
         if (s.id.isEmpty) throw ApiException('Syllabus not found', statusCode: 404);
         return s;
       });
@@ -77,7 +78,7 @@ class SyllabusRepository {
         final byId = <String, PlannerEntry>{};
         for (final id in teacherIds.where((e) => e.isNotEmpty).toSet()) {
           final res = await _client.get(ApiConstants.syllabusWeeklyPlanner, queryParameters: {'teacherId': id});
-          for (final e in _rows(res.data).map(PlannerEntry.fromJson)) {
+          for (final e in _rows(res.data, 'the weekly planner').map(PlannerEntry.fromJson)) {
             if (e.syllabusId.isNotEmpty) byId[e.syllabusId] = e;
           }
         }
