@@ -74,14 +74,18 @@ class BehaviourLogController extends GetxController {
   /// Point magnitudes offered.
   static const List<int> pointChoices = [1, 2, 3, 5, 10];
 
+  /// The points magnitude the form opens with (part of the pristine state, see [isDirty]).
+  static const int defaultMagnitude = 5;
+
   DateTime get today => dateOnly(clock());
 
   final kind = BehaviourKind.merit.obs;
   final student = Rxn<StudentSummary>();
   final category = RxnString();
   final severity = 'medium'.obs;
-  final magnitude = 5.obs;
-  late final Rx<DateTime> day = Rx<DateTime>(today);
+  final magnitude = defaultMagnitude.obs;
+  late final DateTime _openedOn = today;
+  late final Rx<DateTime> day = Rx<DateTime>(_openedOn);
   final titleC = TextEditingController();
   final descriptionC = TextEditingController();
   final saving = false.obs;
@@ -280,5 +284,18 @@ class BehaviourLogController extends GetxController {
     }
   }
 
-  bool get isDirty => (student.value != null && initialStudent == null) || category.value != null || descriptionC.text.trim().isNotEmpty;
+  /// Unsaved-changes rule: the form is dirty as soon as ANY field differs from its pristine state. Pristine = kind merit, student = the
+  /// preselected one (or none), no category, severity medium, points magnitude 5 (the defaults), day = today (as opened), title and
+  /// description EMPTY. So title only, description only, a picked student (other than the preselected one), a picked category, another
+  /// kind / severity / points value or another day all count; typed text counts even when it is only spaces (the teacher did type);
+  /// the picker's class chip and search box do not (they are navigation, not entry data). Back then shows 'Discard this entry?'.
+  bool get isDirty =>
+      titleC.text.isNotEmpty ||
+      descriptionC.text.isNotEmpty ||
+      category.value != null ||
+      student.value?.id != initialStudent?.id ||
+      kind.value != BehaviourKind.merit ||
+      severity.value != 'medium' ||
+      magnitude.value != defaultMagnitude ||
+      day.value != _openedOn;
 }

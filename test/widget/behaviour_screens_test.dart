@@ -325,6 +325,83 @@ void main() {
       await boot(t, assignments: const []);
       expect(find.byKey(const Key('beh_no_classes')), findsOneWidget);
     });
+
+    group('unsaved changes (isDirty: ANY change from the pristine form)', () {
+      testWidgets('pristine: back leaves at once, no dialog', (t) async {
+        final c = await boot(t);
+        expect(c.isDirty, isFalse);
+        await t.binding.handlePopRoute();
+        await settle(t);
+        expect(find.text('Discard this entry?'), findsNothing);
+        await t.pump(const Duration(seconds: 1));
+        expect(find.byType(BehaviourNewScreen), findsNothing);
+      });
+
+      testWidgets('TITLE ONLY: back asks "Discard this entry?"; Cancel keeps the form, Discard leaves', (t) async {
+        final c = await boot(t);
+        await t.enterText(find.byKey(const Key('beh_title')), 'Late again');
+        await t.pump();
+        expect(c.isDirty, isTrue);
+        await t.binding.handlePopRoute();
+        await settle(t);
+        expect(find.text('Discard this entry?'), findsOneWidget);
+        expect(find.text('What you entered will be lost.'), findsOneWidget);
+        await t.tap(find.byKey(const Key('confirm_dialog_cancel')));
+        await settle(t);
+        expect(find.byType(BehaviourNewScreen), findsOneWidget);
+        expect(c.titleC.text, 'Late again');
+        await t.binding.handlePopRoute();
+        await settle(t);
+        await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
+        await settle(t);
+        await t.pump(const Duration(seconds: 1));
+        expect(find.byType(BehaviourNewScreen), findsNothing);
+      });
+
+      testWidgets('DESCRIPTION ONLY shows the dialog too', (t) async {
+        final c = await boot(t);
+        await t.enterText(find.byKey(const Key('beh_description')), 'Talked during the test');
+        await t.pump();
+        expect(c.isDirty, isTrue);
+        await t.binding.handlePopRoute();
+        await settle(t);
+        expect(find.text('Discard this entry?'), findsOneWidget);
+      });
+
+      testWidgets('every single change counts; a preselected student alone does not; spaces typed count; picker search does not', (t) async {
+        final c = await boot(t, assignments: [cls5a, cls6b], initial: student(1));
+        expect(c.isDirty, isFalse, reason: 'preselected student is part of the pristine state');
+        c.pickerQuery.value = 'zzz';
+        c.selectPickerClass(1);
+        expect(c.isDirty, isFalse, reason: 'picker search / class chip is navigation, not entry data');
+        c.selectPickerClass(0);
+        c.pickerQuery.value = '';
+
+        void expectDirtyThenReset(String what, void Function() change, void Function() reset) {
+          change();
+          expect(c.isDirty, isTrue, reason: what);
+          reset();
+          expect(c.isDirty, isFalse, reason: 'back to pristine after $what');
+        }
+
+        expectDirtyThenReset('title spaces', () => c.titleC.text = ' ', () => c.titleC.clear());
+        expectDirtyThenReset('description', () => c.descriptionC.text = 'x', () => c.descriptionC.clear());
+        expectDirtyThenReset('another student', () => c.selectStudent(student(2)), () => c.selectStudent(student(1)));
+        expectDirtyThenReset('points', () => c.setMagnitude(10), () => c.setMagnitude(BehaviourLogController.defaultMagnitude));
+        expectDirtyThenReset('severity', () => c.setSeverity('high'), () => c.setSeverity('medium'));
+        expectDirtyThenReset('kind', () => c.setKind(BehaviourKind.note), () => c.setKind(BehaviourKind.merit));
+        expectDirtyThenReset('day', () => c.setDay(c.today.subtract(const Duration(days: 1))), () => c.setDay(c.today));
+        c.setCategory(c.categories.first);
+        expect(c.isDirty, isTrue, reason: 'category (and its auto title)');
+      });
+
+      testWidgets('a student picked from none counts', (t) async {
+        final c = await boot(t);
+        c.selectStudent(student(1));
+        expect(c.isDirty, isTrue);
+      });
+    });
+
   });
 
   group('Student history', () {
