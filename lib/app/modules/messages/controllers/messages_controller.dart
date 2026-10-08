@@ -68,7 +68,7 @@ class MessagesController extends GetxController {
     }
   }
 
-  Future<void> refresh() async {
+  Future<void> reload() async {
     if (filter.value == InboxFilter.open) {
       await badges.refreshAll(userInitiated: true);
     } else {
@@ -76,7 +76,7 @@ class MessagesController extends GetxController {
     }
   }
 
-  Future<void> retry() => refresh();
+  Future<void> retry() => reload();
 
   /// Opens the conversation. The chat itself marks it read.
   Future<void> open(MessageThread t) async {

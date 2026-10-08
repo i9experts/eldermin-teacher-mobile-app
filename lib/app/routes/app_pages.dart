@@ -53,6 +53,7 @@ import '../modules/lesson_plans/views/lesson_plans_screen.dart';
 import '../modules/library/bindings/library_binding.dart';
 import '../modules/library/views/library_screen.dart';
 import '../modules/messages/bindings/messages_binding.dart';
+import '../modules/messages/views/message_new_screen.dart';
 import '../modules/messages/views/message_thread_screen.dart';
 import '../modules/notifications/bindings/notifications_binding.dart';
 import '../modules/notifications/views/notifications_screen.dart';
@@ -113,10 +114,16 @@ class AppPages {
         name: Routes.resetPassword,
         page: () => const ResetPasswordScreen(),
         binding: ResetPasswordBinding()),
+    // Static paths before the parameterised one: `/messages/new` must never be read as a thread id.
+    GetPage(name: Routes.messages, page: () => const HomeShell(initialTab: 3)),
+    GetPage(
+        name: Routes.messageNew,
+        page: () => const MessageNewScreen(),
+        binding: NewThreadBinding()),
     GetPage(
         name: Routes.messageThread,
         page: () => const MessageThreadScreen(),
-        binding: MessagesBinding()),
+        binding: MessageThreadBinding()),
     GetPage(
         name: Routes.notifications,
         page: () => const NotificationsScreen(),

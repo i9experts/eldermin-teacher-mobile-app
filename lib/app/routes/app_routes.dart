@@ -24,6 +24,8 @@ abstract class Routes {
   static const intro = '/intro';
   static const forgotPassword = '/forgot-password';
   static const resetPassword = '/reset-password';
+  static const messages = '/messages';
+  static const messageNew = '/messages/new';
   static const messageThread = '/messages/:threadId';
   static const notifications = '/notifications';
   static const timetable = '/timetable';
@@ -101,6 +103,8 @@ abstract class Routes {
     intro,
     forgotPassword,
     resetPassword,
+    messages,
+    messageNew,
     messageThread,
     notifications,
     timetable,

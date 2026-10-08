@@ -68,7 +68,7 @@ class ModuleCatalog {
 
     // ── More tab ──
     ModuleEntry(id: 'timetable', title: 'Timetable', subtitle: 'Your weekly schedule', icon: Icons.calendar_view_week_rounded, route: Routes.timetable, placement: ModulePlacement.more, permission: 'teaching:view', built: true),
-    ModuleEntry(id: 'student_leaves', title: 'Student leave requests', subtitle: 'Approve or reject', icon: Icons.event_busy_rounded, route: Routes.studentLeaves, placement: ModulePlacement.more, permission: 'teaching:view', classTeacherOnly: true),
+    ModuleEntry(id: 'student_leaves', title: 'Student leave requests', subtitle: 'Approve or reject', icon: Icons.event_busy_rounded, route: Routes.studentLeaves, placement: ModulePlacement.more, permission: 'teaching:view', classTeacherOnly: true, built: true),
     ModuleEntry(id: 'ptm', title: 'Parent meetings', subtitle: 'Schedule and outcomes', icon: Icons.handshake_rounded, route: Routes.ptm, placement: ModulePlacement.more, permission: 'teaching:view'),
     ModuleEntry(id: 'fixtures', title: 'Substitutions', subtitle: 'Cover duties', icon: Icons.swap_horiz_rounded, route: Routes.fixtures, placement: ModulePlacement.more, permission: 'teaching:view'),
     ModuleEntry(id: 'leave', title: 'My leave', subtitle: 'Balance and requests', icon: Icons.beach_access_rounded, route: Routes.leave, placement: ModulePlacement.more, permission: 'leave:self'),

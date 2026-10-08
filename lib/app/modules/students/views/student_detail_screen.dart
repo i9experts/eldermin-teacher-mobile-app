@@ -89,6 +89,16 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
           const SubHeading('Guardians'),
           _GuardiansCard(guardians: d.guardians),
         ],
+        // Guardian contact details are never shown to teachers; messages go through the app only.
+        Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 4),
+          child: OutlinedButton.icon(
+            key: const Key('student_message_guardian'),
+            onPressed: () => Get.toNamed(Routes.messageNew, arguments: d.student),
+            icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+            label: const CustomText(text: 'Message guardian', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 12.5),
+          ),
+        ),
         const Padding(
           padding: EdgeInsets.only(top: 6),
           child: CustomText(

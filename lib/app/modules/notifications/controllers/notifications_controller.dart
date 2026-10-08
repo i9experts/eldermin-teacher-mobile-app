@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../../../../core/models/messaging/notification_models.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/services/messaging_repository.dart';
 import '../../../../core/utils/home_time.dart';
 import '../../../../core/utils/message_time.dart';
@@ -86,7 +87,7 @@ class NotificationsController extends GetxController {
     }
   }
 
-  Future<void> refresh() => load(userInitiated: true);
+  Future<void> reload() => load(userInitiated: true);
 
   Future<void> setUnreadOnly(bool v) async {
     if (unreadOnly.value == v) return;
@@ -158,7 +159,7 @@ class NotificationsController extends GetxController {
       await repo.markNotificationRead(id);
     } catch (e) {
       // 404 'Notification not found' (it was deleted meanwhile): nothing to roll back to.
-      final gone = e is Exception && e.toString().contains('Notification not found');
+      final gone = e is ApiException && e.statusCode == 404;
       if (gone) return;
       final cur = items;
       final j = cur.indexWhere((n) => n.id == id);

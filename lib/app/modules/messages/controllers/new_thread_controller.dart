@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../../core/models/classroom/student_models.dart';
 import '../../../../core/models/home/messaging.dart';
 import '../../../../core/models/messaging/chat_models.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/services/messaging_repository.dart';
 import '../../../../core/services/students_repository.dart';
 import '../../../../core/utils/roster_scope.dart';
@@ -68,6 +69,9 @@ class NewThreadController extends GetxController {
   final student = Rxn<StudentSummary>();
   final guardians = Rx<SectionState<List<GuardianName>>>(const SectionState.loading());
   final guardian = Rxn<GuardianName>();
+
+  /// The server's own text for a 403/404 on the guardians list ('You do not teach this student.'), shown as is.
+  final guardiansDenied = RxnString();
   final subjectC = TextEditingController();
   final messageC = TextEditingController();
   final saving = false.obs;
@@ -112,6 +116,7 @@ class NewThreadController extends GetxController {
     if (s == null) return;
     final token = ++_guardiansToken;
     guardians.value = const SectionState.loading();
+    guardiansDenied.value = null;
     try {
       final list = await repo.fetchGuardians(s.id);
       if (token != _guardiansToken) return;
@@ -123,6 +128,11 @@ class NewThreadController extends GetxController {
       }
     } catch (e) {
       if (token != _guardiansToken) return;
+      if (e is ApiException && (e.statusCode == 403 || (e.statusCode == 404 && !e.message.startsWith('Cannot ')))) {
+        guardiansDenied.value = e.message.trim().isEmpty ? "You can't message this student's guardians." : e.message.trim();
+        guardians.value = const SectionState.forbidden();
+        return;
+      }
       guardians.value = SectionState<List<GuardianName>>.fromError(e);
     }
   }

@@ -9,6 +9,12 @@ import '../controllers/home_badges_controller.dart';
 import '../controllers/home_dashboard_controller.dart';
 import '../controllers/home_shell_controller.dart';
 
+/// The badge poller + its repository, for routes opened outside the shell (a chat opened from a notification still has to update the badges).
+void ensureHomeBadges() {
+  if (!Get.isRegistered<HomeRepository>()) Get.lazyPut<HomeRepository>(() => HomeRepository(), fenix: true);
+  if (!Get.isRegistered<HomeBadgesController>()) Get.lazyPut<HomeBadgesController>(() => HomeBadgesController(), fenix: true);
+}
+
 /// Registers the shell and every tab's controller (the tabs live in one
 /// IndexedStack, so they are all needed up front).
 class HomeBinding extends Bindings {

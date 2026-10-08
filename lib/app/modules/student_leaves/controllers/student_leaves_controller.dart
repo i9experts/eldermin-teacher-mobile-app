@@ -96,7 +96,7 @@ class StudentLeavesController extends GetxController {
     }
   }
 
-  Future<void> refresh() => loadTab(tab.value, userInitiated: true);
+  Future<void> reload() => loadTab(tab.value, userInitiated: true);
 
   /// Finds a request in any loaded list.
   StudentLeaveRequest? find(String id) {
