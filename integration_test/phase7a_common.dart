@@ -84,7 +84,7 @@ Future<void> signInAs(WidgetTester t, String email) async {
     final out = find.byKey(const Key('more_sign_out'));
     await t.scrollUntilVisible(out, 250, scrollable: find.byType(Scrollable).last, maxScrolls: 12);
     await t.tap(out);
-    await settle(t, 800);
+    await waitFor(t, find.byKey(const Key('confirm_dialog_confirm')));
     await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
     await waitFor(t, find.text('Sign in'));
   }
