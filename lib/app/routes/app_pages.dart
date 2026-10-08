@@ -62,6 +62,7 @@ import '../modules/profile/views/profile_edit_screen.dart';
 import '../modules/profile/views/profile_screen.dart';
 import '../modules/ptm/bindings/ptm_binding.dart';
 import '../modules/ptm/views/ptm_detail_screen.dart';
+import '../modules/ptm/views/ptm_new_screen.dart';
 import '../modules/ptm/views/ptm_screen.dart';
 import '../modules/reset_password/bindings/reset_password_binding.dart';
 import '../modules/reset_password/views/reset_password_screen.dart';
@@ -241,9 +242,13 @@ class AppPages {
         page: () => const PtmScreen(),
         binding: PtmBinding()),
     GetPage(
+        name: Routes.ptmNew,
+        page: () => const PtmNewScreen(),
+        binding: PtmCreateBinding()),
+    GetPage(
         name: Routes.ptmDetail,
         page: () => const PtmDetailScreen(),
-        binding: PtmBinding()),
+        binding: PtmDetailBinding()),
     GetPage(
         name: Routes.fixtures,
         page: () => const FixturesScreen(),

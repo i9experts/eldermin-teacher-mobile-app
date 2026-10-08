@@ -56,8 +56,10 @@ abstract class Routes {
   static const behaviourNew = '/behaviour/new';
   static const behaviourStudent = '/behaviour/student/:id';
   static const ptm = '/ptm';
+  static const ptmNew = '/ptm/new';
   static const ptmDetail = '/ptm/:id';
   static const fixtures = '/fixtures';
+  static const fixtureDetail = '/fixtures/:id';
   static const leave = '/leave';
   static const leaveApply = '/leave/apply';
   static const studentLeaves = '/student-leaves';
@@ -95,6 +97,7 @@ abstract class Routes {
   static String curriculumDetailOf(String id) => '/curriculum/$id';
   static String behaviourStudentOf(String id) => '/behaviour/student/$id';
   static String ptmDetailOf(String id) => '/ptm/$id';
+  static String fixtureDetailOf(String id) => '/fixtures/$id';
   static String studentLeaveDetailOf(String id) => '/student-leaves/$id';
   static String eventDetailOf(String id) => '/events/$id';
 
@@ -135,8 +138,10 @@ abstract class Routes {
     behaviourNew,
     behaviourStudent,
     ptm,
+    ptmNew,
     ptmDetail,
     fixtures,
+    fixtureDetail,
     leave,
     leaveApply,
     studentLeaves,

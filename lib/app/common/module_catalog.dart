@@ -69,9 +69,9 @@ class ModuleCatalog {
     // ── More tab ──
     ModuleEntry(id: 'timetable', title: 'Timetable', subtitle: 'Your weekly schedule', icon: Icons.calendar_view_week_rounded, route: Routes.timetable, placement: ModulePlacement.more, permission: 'teaching:view', built: true),
     ModuleEntry(id: 'student_leaves', title: 'Student leave requests', subtitle: 'Approve or reject', icon: Icons.event_busy_rounded, route: Routes.studentLeaves, placement: ModulePlacement.more, permission: 'teaching:view', classTeacherOnly: true, built: true),
-    ModuleEntry(id: 'ptm', title: 'Parent meetings', subtitle: 'Schedule and outcomes', icon: Icons.handshake_rounded, route: Routes.ptm, placement: ModulePlacement.more, permission: 'teaching:view'),
-    ModuleEntry(id: 'fixtures', title: 'Substitutions', subtitle: 'Cover duties', icon: Icons.swap_horiz_rounded, route: Routes.fixtures, placement: ModulePlacement.more, permission: 'teaching:view'),
-    ModuleEntry(id: 'leave', title: 'My leave', subtitle: 'Balance and requests', icon: Icons.beach_access_rounded, route: Routes.leave, placement: ModulePlacement.more, permission: 'leave:self'),
+    ModuleEntry(id: 'ptm', title: 'Parent meetings', subtitle: 'Schedule and outcomes', icon: Icons.handshake_rounded, route: Routes.ptm, placement: ModulePlacement.more, permission: 'teaching:view', built: true),
+    ModuleEntry(id: 'fixtures', title: 'Substitutions', subtitle: 'Cover duties', icon: Icons.swap_horiz_rounded, route: Routes.fixtures, placement: ModulePlacement.more, permission: 'teaching:view', built: true),
+    ModuleEntry(id: 'leave', title: 'My leave', subtitle: 'Balance and requests', icon: Icons.beach_access_rounded, route: Routes.leave, placement: ModulePlacement.more, permission: 'leave:self', built: true),
     ModuleEntry(id: 'calendar', title: 'School calendar', subtitle: 'Dates and circulars', icon: Icons.calendar_month_rounded, route: Routes.calendar, placement: ModulePlacement.more, permission: 'school-calendar:view'),
     ModuleEntry(id: 'events', title: 'Events', subtitle: 'School events', icon: Icons.celebration_rounded, route: Routes.events, placement: ModulePlacement.more, permission: 'events:view'),
     ModuleEntry(id: 'curriculum', title: 'Curriculum', subtitle: 'Frameworks and subjects', icon: Icons.account_tree_rounded, route: Routes.curriculum, placement: ModulePlacement.more, permission: 'academics:view', built: true),
