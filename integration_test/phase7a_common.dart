@@ -71,7 +71,11 @@ Future<void> signInAs(WidgetTester t, String email) async {
   }
   if (find.text('Skip').evaluate().isNotEmpty) {
     await t.tap(find.text('Skip'));
-    await waitFor(t, find.text('Sign in'));
+    for (var i = 0; i < 125; i++) {
+      guard('after intro');
+      if (find.text('Sign in').evaluate().isNotEmpty || find.byType(BottomNavigationBar).evaluate().isNotEmpty) break;
+      await t.pump(const Duration(milliseconds: 200));
+    }
   }
   if (find.byType(BottomNavigationBar).evaluate().isNotEmpty) {
     // a previous run left a session: sign out through More (one confirm dialog)
