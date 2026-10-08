@@ -399,7 +399,9 @@ void main() {
       final c = await make();
       await c.addPicked([file('big.pdf')]);
       expect(c.attachments.single.error.value, isNotNull);
+      expect(c.validate()['attachments'], isNotNull);
       c.removeAttachment(c.attachments.single.id);
+      expect(c.errors['attachments'], isNull, reason: 'stale attachment hint must clear after removing the failed file');
       c.titleC.text = 't';
       c.setDueDay(DateTime(2026, 10, 9));
       await Future<void>.delayed(Duration.zero);

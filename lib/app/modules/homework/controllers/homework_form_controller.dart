@@ -328,6 +328,8 @@ class HomeworkFormController extends GetxController {
   void removeAttachment(String id) {
     attachments.removeWhere((a) => a.id == id);
     pickNotice.value = null;
+    // the stale 'Retry or remove the attachment that failed' / 'Wait for the uploads' hint no longer applies once nothing blocks
+    if (!hasUploading && !hasFailedUpload) errors.remove('attachments');
   }
 
   // ── validation + submit ──────────────────────────────────────
