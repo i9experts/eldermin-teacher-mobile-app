@@ -266,7 +266,7 @@ void main() {
       final d = QuizAttemptDetailController(id: 'foreign', list: c, repository: repo);
       await d.load();
       expect(d.state.value.status, SectionStatus.error);
-      expect(d.state.value.message, contains("isn't from one of your classes"));
+      expect(d.state.value.message, contains("isn't from your class or one of your subjects"));
       expect(d.attempt, isNull);
       expect(d.editable, isFalse);
       d.setMark('q2', '3');
