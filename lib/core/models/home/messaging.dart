@@ -11,9 +11,13 @@ class MessageThread {
   final DateTime? lastMessageAt;
   final bool staffHasUnread;
   final String status; // open|closed
+  final String studentId;
+  final DateTime? createdAt;
 
   const MessageThread({
     required this.id,
+    this.studentId = '',
+    this.createdAt,
     this.subject = '',
     this.studentName = '',
     this.guardianName = '',
@@ -32,6 +36,24 @@ class MessageThread {
         lastMessageAt: readDate(j['lastMessageAt']),
         staffHasUnread: readBool(j['staffHasUnread']),
         status: readText(j['status']),
+        studentId: readId(j['studentId']) ?? '',
+        createdAt: readDate(j['createdAt']),
+      );
+
+  /// `closed` is the only terminal value (schema enum open|closed, NM:58); anything else is treated as open.
+  bool get isClosed => status == 'closed';
+
+  MessageThread copyWith({String? status, bool? staffHasUnread, String? lastMessagePreview, DateTime? lastMessageAt}) => MessageThread(
+        id: id,
+        studentId: studentId,
+        createdAt: createdAt,
+        subject: subject,
+        studentName: studentName,
+        guardianName: guardianName,
+        lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+        lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+        staffHasUnread: staffHasUnread ?? this.staffHasUnread,
+        status: status ?? this.status,
       );
 }
 
@@ -45,6 +67,8 @@ class ThreadsResult {
   final List<MessageThread> items;
   final int? serverUnreadCount;
   const ThreadsResult({this.items = const [], this.serverUnreadCount});
+
+  ThreadsResult withItems(List<MessageThread> next) => ThreadsResult(items: next, serverUnreadCount: serverUnreadCount);
 
   factory ThreadsResult.fromJson(Map<String, dynamic> j) => ThreadsResult(
         items: asJsonMapList(j['items']).map(MessageThread.fromJson).toList(),
