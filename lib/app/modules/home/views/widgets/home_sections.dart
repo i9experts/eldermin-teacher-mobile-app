@@ -320,7 +320,10 @@ class SubstitutionsCard extends StatelessWidget {
             when(s),
             s.substituteTeacherName.isNotEmpty ? 'by ${s.substituteTeacherName}' : 'no substitute assigned yet',
           ].where((e) => e.isNotEmpty).join(' · '),
-          trailing: const AppTag('Covered', style: TagStyle.info),
+          // No substitute yet = nobody covers it: do not say "Covered" (seen on the local run, LOCAL_VERIFICATION s12).
+          trailing: s.substituteTeacherName.isEmpty
+              ? const AppTag('Not covered yet', style: TagStyle.amber, key: Key('sub_chip_open'))
+              : const AppTag('Covered', style: TagStyle.info),
           onTap: () => onOpen(s),
         ),
     ]);

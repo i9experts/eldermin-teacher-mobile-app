@@ -221,6 +221,9 @@ void main() {
       expect(find.text('Science is being covered'), findsOneWidget);
       expect(find.textContaining('by Sub Teacher'), findsOneWidget);
       expect(find.textContaining('no substitute assigned yet'), findsOneWidget);
+      // only the assigned one says "Covered"; the unassigned one must not claim coverage
+      expect(find.text('Covered'), findsOneWidget);
+      expect(find.text('Not covered yet'), findsOneWidget);
     });
 
     testWidgets('messages summary tap opens messages', (t) async {
