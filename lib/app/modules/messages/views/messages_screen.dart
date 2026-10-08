@@ -121,7 +121,9 @@ class ThreadRow extends StatelessWidget {
   }
 
   static String _initials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    // Drop "(...)" notes and honorifics so "Mrs Malik" is "M", not "MM"-style noise like "M(".
+    final cleaned = name.replaceAll(RegExp(r'\([^)]*\)'), ' ').replaceAll(RegExp(r'^\s*(mr|mrs|ms|miss|dr)\.?\s+', caseSensitive: false), '');
+    final parts = cleaned.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
     if (parts.isEmpty) return '?';
     final a = parts.first[0];
     final b = parts.length > 1 ? parts.last[0] : '';

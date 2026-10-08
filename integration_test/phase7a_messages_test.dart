@@ -22,7 +22,7 @@ void main() {
     await settle(t, 1200);
     await shot(t, '7a_01_inbox');
     await t.tap(find.text('Closed'));
-    await waitFor(t, find.text('Old topic').first.evaluate().isNotEmpty ? find.text('Old topic') : find.byKey(Key('thread_${threadId(4)}')));
+    await waitFor(t, find.byKey(Key('thread_${threadId(4)}')));
     await shot(t, '7a_02_inbox_closed_filter');
     await t.tap(find.text('Open'));
     await settle(t, 800);
@@ -50,7 +50,7 @@ void main() {
     await shot(t, '7a_05_chat_failed_send_retry');
     await stub(t, '/__stub/mode?feature=threadsend&value=ok');
     await t.tap(find.text('Retry'));
-    await waitFor(t, find.byKey(const Key('msg_sending')).evaluate().isNotEmpty ? find.byKey(const Key('msg_sending')) : find.text('Please bring the signed form.'));
+    await waitFor(t, find.text('Please bring the signed form.'));
     await settle(t, 2500);
 
     // ── Polling: a guardian answers on the server; the open chat appends it within ~10 s without losing the composer text ──
@@ -123,7 +123,7 @@ void main() {
     await shot(t, '7a_22_notifications_after_mark_all_read');
     // deep link: tapping a message notification opens that conversation
     await t.tap(find.textContaining('New message from').first);
-    await waitFor(t, find.byKey(const Key('chat_input')));
+    await waitFor(t, find.byKey(const Key('chat_title'))); // the notified thread may be the one closed above (no composer)
     await settle(t, 1500);
     await shot(t, '7a_23_notification_deeplink_opens_chat');
     await leaveScreen(t);
