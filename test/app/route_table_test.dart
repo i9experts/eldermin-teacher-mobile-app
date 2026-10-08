@@ -37,7 +37,7 @@ void main() {
       '/assessments/quiz-attempts', '/assessments/quiz-attempts/:id',
       '/behaviour', '/behaviour/new', '/behaviour/student/:id',
       '/ptm', '/ptm/:id', '/fixtures', '/leave', '/leave/apply',
-      '/student-leaves', '/student-leaves/:id', '/messages/:threadId',
+      '/student-leaves', '/student-leaves/:id', '/messages', '/messages/new', '/messages/:threadId',
       '/calendar', '/events', '/events/:id', '/curriculum', '/library',
       '/early-years', '/safeguarding/new',
       '/profile', '/profile/edit', '/help', '/about', '/delete-account',
