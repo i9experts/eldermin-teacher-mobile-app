@@ -990,6 +990,8 @@ import stub_6b  # Phase 6b logic (assessments, marks entry, report remarks, quiz
 stub_6b.bind(_sys.modules[__name__])
 import stub_7a  # Phase 7a logic (messages with guardians, notifications inbox, student-leave review)
 stub_7a.bind(_sys.modules[__name__])
+import stub_7b  # Phase 7b logic (parent-teacher meetings, substitutions, My Leave)
+stub_7b.bind(_sys.modules[__name__])
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1190,6 +1192,98 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return None
         return self._send(status, body)
+
+    # -- Phase 7b routes (PTM, fixtures, My Leave). True when handled. Registered BEFORE the Phase 4 Home routes, which it replaces for
+    # /teaching/ptm, /teaching/ptm/upcoming/mine and /teaching/fixtures so the Home agenda and the new screens read ONE data set.
+    def _p7b(self, method, path, q):
+        ptm = "/api/v1/teaching/ptm"
+        fxp = "/api/v1/teaching/fixtures"
+        m_one = re.fullmatch(ptm + r"/([^/]+)", path)
+        m_hist = re.fullmatch(ptm + r"/student/([^/]+)/history", path)
+        m_act = re.fullmatch(ptm + r"/([^/]+)/(confirm|reschedule|outcome|cancel)", path)
+        m_item = re.fullmatch(ptm + r"/([^/]+)/action-items/([^/]+)", path)
+        m_fx = re.fullmatch(fxp + r"/([^/]+)/complete", path)
+        feature = None
+        if method == "GET":
+            if path == ptm:
+                feature = "ptmlist"
+            elif path == ptm + "/upcoming/mine":
+                feature = "ptm"
+            elif m_hist:
+                feature = "ptmhistory"
+            elif m_one and m_one.group(1) not in ("dashboard", "upcoming"):
+                feature = "ptmone"
+            elif path == fxp:
+                feature = "fixtures"
+            elif path == "/api/v1/hr/leave/self/balance":
+                feature = "leavebalance"
+            elif path == "/api/v1/hr/leave/self/history":
+                feature = "leavehistory"
+        elif method == "POST":
+            if path == ptm:
+                feature = "ptmcreate"
+            elif path == "/api/v1/hr/leave/self":
+                feature = "leaveapply"
+        elif method == "PATCH":
+            if m_act:
+                feature = {"confirm": "ptmconfirm", "reschedule": "ptmreschedule", "outcome": "ptmoutcome", "cancel": "ptmcancel"}[m_act.group(2)]
+            elif m_item:
+                feature = "ptmitem"
+            elif m_fx:
+                feature = "fxcomplete"
+        if not feature:
+            return False
+        a = self._authed()
+        if not a:
+            return True
+        raw = self._raw() if method in ("POST", "PATCH") else b""
+        gate = self._feature_gate(feature)
+        if gate is True:
+            return True
+        with _lock:
+            special = _modes.get(feature, "ok")
+        empty = gate == "empty"
+
+        def jbody():
+            try:
+                b = json.loads(raw or b"{}")
+                return b if isinstance(b, dict) else {}
+            except Exception:
+                return {}
+        with _lock:
+            stub_7b._state["calls"].append(f"{method} {path.replace('/api/v1', '')}")
+            if feature == "ptmlist":
+                r = (200, []) if empty else stub_7b.list_meetings(a, q)
+            elif feature == "ptm":
+                r = (200, []) if empty else stub_7b.upcoming_mine(a, q)
+            elif feature == "ptmone":
+                r = stub_7b.get_meeting(a, m_one.group(1), mode=special)
+            elif feature == "ptmhistory":
+                r = (200, []) if empty else stub_7b.student_history(a, m_hist.group(1))
+            elif feature == "ptmcreate":
+                r = stub_7b.create_meeting(a, jbody(), mode=special)
+            elif feature == "ptmconfirm":
+                r = stub_7b.confirm_meeting(a, m_act.group(1), mode=special)
+            elif feature == "ptmreschedule":
+                r = stub_7b.reschedule_meeting(a, m_act.group(1), jbody(), mode=special)
+            elif feature == "ptmoutcome":
+                r = stub_7b.record_outcome(a, m_act.group(1), jbody(), mode=special)
+            elif feature == "ptmcancel":
+                r = stub_7b.cancel_meeting(a, m_act.group(1), jbody(), mode=special)
+            elif feature == "ptmitem":
+                r = stub_7b.set_action_item(a, m_item.group(1), m_item.group(2), jbody(), mode=special)
+            elif feature == "fixtures":
+                r = (200, []) if empty else stub_7b.list_fixtures(a, q)
+            elif feature == "fxcomplete":
+                r = stub_7b.complete_fixture(a, m_fx.group(1), mode=special)
+            elif feature == "leavebalance":
+                r = stub_7b.leave_balance(a, mode=special)
+            elif feature == "leavehistory":
+                r = (200, []) if empty else stub_7b.leave_history(a)
+            else:
+                r = stub_7b.apply_leave(a, jbody(), mode=special)
+        self._reply(*r)
+        return True
 
     # -- Phase 7a routes (messages, notifications inbox, student-leave review). True when handled.
     def _p7a(self, method, path, q):
@@ -1530,6 +1624,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, staff_me(a))
         elif path.startswith("/api/v1/staff-portal/") and self._p7a("GET", path, parse_qs(urlparse(self.path).query)):
             return
+        elif path.startswith("/api/v1/") and self._p7b("GET", path, parse_qs(urlparse(self.path).query)):
+            return
         elif path.startswith("/api/v1/") and (self._p6b("GET", path, parse_qs(urlparse(self.path).query)) or self._p6a("GET", path, parse_qs(urlparse(self.path).query))):
             return
         elif (path.startswith("/api/v1/") or path.startswith("/__stub/files/")) and self._p5b("GET", path, parse_qs(urlparse(self.path).query)):
@@ -1541,13 +1637,13 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/__stub/state":
             with _lock:
                 self._send(200, {"classTeacher": {k: v["classTeacher"] for k, v in ACCOUNTS.items()}, **_state,
-                                 "attendance": {"records": len(ATT), **_att_last}, "phase5b": stub_5b.state_summary(), "phase6a": stub_6a.state_summary(), "phase6b": stub_6b.state_summary(), "phase7a": stub_7a.state_summary()})
+                                 "attendance": {"records": len(ATT), **_att_last}, "phase5b": stub_5b.state_summary(), "phase6a": stub_6a.state_summary(), "phase6b": stub_6b.state_summary(), "phase7a": stub_7a.state_summary(), "phase7b": stub_7b.state_summary()})
         else:
             self._err(404, f"Cannot GET {path}")
 
     def do_PATCH(self):
         path = urlparse(self.path).path
-        if not (self._p7a("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p6b("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p6a("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p5b("PATCH", path, parse_qs(urlparse(self.path).query))):
+        if not (self._p7a("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p7b("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p6b("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p6a("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p5b("PATCH", path, parse_qs(urlparse(self.path).query))):
             self._err(404, f"Cannot PATCH {path}")
 
     def do_DELETE(self):
@@ -1558,7 +1654,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urlparse(self.path)
         path = u.path
-        if self._p7a("POST", path, parse_qs(u.query)) or self._p6b("POST", path, parse_qs(u.query)) or self._p6a("POST", path, parse_qs(u.query)) or self._p5b("POST", path, parse_qs(u.query)):
+        if self._p7a("POST", path, parse_qs(u.query)) or self._p7b("POST", path, parse_qs(u.query)) or self._p6b("POST", path, parse_qs(u.query)) or self._p6a("POST", path, parse_qs(u.query)) or self._p5b("POST", path, parse_qs(u.query)):
             return
         if path == "/api/v1/auth/login":
             b = self._json()
@@ -1615,6 +1711,16 @@ class Handler(BaseHTTPRequestHandler):
             with _lock:
                 r = stub_7a.guardian_reply((q.get("thread") or [""])[0], (q.get("body") or ["Thank you."])[0])
             return self._reply(*r)
+        if path == "/__stub/leave-decide":
+            q = parse_qs(u.query)
+            with _lock:
+                r = stub_7b.decide_leave((q.get("id") or [""])[0], (q.get("status") or ["approved"])[0], (q.get("note") or [""])[0], (q.get("by") or ["Hina HR (DUMMY)"])[0])
+            return self._reply(*r)
+        if path == "/__stub/fixture-set":
+            q = parse_qs(u.query)
+            with _lock:
+                r = stub_7b.set_fixture((q.get("id") or [""])[0], (q.get("status") or ["assigned"])[0])
+            return self._reply(*r)
         if path == "/__stub/notify":
             q = parse_qs(u.query)
             with _lock:
@@ -1646,6 +1752,7 @@ class Handler(BaseHTTPRequestHandler):
                 stub_6a.reset()
                 stub_6b.reset()
                 stub_7a.reset()
+                stub_7b.reset()
                 ACCOUNTS["teacher"]["classTeacher"] = False
                 ACCOUNTS["classteacher"]["classTeacher"] = True
             return self._send(200, {"ok": True})
