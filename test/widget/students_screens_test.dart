@@ -171,6 +171,29 @@ void main() {
       expect(find.byKey(const Key('student_behaviour_history')), findsNothing);
     });
 
+    testWidgets('"Message guardian" opens the new-message route with this student (Phase 7a); no guardian phone/email is shown', (t) async {
+      final h = (await t.runAsync(() => signedIn(classTeacher: true)))!;
+      repo.detail = (_) async => fx360({'currentGrade': 'Grade 5', 'currentSection': 'A'});
+      final c = Get.put(StudentDetailController('sid', repository: repo, auth: h.auth, permissions: h.perms, clock: () => DateTime(2026, 10, 5)), tag: 'sid');
+      await t.binding.setSurfaceSize(const Size(430, 3000));
+      addTearDown(() => t.binding.setSurfaceSize(null));
+      await t.pumpWidget(GetMaterialApp(
+        theme: AppTheme.light,
+        home: const StudentDetailScreen(studentId: 'sid'),
+        getPages: [GetPage(name: '/messages/new', page: () => const Scaffold(body: Text('new message route')))],
+      ));
+      await t.pump();
+      await c.load();
+      await t.pump();
+      await t.dragUntilVisible(find.byKey(const Key('student_message_guardian')), find.byType(Scrollable).first, const Offset(0, -200));
+      await t.tap(find.byKey(const Key('student_message_guardian')));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      expect(find.text('new message route'), findsOneWidget);
+      expect(Get.arguments, isA<StudentSummary>());
+      expect((Get.arguments as StudentSummary).id, isNotEmpty);
+    });
+
     testWidgets('shows the whitelisted sections and NO fee / contact / income data', (t) async {
       await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A'}));
       expect(find.byKey(const Key('student_profile')), findsOneWidget);

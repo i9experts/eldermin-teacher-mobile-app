@@ -6,7 +6,6 @@ import 'package:eldermin_teacher_app/core/network/base_client.dart';
 import 'package:eldermin_teacher_app/core/network/response_shape.dart';
 import 'package:eldermin_teacher_app/core/services/messaging_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../support/fake_messaging_repository.dart';
 
 typedef Call = ({String method, String url, Object? data, Map<String, dynamic>? query});
 
