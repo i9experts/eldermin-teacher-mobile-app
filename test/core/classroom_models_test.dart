@@ -113,6 +113,40 @@ void main() {
       expect(d.debugDump(), isNot(contains('Dr DUMMY')));
     });
 
+    test('REDUCED payload (backend field hiding 2026-10-08): no guardian email, address, documents, hostel, full medical, transport detail still parses', () {
+      final reduced = jsonDecode(jsonEncode(raw)) as Map<String, dynamic>;
+      final st = reduced['student'] as Map<String, dynamic>;
+      for (final k in ['address', 'town', 'city', 'personalPhone', 'nationalId', 'bForm', 'documents', 'hostel', 'hostelRoom', 'transportRoute', 'transportRequired', 'emergencyContactName', 'emergencyContactPhone']) {
+        st.remove(k);
+      }
+      st['medical'] = {'allergies': ['Peanuts (DUMMY)']}; // only the safety flag stays
+      for (final g in (st['guardians'] as List).cast<Map<String, dynamic>>()) {
+        g.remove('email');
+        g.remove('phone');
+        g.remove('address');
+      }
+      st['transport'] = {'routeName': 'Route 4 (DUMMY)'}; // route name only
+      final d = Student360.fromJson(reduced);
+      expect(d.student.fullName, isNotEmpty);
+      expect(d.student.grade, 'Grade 5');
+      expect(d.guardians, isNotEmpty);
+      expect(d.guardiansKnown, isTrue);
+      expect(d.allergies, ['Peanuts (DUMMY)']);
+      expect(d.attendance.totalDays, greaterThan(0));
+      expect(d.behaviour.recent, hasLength(3));
+      expect(d.results, hasLength(2));
+    });
+
+    test('REDUCED payload without a guardians key: guardiansKnown is false (the screen hides the section), no allergies, no crash', () {
+      final d = Student360.fromJson({
+        'student': {'_id': 's1', 'firstName': 'Ayesha', 'lastName': 'Khan', 'dateOfBirth': '2015-03-02T00:00:00.000Z', 'currentGrade': 'Grade 5', 'currentSection': 'A'},
+      });
+      expect(d.guardiansKnown, isFalse);
+      expect(d.guardians, isEmpty);
+      expect(d.allergies, isEmpty);
+      expect(d.student.fullName, 'Ayesha Khan');
+    });
+
     test('empty / partial payloads do not throw', () {
       final d = Student360.fromJson({'student': {'_id': 'x'}});
       expect(d.guardians, isEmpty);

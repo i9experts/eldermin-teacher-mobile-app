@@ -85,8 +85,10 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
         _BehaviourCard(b: d.behaviour, studentId: d.student.id),
         const SubHeading('Recent results'),
         _ResultsCard(results: d.results),
-        const SubHeading('Guardians'),
-        _GuardiansCard(guardians: d.guardians),
+        if (d.guardiansKnown) ...[
+          const SubHeading('Guardians'),
+          _GuardiansCard(guardians: d.guardians),
+        ],
         const Padding(
           padding: EdgeInsets.only(top: 6),
           child: CustomText(

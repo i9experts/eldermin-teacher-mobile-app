@@ -141,6 +141,10 @@ class ResultItem {
 /// `student.emergencyContact*`, `student.tutor*`, `student.medical.*` except allergies
 /// (doctor, insurance, medications, conditions), `student.specialNeeds/scholarship*`,
 /// `student.transport*/hostel*`, `student.documents`, `student.academicHistory`, `customFields`.
+///
+/// REDUCED PAYLOADS (backend teacher projection, planned 2026-10-08: guardian email, address, documents, hostel, full medical, transport detail
+/// removed; allergies and the date of birth stay): nothing here is required except the student `_id`, every block defaults to empty, and the
+/// guardians section is hidden when the key is absent ([guardiansKnown]).
 class Student360 {
   final StudentSummary student;
   final List<GuardianInfo> guardians;
@@ -149,6 +153,10 @@ class Student360 {
   final Behaviour360 behaviour;
   final List<ResultItem> results;
 
+  /// The payload carried a `guardians` key at all. The backend's teacher projection may drop it (2026-10-08 field hiding): then the screen
+  /// shows no guardians section instead of a misleading "No guardians on record".
+  final bool guardiansKnown;
+
   const Student360({
     required this.student,
     this.guardians = const [],
@@ -156,6 +164,7 @@ class Student360 {
     this.attendance = const Attendance360(),
     this.behaviour = const Behaviour360(),
     this.results = const [],
+    this.guardiansKnown = true,
   });
 
   factory Student360.fromJson(Map<String, dynamic> j) {
@@ -172,6 +181,7 @@ class Student360 {
     return Student360(
       student: StudentSummary.fromJson(raw),
       guardians: guardians,
+      guardiansKnown: raw.containsKey('guardians') && raw['guardians'] is List,
       allergies: readStringList(medical['allergies']).where((e) => e.trim().isNotEmpty).toList(),
       attendance: Attendance360.fromJson(asJsonMap(j['attendance'])),
       behaviour: Behaviour360.fromJson(asJsonMap(j['behaviour'])),

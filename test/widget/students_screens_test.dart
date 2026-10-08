@@ -191,6 +191,18 @@ void main() {
       }
     });
 
+    testWidgets('REDUCED payload (no guardians, no medical, no address): sections render, NO empty/broken guardians section', (t) async {
+      await bootDetail(t, data: Student360.fromJson({
+        'student': {'_id': 'sid', 'firstName': 'Ayesha', 'lastName': 'Khan', 'dateOfBirth': '2015-03-02T00:00:00.000Z', 'currentGrade': 'Grade 5', 'currentSection': 'A'},
+      }));
+      expect(find.byKey(const Key('student_profile')), findsOneWidget);
+      expect(find.byKey(const Key('student_attendance')), findsOneWidget);
+      expect(find.byKey(const Key('student_guardians')), findsNothing);
+      expect(find.text('Guardians'), findsNothing);
+      expect(find.text('No guardians on record.'), findsNothing);
+      expect(find.byKey(const Key('student_allergies')), findsNothing);
+    });
+
     testWidgets('allergy flag is prominent when present', (t) async {
       await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A', 'medical': {'allergies': ['Peanuts (DUMMY)'], 'doctorPhone': '0300-5550003'}}));
       expect(find.byKey(const Key('student_allergies')), findsOneWidget);
