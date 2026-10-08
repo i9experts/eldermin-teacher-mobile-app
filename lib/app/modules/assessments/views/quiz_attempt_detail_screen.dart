@@ -11,6 +11,7 @@ import '../../../utils/toast_util.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show ErrorBanner;
 import '../../lesson_plans/views/widgets/lesson_plan_widgets.dart' show NoteBox;
 import '../controllers/quiz_controllers.dart';
+import 'widgets/assessment_widgets.dart' show LockBanner;
 
 /// One online quiz attempt (`/assessments/quiz-attempts/:id`): the student's answers with the answer key, and a mark for every written
 /// answer (0..the question's marks). See [QuizAttemptDetailController] for the effect on the student's mark entry.
@@ -89,7 +90,9 @@ class QuizAttemptDetailScreen extends GetView<QuizAttemptDetailController> {
       const SizedBox(height: 3),
       CustomText(text: [a.assessmentTitle, a.subject, a.classLabel].where((e) => e.isNotEmpty).join(' · '), color: AppColors.muted, fontSize: 12),
       const SizedBox(height: 10),
-      if (a.isGraded)
+      if (c.lockMessage.value != null)
+        LockBanner(noteKey: const Key('qa_lock_banner'), message: c.lockMessage.value!)
+      else if (a.isGraded)
         NoteBox(boxKey: const Key('qa_graded_note'), icon: Icons.lock_outline_rounded, title: 'Already graded: ${marksText(a.obtainedMarks ?? 0)} out of ${marksText(a.totalMarks)}', body: "Grading again would overwrite the student's mark entry, so a graded attempt is read-only here.", fg: AppColors.amberText, bg: AppColors.amberBg)
       else
         NoteBox(

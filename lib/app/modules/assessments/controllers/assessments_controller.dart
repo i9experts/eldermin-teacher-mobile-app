@@ -10,6 +10,7 @@ import '../../home/models/section_state.dart';
 enum AssessmentFilter {
   open('Marks open'),
   upcoming('Upcoming'),
+  drafts('Drafts'),
   published('Published'),
   all('All');
 
@@ -19,15 +20,19 @@ enum AssessmentFilter {
 
 /// Why marks of one subject can (not) be entered. [editable] is the only state in which the grid accepts input.
 ///
-/// There is NO assessment-status gate: the web "Mark Entry" tab offers "Enter Marks" with no status condition (OtherTabs.tsx:427, the
-/// "ongoing/completed" wording only feeds a dashboard counter, assessments/index.tsx:955-962), the web modal only rejects marks above the
-/// total (index.tsx:333) and the server's marks/bulk checks no status (assessment.service.ts:1240-1299). Draft, scheduled, ongoing,
-/// completed, cancelled and result_published assessments are all editable; the last two only show a non-blocking warning
-/// ([marksStatusWarning]). The only hard blocks are "not my subject" and the online-quiz subjects (their marks come from quiz grading).
+/// Owner decisions 2026-10-08 (post-approval fixes):
+///  * PUBLISHED / CANCELLED assessments are LOCKED for a teacher ([locked]): the backend answers 403 on marks/bulk and quiz grading for them
+///    (planned, see PHASE6B_REPORT section 15) and the app shows the grid read-only with a banner, so the teacher never gets there.
+///    Before this the app only warned (owner decision of 2026-10-07: "no gate"); that warning is gone.
+///  * DRAFT assessments are listed (badge "Draft") but take no marks yet ([draft]).
+/// Still no gate for scheduled / ongoing / completed. The other hard blocks are "not my subject" and the online-quiz subjects (their marks
+/// come from quiz grading).
 enum MarksAccess {
   editable,
   notMySubject,
-  onlineQuiz;
+  onlineQuiz,
+  draft,
+  locked;
 
   bool get canEdit => this == MarksAccess.editable;
 
@@ -35,20 +40,25 @@ enum MarksAccess {
         MarksAccess.editable => '',
         MarksAccess.notMySubject => "You don't teach this subject in this class, so the marks are view-only.",
         MarksAccess.onlineQuiz => 'Students take this subject as an online quiz. Its marks come from quiz grading, not from this grid.',
+        MarksAccess.draft => "Draft assessments can't take marks yet.",
+        MarksAccess.locked => 'Marks are locked. Ask an administrator to change them.',
       };
 }
 
 MarksAccess marksAccessFor(Assessment a, AssessmentSubject s, {required bool iTeachIt}) {
   if (!iTeachIt) return MarksAccess.notMySubject;
+  if (a.status == AssessmentStatus.draft) return MarksAccess.draft;
   if (a.isOnline && s.hasQuizPaper) return MarksAccess.onlineQuiz;
+  if (marksLockMessage(a) != null) return MarksAccess.locked;
   return MarksAccess.editable;
 }
 
-/// A non-blocking caution for marks that can still be edited. No code (web or backend) forbids editing after publishing or on a cancelled
-/// assessment, so the app warns instead of locking (owner decision pending, see PHASE6B_REPORT).
-String? marksStatusWarning(Assessment a) {
-  if (a.isResultPublished) return 'Results are published; changes may affect published results.';
-  if (a.status == AssessmentStatus.cancelled) return 'This assessment is cancelled; marks entered here may not be used.';
+/// Why a teacher can no longer change the marks of [a] (results published, or cancelled); null while marks can still change. The server
+/// refuses these writes with 403 (backend change planned 2026-10-08; its exact text, UNVERIFIED until it lands in docs/staff-portal/PHASE6_FIXES.md:
+/// "Results for this assessment are published (or the assessment is cancelled): marks can no longer be changed. Contact an administrator.").
+String? marksLockMessage(Assessment a) {
+  if (a.isResultPublished) return 'Results are published \u2014 marks are locked. Ask an administrator to change them.';
+  if (a.status == AssessmentStatus.cancelled) return 'This assessment is cancelled \u2014 marks are locked. Ask an administrator to change them.';
   return null;
 }
 
@@ -88,6 +98,7 @@ class AssessmentsController extends GetxController {
   bool _inFilter(Assessment a, AssessmentFilter f) => switch (f) {
         AssessmentFilter.open => !a.isResultPublished && (a.status == AssessmentStatus.ongoing || a.status == AssessmentStatus.completed),
         AssessmentFilter.upcoming => a.status == AssessmentStatus.scheduled,
+        AssessmentFilter.drafts => a.status == AssessmentStatus.draft,
         AssessmentFilter.published => a.isResultPublished,
         AssessmentFilter.all => true,
       };

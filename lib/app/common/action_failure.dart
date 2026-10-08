@@ -1,6 +1,6 @@
 import '../../core/network/api_exception.dart';
 
-enum ActionFailureKind { offline, forbidden, notFound, validation, conflict, server, other }
+enum ActionFailureKind { offline, forbidden, notFound, validation, conflict, server, uploadUnavailable, other }
 
 /// Teacher-readable outcome of a failed write (create / edit / delete / grade / upload / log). Maps the real error shape
 /// `{statusCode, message, timestamp, path}` (filters/sentry.filter.ts:43-48; an array `message` is cut to its first element
@@ -9,25 +9,37 @@ enum ActionFailureKind { offline, forbidden, notFound, validation, conflict, ser
 class ActionFailure {
   final ActionFailureKind kind;
   final String message;
-  const ActionFailure(this.kind, this.message);
+
+  /// The server's own text (cleaned), '' when it sent none. Banners that must show exactly what the server said use this.
+  final String serverMessage;
+  const ActionFailure(this.kind, this.message, {this.serverMessage = ''});
+
+  /// Title for the dedicated [ActionFailureKind.uploadUnavailable] state.
+  static const uploadUnavailableTitle = 'Upload unavailable';
 
   /// [what] completes "You can't …": e.g. "edit this homework".
-  factory ActionFailure.from(Object e, {required String what, String keep = 'Your changes are kept.'}) {
+  ///
+  /// [upload]: the request was a file upload; a 503 then means "storage is not configured on this server" (backend change planned
+  /// 2026-10-08: 503 'File uploads are not available on this server (storage is not configured).', UNVERIFIED until it lands) and maps to
+  /// [ActionFailureKind.uploadUnavailable]: retrying cannot help.
+  factory ActionFailure.from(Object e, {required String what, String keep = 'Your changes are kept.', bool upload = false}) {
     if (e is! ApiException) return ActionFailure(ActionFailureKind.other, "Couldn't $what. $keep Try again.");
     final server = e.message.trim();
     switch (e.statusCode) {
       case null:
         return ActionFailure(ActionFailureKind.offline, '$server $keep Reconnect and try again.');
       case 403:
-        return ActionFailure(ActionFailureKind.forbidden, "You can't $what. ${_pretty(server)}");
+        return ActionFailure(ActionFailureKind.forbidden, "You can't $what. ${_pretty(server)}", serverMessage: _pretty(server));
       case 404:
         return ActionFailure(ActionFailureKind.notFound, 'This was not found on the server: it may have been removed. ${_pretty(server)}');
       case 409:
-        return ActionFailure(ActionFailureKind.conflict, _pretty(server).isEmpty ? "Couldn't $what: it changed on the server. Reload and check." : _pretty(server));
+        return ActionFailure(ActionFailureKind.conflict, _pretty(server).isEmpty ? "Couldn't $what: it changed on the server. Reload and check." : _pretty(server), serverMessage: _pretty(server));
       case 400:
       case 413:
       case 422:
-        return ActionFailure(ActionFailureKind.validation, _pretty(server));
+        return ActionFailure(ActionFailureKind.validation, _pretty(server), serverMessage: _pretty(server));
+      case 503 when upload:
+        return ActionFailure(ActionFailureKind.uploadUnavailable, _pretty(server).isEmpty ? 'File uploads are not available on this server.' : _pretty(server), serverMessage: _pretty(server));
       default:
         if (e.statusCode! >= 500) {
           return ActionFailure(ActionFailureKind.server, 'The server had a problem and couldn\'t $what. $keep Try again.');

@@ -30,6 +30,10 @@ lesson-plan self-approval fix"; read-only). "UNVERIFIED" = cannot be confirmed f
     marksbulk=lockedrows     409 'Marks for N students are verified and locked: name (roll R); ...' (nothing written; the first row of the
                              request is flipped to verified, so a reload shows it locked)
     marksbulk=lockedrows403  the same text with 403 (the backend sends 409; 403 is only an app-defensive variant, NOT backend behaviour)
+    marksbulk=published403   403 PUBLISHED_LOCK_TEXT: the planned (2026-10-08) backend rule 'marks of a published / cancelled assessment are locked for
+                             role teacher'. UNVERIFIED: the text mirrors the owner's sample; replace it with the exact string once
+                             docs/staff-portal/PHASE6_FIXES.md of the backend task lands. The app shows the server text and locks the grid.
+    quizgrade=published403   the same 403 on quiz grading
     quizgrade=quizbounds     400 'Invalid marks for N question(s): <questionId>: v (allowed 0..max)'
     quizgrade=regrade        409 'This attempt is already graded.' (the attempt is flipped to graded)
     quizgrade=notmyclass     403 'You can only grade quiz attempts for classes you teach.'
@@ -43,6 +47,10 @@ import datetime
 import re
 
 S = None  # the stub_server module, injected by bind()
+
+# PLANNED backend message (owner decision 2026-10-08, backend task in parallel). UNVERIFIED until it is in docs/staff-portal/PHASE6_FIXES.md.
+PUBLISHED_LOCK_TEXT = ("Results for this assessment are published (or the assessment is cancelled): marks can no longer be changed. "
+                       "Contact an administrator.")
 
 
 def bind(mod):
@@ -175,6 +183,7 @@ def seed():
         _assessment(8, "Draft - Spelling Bee (DUMMY)", "oral", "Grade 5", "A", "draft", [_subject("English", 20, 8)], days=20),
         _assessment(9, "Cancelled Quiz (DUMMY)", "quiz", "Grade 5", "A", "cancelled", [_subject("Mathematics", 10, 4)], days=-9),
         _assessment(10, "English Dictation (DUMMY)", "class_test", "Grade 5", "B", "ongoing", [_subject("English", 25, 10)], days=-1),
+        _assessment(11, "Draft - Unit Test 2 (DUMMY)", "unit_test", "Grade 5", "A", "draft", [_subject("Mathematics", 30, 12)], days=25),
     ]
     for r in rows:
         A[r["_id"]] = r
@@ -412,6 +421,8 @@ def bulk_marks(account, body, mode="ok", academic_year_header=None):
     cfg = next((x for x in a["subjects"] if x["subject"] == body["subject"]), None)
     if not cfg:
         return 400, f"Subject {body['subject']} not in assessment"
+    if mode == "published403":  # PLANNED backend rule (UNVERIFIED text, see PUBLISHED_LOCK_TEXT)
+        return 403, PUBLISHED_LOCK_TEXT
     if mode == "toobig":  # backend 44b0a6e (read from code, see the module docstring)
         bad = [f"{m['studentName']} (roll {m['rollNumber']}): {cfg['totalMarks'] + 10:g}" for m in marks[:3]]
         return 400, f"Marks must be between 0 and {cfg['totalMarks']:g} for {body['subject']}. Invalid for {len(bad)} student(s): {'; '.join(bad)}"
@@ -566,6 +577,8 @@ def grade_attempt(account, aid, body, mode="ok"):
         return 404, "Quiz attempt not found"
     if att["status"] == "in_progress":
         return 400, "This attempt has not been submitted yet."
+    if mode == "published403":  # PLANNED backend rule (UNVERIFIED text, see PUBLISHED_LOCK_TEXT)
+        return 403, PUBLISHED_LOCK_TEXT
     if mode == "notmyclass":  # backend 7795f1d
         return 403, "You can only grade quiz attempts for classes you teach."
     if mode == "quizbounds":  # backend 7795f1d (read from code, see the module docstring)

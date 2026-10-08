@@ -54,7 +54,7 @@ Phase 6a (lesson plans, syllabus) logic lives in stub_6a.py with backend file:li
   googledenied, notfound)   GET /__stub/state -> phase6a: counts + the last PATCH/create keys and parse-upload summary.
 Phase 6b (assessments, marks entry, report remarks, quiz grading, curriculum, library) lives in stub_6b.py (citations, UNVERIFIED marks).
   /__stub/mode features: assessments assessone marks marksbulk reportcards remarks quizlist quizone quizgrade curriculum curone library
-  specials: marksbulk=partial500|toobig|lockedrows|lockedrows403, marks=allverified, quizone=nopaper|notmyclass, quizgrade=quizbounds|regrade|notmyclass,
+  specials: marksbulk=partial500|toobig|lockedrows|lockedrows403|published403 (403 + the planned lock text), upload=503 (storage not configured), quizgrade=published403, marks=allverified, quizone=nopaper|notmyclass, quizgrade=quizbounds|regrade|notmyclass,
   remarks=notclassteacher|notfound (the error modes copy the landed backend hardening, see stub_6b.py); feature `bigclass`=on -> a 230-student Grade 5 A. GET /__stub/state -> phase6b.
 Home (Phase 4) endpoints, response shapes mirror
 eldermin-teacher-app-docs/phase4/home-endpoint-shapes.md (citations next to each builder below;
@@ -1046,13 +1046,16 @@ class Handler(BaseHTTPRequestHandler):
             except OSError:
                 pass
             return True
-        if mode in ("400", "403", "404", "409", "413", "422", "500"):
+        if mode in ("400", "403", "404", "409", "413", "422", "500", "503"):
             msgs = {"400": "title must be a string (stub mode 400: a class-validator style message)",
                     "403": "Forbidden resource", "404": f"Cannot GET (feature {feature} not available)",
                     "409": "Attendance for this date is locked (UNVERIFIED: backend code never returns 409 here)",
                     "413": "File too large",
                     "422": "Unprocessable entity (stub mode 422: the real backend answers validation errors with 400)",
-                    "500": "Internal server error"}
+                    "500": "Internal server error",
+                    # upload=503: PLANNED backend answer when storage is not configured (owner decision 2026-10-08; text UNVERIFIED until the
+                    # backend task documents it); other features get a plain 503
+                    "503": ("File uploads are not available on this server (storage is not configured)." if feature == "upload" else "Service Unavailable")}
             self._err(int(mode), msgs[mode])
             return True
         return mode if mode == "empty" else None

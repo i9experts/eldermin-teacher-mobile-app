@@ -125,6 +125,15 @@ class Upload(unittest.TestCase):
         self.assertEqual(b.upload_single(T, "f", ct, body), (413, "File too large"))
 
 
+class UploadUnavailable(unittest.TestCase):
+    def test_mode_503_message_is_the_planned_storage_text(self):
+        """upload=503 is served by stub_server's generic error modes (feature `upload`); the text is the PLANNED backend wording
+        (2026-10-08, UNVERIFIED until the backend task documents it)."""
+        src = open(os.path.join(os.path.dirname(__file__), "stub_server.py")).read()
+        self.assertIn("File uploads are not available on this server (storage is not configured).", src)
+        self.assertIn('"500", "503")', src)
+
+
 class Behaviour(unittest.TestCase):
     def setUp(self):
         b.reset()

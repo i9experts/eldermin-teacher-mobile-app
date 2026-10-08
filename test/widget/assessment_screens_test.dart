@@ -24,8 +24,9 @@ import '../support/fake_classroom_repositories.dart';
 
 const maths5a = {'gradeLevel': 'Grade 5', 'sectionName': 'A', 'subjectName': 'Mathematics'};
 
-QuizAttempt attempt(String id, {String status = 'submitted', String subject = 'Mathematics', String grade = 'Grade 5', String section = 'A', List<double?> awarded = const [null, null], double? obtained}) => QuizAttempt.fromJson({
+QuizAttempt attempt(String id, {String assessmentId = '', String status = 'submitted', String subject = 'Mathematics', String grade = 'Grade 5', String section = 'A', List<double?> awarded = const [null, null], double? obtained}) => QuizAttempt.fromJson({
       '_id': id,
+      if (assessmentId.isNotEmpty) 'assessmentId': assessmentId,
       'studentName': 'Aarav Ahmed',
       'assessmentTitle': 'Online Quiz',
       'subject': subject,
@@ -230,23 +231,33 @@ void main() {
       noAdminActions();
     });
 
-    testWidgets('results published: Enter marks stays available with a non-blocking warning', (t) async {
-      await boot(t, asm('a1', status: 'result_published', published: true));
-      expect(find.byKey(const Key('asm_marks_Mathematics')), findsOneWidget);
-      expect(find.byKey(const Key('asm_warn_Mathematics')), findsOneWidget);
-      expect(find.textContaining('Results are published; changes may affect published results'), findsOneWidget);
-      expect(find.byKey(const Key('asm_locked_Mathematics')), findsNothing);
-    });
-
-    for (final status in ['scheduled', 'draft', 'ongoing']) {
-      testWidgets('$status: Enter marks is offered, no gate text, no warning', (t) async {
-        await boot(t, asm('a1', status: status));
-        expect(find.byKey(const Key('asm_marks_Mathematics')), findsOneWidget);
-        expect(find.byKey(const Key('asm_warn_Mathematics')), findsNothing);
-        expect(find.textContaining('still scheduled'), findsNothing);
-        expect(find.textContaining('once the assessment has started'), findsNothing);
+    for (final (status, published, words) in [('result_published', true, 'Results are published'), ('cancelled', false, 'This assessment is cancelled')]) {
+      testWidgets('$status: LOCKED, no Enter marks, the lock text and View marks instead', (t) async {
+        await boot(t, asm('a1', status: status, published: published));
+        expect(find.byKey(const Key('asm_marks_Mathematics')), findsNothing);
+        expect(find.byKey(const Key('asm_locked_Mathematics')), findsOneWidget);
+        expect(find.textContaining(words), findsWidgets);
+        expect(find.textContaining('Ask an administrator'), findsWidgets);
+        expect(find.byKey(const Key('asm_view_Mathematics')), findsOneWidget);
       });
     }
+
+    for (final status in ['scheduled', 'ongoing', 'completed']) {
+      testWidgets('$status: Enter marks is offered, no gate text, no lock', (t) async {
+        await boot(t, asm('a1', status: status));
+        expect(find.byKey(const Key('asm_marks_Mathematics')), findsOneWidget);
+        expect(find.byKey(const Key('asm_locked_Mathematics')), findsNothing);
+        expect(find.textContaining('still scheduled'), findsNothing);
+      });
+    }
+
+    testWidgets("draft: read-only detail, \"Draft assessments can't take marks yet\", no Enter marks", (t) async {
+      await boot(t, asm('a1', status: 'draft'));
+      expect(find.byKey(const Key('asm_marks_Mathematics')), findsNothing);
+      expect(find.byKey(const Key('asm_draft_Mathematics')), findsOneWidget);
+      expect(find.text("Draft assessments can't take marks yet."), findsOneWidget);
+      expect(find.text('DRAFT'), findsOneWidget);
+    });
 
     testWidgets('online quiz subject: review quiz answers instead of a grid', (t) async {
       await boot(t, asm('a1', online: true, paperOn: 'Mathematics', type: 'quiz'));
@@ -413,17 +424,58 @@ void main() {
       expect(find.textContaining('All 5 marks are verified'), findsOneWidget);
     });
 
-    testWidgets('results published: warning banner, fields stay editable, Save works', (t) async {
-      a1 = asm('a1', status: 'result_published', published: true);
-      await boot(t, marks: [mark(student(1), 40)]);
-      expect(find.byKey(const Key('marks_status_warning')), findsOneWidget);
-      expect(find.byKey(const Key('marks_access_note')), findsNothing);
-      expect(find.textContaining('Results are published; changes may affect published results'), findsOneWidget);
-      expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}'))).enabled, isTrue);
-      await t.enterText(find.byKey(Key('marks_field_${idOf(1)}')), '41');
+    for (final (status, words) in [('result_published', 'Results are published'), ('cancelled', 'This assessment is cancelled')]) {
+      testWidgets('$status: lock banner on top, every input disabled, no Review & save', (t) async {
+        a1 = asm('a1', status: status, published: status == 'result_published');
+        await boot(t, marks: [mark(student(1), 40)]);
+        expect(find.byKey(const Key('marks_lock_banner')), findsOneWidget);
+        expect(find.textContaining(words), findsOneWidget);
+        expect(find.textContaining('marks are locked. Ask an administrator to change them.'), findsOneWidget);
+        expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}'))).enabled, isFalse);
+        expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(2)}'))).enabled, isFalse);
+        expect(find.byKey(const Key('marks_save_button')), findsNothing);
+        expect(find.text('Marks'), findsOneWidget); // app bar: not "Enter marks"
+      });
+    }
+
+    testWidgets('stale grid: the server answers 403 on save, the grid locks with the server text and keeps the typed value', (t) async {
+      await boot(t, marks: [mark(student(2), 30)]);
+      await t.enterText(find.byKey(Key('marks_field_${idOf(1)}')), '10');
       await t.pump();
-      expect(find.byKey(const Key('marks_save_button')), findsOneWidget);
-      expect(find.text('Enter marks'), findsOneWidget); // app bar
+      repo.onSave = (_) async => throw ApiException('Results for this assessment are published (or the assessment is cancelled): marks can no longer be changed. Contact an administrator.', statusCode: 403);
+      a1 = asm('a1', status: 'result_published', published: true);
+      await t.tap(find.byKey(const Key('marks_save_button')));
+      await settle(t);
+      await t.tap(find.byKey(const Key('marks_confirm_save')));
+      await settle(t);
+      expect(find.byKey(const Key('marks_lock_banner')), findsOneWidget);
+      expect(find.textContaining('Results for this assessment are published'), findsWidgets);
+      expect(find.byKey(const Key('marks_save_button')), findsNothing);
+      expect(find.widgetWithText(TextButton, 'Retry'), findsNothing);
+      final f = t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}')));
+      expect(f.enabled, isFalse);
+      expect(f.controller!.text, '10');
+      await drain(t);
+    });
+
+    testWidgets('stale total: after a 400 the header says 20, the typed 35 is flagged against 20, nothing is changed', (t) async {
+      await boot(t, marks: [mark(student(2), 15)]);
+      expect(find.textContaining('out of 50'), findsOneWidget);
+      await t.enterText(find.byKey(Key('marks_field_${idOf(1)}')), '35');
+      await t.pump();
+      repo.onSave = (_) async => throw ApiException('Marks must be between 0 and 20 for Mathematics. Invalid for 1 student(s): Student 1 (roll 1): 35', statusCode: 400);
+      a1 = asm('a1', subjects: const [('Mathematics', 20, 8)]);
+      await t.tap(find.byKey(const Key('marks_save_button')));
+      await settle(t);
+      await t.tap(find.byKey(const Key('marks_confirm_save')));
+      await settle(t);
+      expect(find.textContaining('out of 20'), findsOneWidget);
+      expect(find.textContaining('pass 8'), findsOneWidget);
+      expect(find.text("Can't be more than 20."), findsOneWidget);
+      expect(find.text('/20'), findsWidgets);
+      expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}'))).controller!.text, '35');
+      expect(repo.saves, hasLength(1));
+      await drain(t);
     });
 
     testWidgets('a scheduled assessment: no gate, no warning, fields editable', (t) async {
@@ -434,11 +486,11 @@ void main() {
       expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}'))).enabled, isTrue);
     });
 
-    testWidgets('403 "verified and locked": message shown, the row locks, NO Retry button', (t) async {
+    testWidgets('409 "verified and locked": message shown, the row locks, NO Retry button', (t) async {
       await boot(t, marks: [mark(student(2), 30)]);
       await t.enterText(find.byKey(Key('marks_field_${idOf(1)}')), '10');
       await t.pump();
-      repo.onSave = (_) async => throw ApiException('Marks for 1 students are verified and locked: Student 1', statusCode: 403);
+      repo.onSave = (_) async => throw ApiException('Marks for 1 students are verified and locked: Student 1', statusCode: 409);
       repo.onMarks = (_, __) async => AllPages([mark(student(1), 25, verified: true)]);
       await t.tap(find.byKey(const Key('marks_save_button')));
       await settle(t);
@@ -734,7 +786,7 @@ void main() {
 
     testWidgets('a failed save keeps the marks and offers Retry', (t) async {
       await bootDetail(t, attempt('t1'));
-      repo.onGrade = (id, g) async => throw ApiException('Forbidden resource', statusCode: 403);
+      repo.onGrade = (id, g) async => throw ApiException('Internal server error', statusCode: 500);
       await t.enterText(find.descendant(of: find.byKey(const Key('qa_mark_q2')), matching: find.byType(TextField)), '3');
       await t.pump();
       await t.tap(find.byKey(const Key('qa_submit')));
@@ -742,9 +794,35 @@ void main() {
       await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
       await settle(t);
       expect(find.byKey(const Key('qa_error')), findsOneWidget);
-      expect(find.textContaining("You can't save these marks"), findsOneWidget);
+      expect(find.textContaining("couldn't save these marks"), findsOneWidget);
       expect(t.widget<TextField>(find.descendant(of: find.byKey(const Key('qa_mark_q2')), matching: find.byType(TextField))).controller!.text, '3');
       await drain(t);
+    });
+
+    testWidgets('403 on grading (published meanwhile): lock banner with the server text, inputs disabled, marks kept, no Save button', (t) async {
+      await bootDetail(t, attempt('t1'));
+      repo.onGrade = (id, g) async => throw ApiException('Results for this assessment are published (or the assessment is cancelled): marks can no longer be changed. Contact an administrator.', statusCode: 403);
+      await t.enterText(find.descendant(of: find.byKey(const Key('qa_mark_q2')), matching: find.byType(TextField)), '3');
+      await t.pump();
+      await t.tap(find.byKey(const Key('qa_submit')));
+      await settle(t);
+      await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
+      await settle(t);
+      expect(find.byKey(const Key('qa_lock_banner')), findsOneWidget);
+      expect(find.textContaining('Results for this assessment are published'), findsOneWidget);
+      expect(find.byKey(const Key('qa_submit')), findsNothing);
+      final f = t.widget<TextField>(find.descendant(of: find.byKey(const Key('qa_mark_q2')), matching: find.byType(TextField)));
+      expect(f.enabled, isFalse);
+      expect(f.controller!.text, '3');
+      await drain(t);
+    });
+
+    testWidgets('an attempt of a published assessment opens read-only with the lock banner', (t) async {
+      repo.onOne = (_) async => asm('a1', status: 'result_published', published: true);
+      await bootDetail(t, attempt('t1', assessmentId: 'a1'));
+      expect(find.byKey(const Key('qa_lock_banner')), findsOneWidget);
+      expect(find.byKey(const Key('qa_submit')), findsNothing);
+      expect(t.widget<TextField>(find.descendant(of: find.byKey(const Key('qa_mark_q2')), matching: find.byType(TextField))).enabled, isFalse);
     });
 
     testWidgets('an already graded attempt is read-only with the reason', (t) async {

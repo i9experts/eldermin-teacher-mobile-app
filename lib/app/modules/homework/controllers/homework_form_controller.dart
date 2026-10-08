@@ -26,6 +26,9 @@ class AttachmentItem {
   final status = UploadStatus.uploading.obs;
   final progress = 0.0.obs;
   final error = RxnString();
+
+  /// The server said uploads are not available at all (503, storage not configured): no Retry, only "Continue without attachment".
+  final unavailable = false.obs;
   String? key;
 
   AttachmentItem({required this.id, required this.name, this.path, this.size = 0, this.key}) {
@@ -303,6 +306,7 @@ class HomeworkFormController extends GetxController {
     it.status.value = UploadStatus.uploading;
     it.progress.value = 0;
     it.error.value = null;
+    it.unavailable.value = false;
     try {
       final up = await repo.upload(
         path: path,
@@ -314,14 +318,16 @@ class HomeworkFormController extends GetxController {
       it.status.value = UploadStatus.done;
       errors.remove('attachments');
     } catch (e) {
-      it.error.value = ActionFailure.from(e, what: 'upload ${it.name}', keep: 'The file is kept.').message;
+      final f = ActionFailure.from(e, what: 'upload ${it.name}', keep: 'The file is kept.', upload: true);
+      it.error.value = f.message;
+      it.unavailable.value = f.kind == ActionFailureKind.uploadUnavailable;
       it.status.value = UploadStatus.failed;
     }
   }
 
   Future<void> retryUpload(String id) async {
     final it = attachments.firstWhereOrNull((a) => a.id == id);
-    if (it == null || it.status.value != UploadStatus.failed) return;
+    if (it == null || it.status.value != UploadStatus.failed || it.unavailable.value) return; // uploads are unavailable: retrying would only hammer the server
     await _upload(it);
   }
 

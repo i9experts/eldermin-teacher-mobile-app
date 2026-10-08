@@ -5,6 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_date_picker.dart';
 import '../../../../core/widgets/app_widgets.dart';
+import '../../../common/action_failure.dart';
 import '../../../components/confirm_dialog.dart';
 import '../../../components/custom_text.dart';
 import '../../../utils/toast_util.dart';
@@ -258,6 +259,7 @@ class _AttachmentRow extends StatelessWidget {
       final st = item.status.value;
       final p = item.progress.value;
       final err = item.error.value;
+      final unavailable = item.unavailable.value;
       return Container(
         key: ValueKey('att_${item.id}'),
         margin: const EdgeInsets.only(bottom: 8),
@@ -274,7 +276,7 @@ class _AttachmentRow extends StatelessWidget {
                 if (item.size > 0) CustomText(text: sizeText(item.size), color: AppColors.muted, fontSize: 10.5),
               ]),
             ),
-            if (st == UploadStatus.failed) TextButton(key: ValueKey('retry_${item.id}'), onPressed: onRetry, child: const CustomText(text: 'Retry', color: AppColors.primaryColor, fontWeight: FontWeight.w800)),
+            if (st == UploadStatus.failed && !unavailable) TextButton(key: ValueKey('retry_${item.id}'), onPressed: onRetry, child: const CustomText(text: 'Retry', color: AppColors.primaryColor, fontWeight: FontWeight.w800)),
             IconButton(key: ValueKey('remove_${item.id}'), onPressed: onRemove, icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.muted)),
           ]),
           if (st == UploadStatus.uploading)
@@ -286,7 +288,17 @@ class _AttachmentRow extends StatelessWidget {
                 CustomText(text: p >= 1 ? 'Finishing...' : '${(p * 100).round()}%', color: AppColors.muted, fontSize: 10.5),
               ]),
             ),
-          if (st == UploadStatus.failed && err != null) Padding(padding: const EdgeInsets.only(right: 8, bottom: 4), child: CustomText(key: ValueKey('att_err_${item.id}'), text: err, color: AppColors.redText, fontSize: 11)),
+          if (st == UploadStatus.failed && unavailable)
+            Padding(
+              padding: const EdgeInsets.only(right: 8, bottom: 4),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                CustomText(key: ValueKey('att_unavailable_title_${item.id}'), text: ActionFailure.uploadUnavailableTitle, color: AppColors.redText, fontSize: 12, fontWeight: FontWeight.w800),
+                if (err != null) CustomText(key: ValueKey('att_err_${item.id}'), text: err, color: AppColors.redText, fontSize: 11),
+                TextButton(key: ValueKey('continue_without_${item.id}'), onPressed: onRemove, child: const CustomText(text: 'Continue without attachment', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 12)),
+              ]),
+            )
+          else if (st == UploadStatus.failed && err != null)
+            Padding(padding: const EdgeInsets.only(right: 8, bottom: 4), child: CustomText(key: ValueKey('att_err_${item.id}'), text: err, color: AppColors.redText, fontSize: 11)),
         ]),
       );
     });

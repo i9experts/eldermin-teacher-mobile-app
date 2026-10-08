@@ -3,6 +3,7 @@ import '../../../../core/models/assessments/assessment_models.dart';
 import '../../../../core/services/assessment_repository.dart';
 import '../../../../core/services/permission_service.dart';
 import '../../../../core/utils/assessment_scope.dart';
+import 'assessments_controller.dart' show marksLockMessage;
 import '../../../../core/utils/roster_scope.dart';
 import '../../../common/action_failure.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -153,8 +154,12 @@ class QuizAttemptDetailController extends GetxController {
   final revision = 0.obs;
   Map<String, String> _original = {};
 
+  /// Why grading is locked: the assessment's results are published / it is cancelled (read from `GET /assessments/:id`, best effort), or the
+  /// server answered 403 on the grade call (its own text). The attempt is read-only then; typed marks stay visible.
+  final lockMessage = RxnString();
+
   QuizAttempt? get attempt => state.value.data;
-  bool get editable => attempt?.isPending ?? false;
+  bool get editable => (attempt?.isPending ?? false) && lockMessage.value == null;
 
   @override
   void onReady() {
@@ -175,9 +180,20 @@ class QuizAttemptDetailController extends GetxController {
         return;
       }
       _seed(a);
+      lockMessage.value = await _assessmentLock(a);
       state.value = SectionState.data(a);
     } catch (e) {
       state.value = SectionState<QuizAttempt>.fromError(e);
+    }
+  }
+
+  /// null when the assessment is open, unknown or cannot be read (then only the server's 403 locks the attempt).
+  Future<String?> _assessmentLock(QuizAttempt a) async {
+    if (a.assessmentId.isEmpty) return null;
+    try {
+      return marksLockMessage(await repo.assessment(a.assessmentId));
+    } catch (_) {
+      return null;
     }
   }
 
@@ -278,6 +294,11 @@ class QuizAttemptDetailController extends GetxController {
     } catch (e) {
       final f = ActionFailure.from(e, what: 'save these marks', keep: 'Your marks are kept.');
       failure.value = f;
+      // 403 = the server locked grading for this attempt (assessment published / cancelled meanwhile, or not my class): read-only from now on.
+      if (f.kind == ActionFailureKind.forbidden) {
+        lockMessage.value = f.serverMessage.isNotEmpty ? f.serverMessage : f.message;
+        failure.value = null; // the lock banner shows the message once
+      }
       // 409: somebody graded this attempt meanwhile. Re-read it so the screen shows the graded (read-only) state; the server message stays.
       if (f.kind == ActionFailureKind.conflict) await _refreshAfterConflict();
       return GradeFailed(f);

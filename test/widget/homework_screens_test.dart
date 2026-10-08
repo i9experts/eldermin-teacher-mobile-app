@@ -375,6 +375,25 @@ void main() {
       expect(find.text('sheet.pdf'), findsNothing);
     });
 
+    testWidgets('upload 503 (storage not configured): "Upload unavailable" + server text, NO Retry, "Continue without attachment" removes the file', (t) async {
+      const text = 'File uploads are not available on this server (storage is not configured).';
+      repo.onUpload = (p, n, pr) async => throw ApiException(text, statusCode: 503);
+      final picker = FakePicker()..docs = [const PickedAttachment(name: 'sheet.pdf', path: '/tmp/sheet.pdf', size: 2048)];
+      final c = await boot(t, picker: picker);
+      unawaited(c.pickDocuments());
+      await settle(t);
+      final id = c.attachments.single.id;
+      expect(find.text('Upload unavailable'), findsOneWidget);
+      expect(find.byKey(ValueKey('att_err_$id')), findsOneWidget);
+      expect(find.text(text), findsOneWidget);
+      expect(find.byKey(ValueKey('retry_$id')), findsNothing);
+      expect(find.text('Continue without attachment'), findsOneWidget);
+      await t.tap(find.byKey(ValueKey('continue_without_$id')));
+      await settle(t);
+      expect(find.text('sheet.pdf'), findsNothing);
+      expect(c.attachments, isEmpty);
+    });
+
     testWidgets('rejected file types / sizes are explained', (t) async {
       final picker = FakePicker()..docs = [const PickedAttachment(name: 'run.exe', path: '/tmp/run.exe', size: 10)];
       final c = await boot(t, picker: picker);

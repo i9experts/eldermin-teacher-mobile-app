@@ -39,7 +39,7 @@ class Assessments(unittest.TestCase):
 
     def test_list_is_paginated_filtered_and_unscoped_to_teacher(self):
         st, r = p.list_assessments(T, {"limit": ["100"]})
-        self.assertEqual((st, r["meta"]["total"]), (200, 10))
+        self.assertEqual((st, r["meta"]["total"]), (200, 11))
         self.assertEqual(p.list_assessments(T, {"limit": ["3"], "page": ["2"]})[1]["data"].__len__(), 3)
         self.assertEqual(p.list_assessments(T, {"limit": ["0"]})[0], 400)
         grades = {a["grade"] for a in r["data"]}
@@ -212,6 +212,20 @@ class Quiz(unittest.TestCase):
         self.assertEqual(p.grade_attempt(T, att["_id"], {})[1], "grades must be an array")
         self.assertEqual(p.grade_attempt(T, "64f" + "0" * 21, {"grades": []})[0], 404)
 
+    def test_published403_mode_answers_the_planned_lock_text_and_writes_nothing(self):
+        a1, ros = asm("Unit Test 1"), roster_5a()
+        body = {"assessmentId": a1["_id"], "subject": "Mathematics", "grade": "Grade 5", "marks": [row(ros[20], obtainedMarks=7)]}
+        self.assertEqual(p.bulk_marks(T, body, mode="published403"), (403, p.PUBLISHED_LOCK_TEXT))
+        self.assertIsNone(p._state["marks"].get((a1["_id"], ros[20]["_id"], "Mathematics")))
+        self.assertIn("marks can no longer be changed", p.PUBLISHED_LOCK_TEXT)
+        att = next(a for a in p._state["attempts"].values() if a["status"] == "submitted")
+        q = next(a["questionId"] for a in att["answers"] if a["needsManualGrading"])
+        self.assertEqual(p.grade_attempt(T, att["_id"], {"grades": [{"questionId": q, "marksAwarded": 1}]}, mode="published403"), (403, p.PUBLISHED_LOCK_TEXT))
+
+    def test_draft_assessment_of_my_class_is_seeded(self):
+        d = asm("Draft - Unit Test 2")
+        self.assertEqual((d["status"], d["grade"], d["section"], d["subjects"][0]["subject"]), ("draft", "Grade 5", "A", "Mathematics"))
+
     def test_regrade_of_a_graded_attempt_is_accepted(self):
         graded = next(a for a in p._state["attempts"].values() if a["status"] == "graded")
         qs = [a["questionId"] for a in graded["answers"]]
@@ -285,7 +299,7 @@ class Http(unittest.TestCase):
 
     def test_routes_and_error_shape(self):
         st, r = self.call("GET", "/api/v1/assessments?limit=100")
-        self.assertEqual((st, r["meta"]["total"]), (200, 10))
+        self.assertEqual((st, r["meta"]["total"]), (200, 11))
         aid = r["data"][0]["_id"]
         self.assertEqual(self.call("GET", f"/api/v1/assessments/{aid}")[0], 200)
         self.assertEqual(self.call("GET", "/api/v1/assessments/marks/list?limit=5")[1]["meta"]["limit"], 5)  # not swallowed by :id

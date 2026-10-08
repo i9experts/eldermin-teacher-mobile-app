@@ -15,6 +15,8 @@ class AssessmentTags extends StatelessWidget {
   Widget build(BuildContext context) {
     final tags = <Widget>[];
     switch (a.status) {
+      case AssessmentStatus.draft:
+        tags.add(const AppTag('DRAFT', style: TagStyle.amber));
       case AssessmentStatus.scheduled:
         tags.add(const AppTag('SCHEDULED', style: TagStyle.neutral));
       case AssessmentStatus.ongoing:
@@ -62,7 +64,10 @@ class AssessmentTile extends StatelessWidget {
         CustomText(text: assessmentDateText(a), color: AppColors.muted, fontSize: 11.5),
         const SizedBox(height: 8),
         AssessmentTags(a: a),
-        if (mySubjects.isNotEmpty) ...[
+        if (a.status == AssessmentStatus.draft) ...[
+          const SizedBox(height: 8),
+          CustomText(key: ValueKey('asm_draft_note_${a.id}'), text: MarksAccess.draft.explanation, color: AppColors.muted, fontSize: 11.5),
+        ] else if (mySubjects.isNotEmpty) ...[
           const SizedBox(height: 8),
           for (final s in a.subjects.where((x) => mySubjects.contains(x.subject)))
             Padding(
@@ -92,21 +97,32 @@ class AccessNote extends StatelessWidget {
   Widget build(BuildContext context) => _NoteBox(noteKey: noteKey, text: access.explanation, warning: false);
 }
 
-/// An amber, NON-blocking caution (results published / cancelled): the marks stay editable.
-class StatusWarningNote extends StatelessWidget {
+/// The red lock banner: marks cannot be changed (results published / assessment cancelled, or the server said so with 403).
+class LockBanner extends StatelessWidget {
   final String message;
   final Key? noteKey;
-  const StatusWarningNote({super.key, required this.message, this.noteKey});
+  const LockBanner({super.key, required this.message, this.noteKey});
 
   @override
-  Widget build(BuildContext context) => _NoteBox(noteKey: noteKey, text: message, warning: true);
+  Widget build(BuildContext context) => Container(
+        key: noteKey,
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: AppColors.amberBg, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: AppColors.amberText)),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Icon(Icons.lock_outline_rounded, size: 18, color: AppColors.amberText),
+          const SizedBox(width: 8),
+          Expanded(child: CustomText(text: message, color: AppColors.amberText, fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w700)),
+        ]),
+      );
 }
 
 class _NoteBox extends StatelessWidget {
   final Key? noteKey;
   final String text;
   final bool warning;
-  const _NoteBox({this.noteKey, required this.text, required this.warning});
+  const _NoteBox({this.noteKey, required this.text, this.warning = false});
 
   @override
   Widget build(BuildContext context) {

@@ -34,7 +34,7 @@ List<ClassRef> rosterClassesFor(Assessment a, String subject, Iterable<ClassRef>
 /// An assessment is relevant to me when I teach one of its subjects in one of its classes, or I am the class teacher of one of its classes
 /// (then I see it read-only, and can write remarks).
 bool isMyAssessment(Assessment a, Iterable<ClassRef> classes) {
-  if (a.status == AssessmentStatus.draft) return false; // an admin's work in progress
+  // drafts ARE listed since 2026-10-08 (owner decision): badge "Draft", no marks entry
   final mine = myClassesFor(a, classes);
   if (mine.isEmpty) return false;
   return mine.any((c) => c.isClassTeacherClass) || mySubjectsOf(a, classes).isNotEmpty;

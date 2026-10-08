@@ -178,8 +178,8 @@ class MarksInvalid extends MarksSaveResult {
 ///  * 0 <= marks <= totalMarks per student (the server accepts any number >= 0);
 ///  * rows with `verified: true` are read-only and never sent (the server would overwrite them and keep them "verified");
 ///  * rows written by the online quiz are read-only; online-quiz subjects are read-only as a whole and a subject I do not teach is
-///    view-only ([MarksAccess]); there is NO assessment-status gate (draft..result_published are editable, published/cancelled show a
-///    warning, see [marksStatusWarning]);
+///    view-only ([MarksAccess]); PUBLISHED / CANCELLED assessments are LOCKED (read-only grid + banner, owner decision 2026-10-08, the server
+///    answers 403, see [marksLockMessage]) and DRAFTS take no marks; scheduled..completed have no gate;
 ///  * only CHANGED rows are sent (a minimal overwrite surface), never a blind full-sheet write.
 /// Still open on the server: no ownership / class check, no per-row version (last write wins), no way to clear a saved mark.
 class MarksEntryController extends GetxController {
@@ -231,10 +231,21 @@ class MarksEntryController extends GetxController {
     return perms.canAccess('assessments:view');
   }
 
-  bool get editable => access.value.canEdit;
+  /// The server refused a save with 403 (the assessment got published / cancelled while this grid was open, or any other 403): its message.
+  /// The grid is read-only from then on; typed values stay visible.
+  final serverLock = RxnString();
 
-  /// Non-blocking caution (results published / cancelled); null otherwise.
-  String? get statusWarning => assessment.value == null ? null : marksStatusWarning(assessment.value!);
+  /// I teach this subject here (set by [load]); kept to recompute [access] after the assessment is re-read.
+  bool _iTeachIt = true;
+
+  bool get editable => access.value.canEdit && serverLock.value == null;
+
+  /// Why the grid is locked (results published / cancelled, or the server's own 403 text); null while marks can be changed.
+  String? get lockMessage {
+    final s = serverLock.value;
+    if (s != null) return s;
+    return access.value == MarksAccess.locked && assessment.value != null ? marksLockMessage(assessment.value!) : null;
+  }
   int get lockedCount => rows.where((r) => r.locked).length;
   bool get allLocked => rows.isNotEmpty && rows.every((r) => r.locked);
 
@@ -260,6 +271,7 @@ class MarksEntryController extends GetxController {
       return;
     }
     final token = ++_token;
+    if (force) serverLock.value = null; // a reload re-reads the truth (an administrator may have re-opened it)
     if (!state.value.hasData) state.value = const SectionState.loading();
     try {
       final a = assessment.value != null && !force ? assessment.value! : await repo.assessment(assessmentId);
@@ -281,6 +293,7 @@ class MarksEntryController extends GetxController {
         state.value = const SectionState.error("This assessment isn't one of yours.");
         return;
       }
+      _iTeachIt = teaches;
       access.value = marksAccessFor(a, cfg, iTeachIt: teaches);
       classes.value = cl;
       if (initialSection != null && !force && selected.value == 0) {
@@ -429,9 +442,14 @@ class MarksEntryController extends GetxController {
       saveFailure.value = f;
       _attachServerRowError(f, sending);
       saving.value = false;
-      // 403 / 409 ("verified and locked"): somebody verified a row since this sheet was loaded. Re-read the server's copy so those rows lock
-      // here too; every other typed value stays.
-      if (f.kind == ActionFailureKind.forbidden || f.kind == ActionFailureKind.conflict) await _lockServerVerifiedRows();
+      // 403 = the server locked this assessment (published / cancelled meanwhile): lock the grid with ITS message, typed values stay visible.
+      if (f.kind == ActionFailureKind.forbidden) serverLock.value = f.serverMessage.isNotEmpty ? f.serverMessage : f.message;
+      // Any server-side rejection (400 / 403 / 409): the sheet may be stale, so re-read the assessment (new total / pass marks / status) and
+      // re-validate what is typed against it; 403 / 409 also re-read the marks so rows verified meanwhile lock. Nothing typed is changed or sent.
+      if (f.kind == ActionFailureKind.validation || f.kind == ActionFailureKind.forbidden || f.kind == ActionFailureKind.conflict) {
+        await _refreshAssessment();
+        if (f.kind != ActionFailureKind.validation) await _lockServerVerifiedRows();
+      }
       return MarksSaveFailed(f);
     }
     // success: mark the sent rows as saved, then re-read the server's copy (best effort)
@@ -464,6 +482,24 @@ class MarksEntryController extends GetxController {
       revision.value++;
     } catch (_) {}
     return MarksSaved(sending.length);
+  }
+
+  /// Best effort: `GET /assessments/:id` after a rejection. Header total / pass marks / status and the per-row max follow the fresh copy; a
+  /// failed re-read keeps the old header and shows nothing extra.
+  Future<void> _refreshAssessment() async {
+    final token = _token;
+    try {
+      final fresh = await repo.assessment(assessmentId);
+      if (token != _token) return;
+      final cfg = fresh.subjectNamed(subject);
+      if (cfg == null) return;
+      assessment.value = fresh;
+      final next = marksAccessFor(fresh, cfg, iTeachIt: _iTeachIt);
+      // a stale grid never becomes MORE editable here (only a reload does that); it can only become locked / read-only
+      if (!next.canEdit) access.value = next;
+      showErrors.value = true;
+      revision.value++;
+    } catch (_) {}
   }
 
   /// Best effort: rows now verified (or quiz-written) on the server become locked and show the server's value; other rows are untouched.

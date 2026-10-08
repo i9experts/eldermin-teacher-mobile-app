@@ -116,7 +116,7 @@ void main() {
       expect(repo.saves, hasLength(1));
     });
 
-    for (final status in [403, 409]) {
+    for (final status in [409]) {
       test('$status "verified and locked": the verified row locks (server value shown), the other typed values stay, message shown', () async {
         final c = await make();
         c.setMarks(student(1).id, '40');
@@ -195,8 +195,8 @@ void main() {
       r.d.setMark('q2', '3');
       repo.onGrade = (_, __) async => throw serverError(403, 'You can only grade quiz attempts for classes you teach.');
       expect(await r.d.submit(), isA<GradeFailed>());
-      expect(r.d.failure.value!.message, contains('You can only grade quiz attempts for classes you teach.'));
-      expect(r.d.failure.value!.canRetry, isFalse);
+      expect(r.d.lockMessage.value, 'You can only grade quiz attempts for classes you teach.');
+      expect(r.d.editable, isFalse);
       expect(r.d.inputs['q2'], '3');
     });
 

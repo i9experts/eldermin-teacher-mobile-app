@@ -137,13 +137,16 @@ void main() {
     });
   });
 
-  group('access matrix (NO assessment-status gate)', () {
+  group('access matrix (published / cancelled = LOCK, draft = no marks, since 2026-10-08)', () {
     final s = asm('x').subjects.first;
-    test('editable for every status when it is my subject; only not-mine and online-quiz subjects are blocked', () {
-      for (final st in ['draft', 'scheduled', 'ongoing', 'completed', 'cancelled', 'result_published']) {
+    test('editable for scheduled / ongoing / completed; draft, cancelled and published are blocked; not-mine and online-quiz as before', () {
+      for (final st in ['scheduled', 'ongoing', 'completed']) {
         expect(marksAccessFor(asm('x', status: st), s, iTeachIt: true), MarksAccess.editable, reason: st);
       }
-      expect(marksAccessFor(asm('x', status: 'completed', published: true), s, iTeachIt: true), MarksAccess.editable);
+      expect(marksAccessFor(asm('x', status: 'draft'), s, iTeachIt: true), MarksAccess.draft);
+      expect(marksAccessFor(asm('x', status: 'cancelled'), s, iTeachIt: true), MarksAccess.locked);
+      expect(marksAccessFor(asm('x', status: 'result_published'), s, iTeachIt: true), MarksAccess.locked);
+      expect(marksAccessFor(asm('x', status: 'completed', published: true), s, iTeachIt: true), MarksAccess.locked);
       expect(marksAccessFor(asm('x'), s, iTeachIt: false), MarksAccess.notMySubject);
       final q = asm('x', online: true, paperOn: 'Mathematics');
       expect(marksAccessFor(q, q.subjects.first, iTeachIt: true), MarksAccess.onlineQuiz);
@@ -151,24 +154,24 @@ void main() {
       expect(marksAccessFor(q2, q2.subjects.first, iTeachIt: true), MarksAccess.editable);
     });
 
-    test('warning only for results published / cancelled, never blocking', () {
-      expect(marksStatusWarning(asm('x', status: 'ongoing')), isNull);
-      expect(marksStatusWarning(asm('x', status: 'scheduled')), isNull);
-      expect(marksStatusWarning(asm('x', status: 'draft')), isNull);
-      expect(marksStatusWarning(asm('x', status: 'result_published', published: true)), 'Results are published; changes may affect published results.');
-      expect(marksStatusWarning(asm('x', status: 'completed', published: true)), contains('Results are published'));
-      expect(marksStatusWarning(asm('x', status: 'cancelled')), contains('cancelled'));
+    test('lock message only for results published / cancelled', () {
+      expect(marksLockMessage(asm('x', status: 'ongoing')), isNull);
+      expect(marksLockMessage(asm('x', status: 'scheduled')), isNull);
+      expect(marksLockMessage(asm('x', status: 'draft')), isNull);
+      expect(marksLockMessage(asm('x', status: 'result_published', published: true)), 'Results are published \u2014 marks are locked. Ask an administrator to change them.');
+      expect(marksLockMessage(asm('x', status: 'completed', published: true)), contains('Results are published'));
+      expect(marksLockMessage(asm('x', status: 'cancelled')), 'This assessment is cancelled \u2014 marks are locked. Ask an administrator to change them.');
     });
 
-    for (final (status, warns) in [('scheduled', false), ('draft', false), ('ongoing', false), ('result_published', true), ('cancelled', true)]) {
-      test('$status: the grid is editable, saves, and ${warns ? 'warns' : 'shows no warning'}', () async {
-        a1 = asm('a1', status: status, published: status == 'result_published');
+    for (final status in ['scheduled', 'ongoing', 'completed']) {
+      test('$status: the grid is editable and saves', () async {
+        a1 = asm('a1', status: status);
         repo.onMarks = (_, __) async => AllPages([mark(student(1), 30)]);
         final c = await make();
         expect(c.access.value, MarksAccess.editable);
         expect(c.editable, isTrue);
         expect(c.canEnter, isTrue);
-        expect(c.statusWarning != null, warns);
+        expect(c.lockMessage, isNull);
         c.setMarks(student(2).id, '12');
         expect(c.hasUnsavedChanges, isTrue);
         expect(await c.save(), isA<MarksSaved>());
@@ -177,13 +180,20 @@ void main() {
       });
     }
 
-    test('0..total still enforced when published', () async {
-      a1 = asm('a1', status: 'result_published', published: true);
-      final c = await make();
-      c.setMarks(student(2).id, '51');
-      expect(await c.save(), isA<MarksInvalid>());
-      expect(repo.saves, isEmpty);
-    });
+    for (final status in ['result_published', 'cancelled', 'draft']) {
+      test('$status: the grid is read-only, typing and saving do nothing, nothing is sent', () async {
+        a1 = asm('a1', status: status, published: status == 'result_published');
+        repo.onMarks = (_, __) async => AllPages([mark(student(1), 30)]);
+        final c = await make();
+        expect(c.editable, isFalse);
+        expect(c.canEnter, isFalse);
+        expect(c.lockMessage != null, status != 'draft');
+        c.setMarks(student(2).id, '12');
+        expect(c.hasUnsavedChanges, isFalse);
+        expect(await c.save(), isA<MarksNothingToSave>());
+        expect(repo.saves, isEmpty);
+      });
+    }
 
     test('online-quiz subject: read-only with an explanation', () async {
       a1 = asm('a1', online: true, paperOn: 'Mathematics');
@@ -472,14 +482,21 @@ void main() {
       expect(row(c, 2).serverError, isNull);
     });
 
-    test('403 on save: a calm "can\'t save" message with the server text; state kept', () async {
+    test('403 on save: the grid locks with the SERVER text, typed values stay visible, nothing is auto-sent', () async {
       final c = await make();
       c.setMarks(student(1).id, '10');
-      repo.onSave = (_) async => throw ApiException('Forbidden resource', statusCode: 403);
+      repo.onSave = (_) async => throw ApiException('Results for this assessment are published (or the assessment is cancelled): marks can no longer be changed. Contact an administrator.', statusCode: 403);
       await c.save();
       expect(c.saveFailure.value!.isForbidden, isTrue);
-      expect(c.saveFailure.value!.message, contains("You can't save these marks"));
+      expect(c.lockMessage, startsWith('Results for this assessment are published'));
+      expect(c.editable, isFalse);
+      expect(row(c, 1).text, '10');
       expect(c.hasUnsavedChanges, isTrue);
+      expect(repo.saves, hasLength(1));
+      c.setMarks(student(1).id, '11'); // read-only now
+      expect(row(c, 1).text, '10');
+      await c.load(force: true); // a reload clears the server lock (an admin may have re-opened it)
+      expect(c.lockMessage, isNull);
     });
 
     test('class switch loads the other roster; marks of one class never leak into the other', () async {

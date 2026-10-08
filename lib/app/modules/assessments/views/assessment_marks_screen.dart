@@ -150,8 +150,10 @@ class _MarksBodyState extends State<_MarksBody> {
             for (var i = 0; i < c.classes.length; i++) (c.classes[i].label, -1, i == c.selected.value, () => _selectClass(i), 'class$i'),
           ]),
         ),
-      if (c.state.value.status != SectionStatus.loading && !c.access.value.canEdit && c.state.value.status != SectionStatus.error) AccessNote(noteKey: const Key('marks_access_note'), access: c.access.value),
-      if (c.editable && c.statusWarning != null && c.state.value.status != SectionStatus.loading && c.state.value.status != SectionStatus.error) StatusWarningNote(noteKey: const Key('marks_status_warning'), message: c.statusWarning!),
+      if (c.lockMessage != null && c.state.value.status != SectionStatus.loading && c.state.value.status != SectionStatus.error)
+        LockBanner(noteKey: const Key('marks_lock_banner'), message: c.lockMessage!)
+      else if (c.state.value.status != SectionStatus.loading && !c.access.value.canEdit && c.state.value.status != SectionStatus.error)
+        AccessNote(noteKey: const Key('marks_access_note'), access: c.access.value),
       if (c.state.value.hasData && c.editable && c.lockedCount > 0)
         Container(
           key: const Key('marks_locked_note'),

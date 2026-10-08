@@ -433,12 +433,12 @@ void main() {
       var fail = true;
       final gate = <Future<QuizAttempt>>[];
       repo.onGrade = (id, g) {
-        if (fail) return Future.error(ApiException('Forbidden resource', statusCode: 403));
+        if (fail) return Future.error(ApiException('Internal server error', statusCode: 500));
         return Future.value(attempt(id, awarded: [3, null]));
       };
       final res = await r.d.submit();
       expect(res, isA<GradeFailed>());
-      expect(r.d.failure.value!.message, contains("You can't save these marks"));
+      expect(r.d.failure.value!.message, contains("couldn't save these marks"));
       expect(r.d.inputs['q2'], '3');
       expect(r.d.saving.value, isFalse);
       fail = false;
