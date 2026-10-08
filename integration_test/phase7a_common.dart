@@ -88,6 +88,7 @@ Future<void> signInAs(WidgetTester t, String email) async {
     await t.tap(out);
     await waitFor(t, find.byKey(const Key('confirm_dialog_confirm')));
     await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
+    await t.pump(const Duration(seconds: 3));
     await waitFor(t, find.text('Sign in'));
   }
   await settle(t);
