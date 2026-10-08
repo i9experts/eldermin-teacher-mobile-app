@@ -1,0 +1,44 @@
+{
+ "_id": "64d000000000000000001005",
+ "tenantId": "64d0000000000000000000a1",
+ "institutionId": "64d0000000000000000000a2",
+ "campusId": "64a0000000000000000000c1",
+ "studentId": "64f000000000000000000205",
+ "studentName": "Mariam Farooq (DUMMY)",
+ "gradeLevel": "Grade 5",
+ "sectionName": "A",
+ "teacherId": "64a0000000000000000000a1",
+ "teacherName": "Tess Teacher",
+ "scheduledDate": "2026-10-05T00:00:00.000Z",
+ "startTime": "09:00",
+ "endTime": "09:20",
+ "guardianName": "Mr Farooq (DUMMY)",
+ "status": "completed",
+ "academicYear": "2026-27",
+ "discussionPoints": [
+  "Spelling"
+ ],
+ "meetingNotes": "Parent attended. Agreed daily reading for 15 minutes.",
+ "actionItems": [
+  {
+   "_id": "64d000000000000000002001",
+   "description": "Read 15 minutes every evening",
+   "assignedTo": "Parent",
+   "dueDate": "2026-10-15T00:00:00.000Z",
+   "status": "pending"
+  },
+  {
+   "_id": "64d000000000000000002002",
+   "description": "Send the reading log on Friday",
+   "assignedTo": "Teacher",
+   "status": "done"
+  }
+ ],
+ "parentAttended": true,
+ "requestedBy": "Tess Teacher",
+ "notifiedAt": "2026-10-08T13:45:04.863Z",
+ "notificationStatus": "sent",
+ "createdAt": "2026-09-20T06:00:00.000Z",
+ "updatedAt": "2026-09-20T06:00:00.000Z",
+ "__v": 0
+}

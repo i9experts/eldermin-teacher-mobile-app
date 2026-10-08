@@ -1,0 +1,37 @@
+{
+ "staffId": "64a0000000000000000000a2",
+ "staffName": "Clara Classteacher",
+ "employeeId": "EMP-STUB",
+ "department": "Primary",
+ "hasPolicy": false,
+ "annual": {
+  "entitled": 0,
+  "used": 0,
+  "remaining": 0
+ },
+ "sick": {
+  "entitled": 0,
+  "used": 0,
+  "remaining": 0
+ },
+ "casual": {
+  "entitled": 0,
+  "used": 0,
+  "remaining": 0
+ },
+ "maternity": {
+  "entitled": 0,
+  "used": 0,
+  "remaining": 0
+ },
+ "paternity": {
+  "entitled": 0,
+  "used": 0,
+  "remaining": 0
+ },
+ "hajj": {
+  "entitled": 0,
+  "used": 0,
+  "remaining": 0
+ }
+}

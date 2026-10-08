@@ -1,0 +1,37 @@
+{
+ "staffId": "64a0000000000000000000a1",
+ "staffName": "Tess Teacher",
+ "employeeId": "EMP-STUB",
+ "department": "Science",
+ "hasPolicy": true,
+ "annual": {
+  "entitled": 21,
+  "used": 4,
+  "remaining": 17
+ },
+ "sick": {
+  "entitled": 10,
+  "used": 2,
+  "remaining": 8
+ },
+ "casual": {
+  "entitled": 10,
+  "used": 0,
+  "remaining": 10
+ },
+ "maternity": {
+  "entitled": 90,
+  "used": 0,
+  "remaining": 90
+ },
+ "paternity": {
+  "entitled": 10,
+  "used": 0,
+  "remaining": 10
+ },
+ "hajj": {
+  "entitled": 0,
+  "used": 0,
+  "remaining": 0
+ }
+}
