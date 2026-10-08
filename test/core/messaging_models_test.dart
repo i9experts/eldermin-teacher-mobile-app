@@ -106,7 +106,7 @@ void main() {
       expect(t(n('ptm')), NotificationTarget(Routes.ptmDetailOf(id)));
       expect(t(n('lesson_plan')), NotificationTarget(Routes.lessonPlanDetailOf(id)));
       expect(t(n('homework')), NotificationTarget(Routes.homeworkSubmissionsOf(id)));
-      expect(t(n('substitution')), const NotificationTarget(Routes.fixtures, listFallback: true), reason: 'fixtures has no detail screen');
+      expect(t(n('substitution')), NotificationTarget(Routes.fixtureDetailOf(id)), reason: '7b: resolved from the fixtures list');
     });
 
     test('missing / invalid ids route to the module LIST, never a broken detail', () {
@@ -115,6 +115,7 @@ void main() {
         expect(t(n('ptm', entity: bad)), const NotificationTarget(Routes.ptm, listFallback: true));
         expect(t(n('lesson_plan', entity: bad)), const NotificationTarget(Routes.lessonPlans, listFallback: true));
         expect(t(n('homework', entity: bad)), const NotificationTarget(Routes.homework, listFallback: true));
+        expect(t(n('substitution', entity: bad)), const NotificationTarget(Routes.fixtures, listFallback: true));
       }
       expect(t(notif('n', type: 'message')), const NotificationTarget(Routes.homeMessages, listFallback: true), reason: 'relatedEntityId absent');
     });

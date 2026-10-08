@@ -36,7 +36,7 @@ void main() {
       '/assessments', '/assessments/:id/marks', '/assessments/report-remarks',
       '/assessments/quiz-attempts', '/assessments/quiz-attempts/:id',
       '/behaviour', '/behaviour/new', '/behaviour/student/:id',
-      '/ptm', '/ptm/:id', '/fixtures', '/leave', '/leave/apply',
+      '/ptm', '/ptm/new', '/ptm/:id', '/fixtures', '/fixtures/:id', '/leave', '/leave/apply',
       '/student-leaves', '/student-leaves/:id', '/messages', '/messages/new', '/messages/:threadId',
       '/calendar', '/events', '/events/:id', '/curriculum', '/library',
       '/early-years', '/safeguarding/new',
@@ -52,6 +52,7 @@ void main() {
   test('static paths are registered before parameterised siblings', () {
     int idx(String n) => names.indexOf(n);
     expect(idx('/homework/new'), lessThan(idx('/homework/:id')));
+    expect(idx('/ptm/new'), lessThan(idx('/ptm/:id')));
     expect(idx('/lesson-plans/new'), lessThan(idx('/lesson-plans/:id')));
     expect(idx('/lesson-plans/upload'), lessThan(idx('/lesson-plans/:id')));
     expect(idx('/syllabus/weekly-planner'), lessThan(idx('/syllabus/:id')));

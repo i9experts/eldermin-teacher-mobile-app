@@ -254,13 +254,17 @@ class AppPages {
         page: () => const FixturesScreen(),
         binding: FixturesBinding()),
     GetPage(
+        name: Routes.fixtureDetail,
+        page: () => const FixtureDetailScreen(),
+        binding: FixturesBinding()),
+    GetPage(
         name: Routes.leave,
         page: () => const LeaveScreen(),
         binding: LeaveBinding()),
     GetPage(
         name: Routes.leaveApply,
         page: () => const LeaveApplyScreen(),
-        binding: LeaveBinding()),
+        binding: LeaveApplyBinding()),
     GetPage(
         name: Routes.studentLeaves,
         page: () => const StudentLeavesScreen(),

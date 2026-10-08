@@ -8,7 +8,7 @@ import '../models/messaging/notification_models.dart';
 /// notification-and-message.schema.ts:25):
 ///  * `message`        thread id           staff-portal.service.ts:254-255 (to guardian) / parent-portal.service.ts:910-911 (to staff)
 ///  * `ptm`            PtmMeeting id       modules/teaching/ptm.service.ts:61-66 (to the meeting's teacher)
-///  * `substitution`   fixture id          modules/teaching/substitution.service.ts:185-189 (fixtures list has no detail route)
+///  * `substitution`   fixture id          modules/teaching/substitution.service.ts:185-189 (-> /fixtures/:id, resolved from the list: no get-one endpoint)
 ///  * `lesson_plan`    lesson plan id      modules/teaching/teaching.service.ts:394-396
 ///  * `homework`       ASSIGNMENT id       parent-portal.service.ts:246-250 (submission received) -> the submissions screen
 ///  * `leave_status`   TWO meanings: (a) parent-portal.service.ts:825-827 'New leave request' = STUDENT leave id, written to the class teacher;
@@ -49,7 +49,7 @@ NotificationTarget? notificationTargetFor(AppNotification n, {required bool isCl
     case 'ptm':
       return withId(Routes.ptmDetailOf, Routes.ptm);
     case 'substitution':
-      return const NotificationTarget(Routes.fixtures, listFallback: true);
+      return withId(Routes.fixtureDetailOf, Routes.fixtures);
     case 'lesson_plan':
       return withId(Routes.lessonPlanDetailOf, Routes.lessonPlans);
     case 'homework':
