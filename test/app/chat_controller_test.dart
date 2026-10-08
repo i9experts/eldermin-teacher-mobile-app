@@ -125,7 +125,7 @@ void main() {
       expect(c.isPolling, isFalse);
     });
 
-    test('a thread cut at the server limit of 500 messages is flagged', () async {
+    test('a thread at the server limit of 500 (the newest 500) is flagged: earlier ones are not shown', () async {
       repo.messages = (id) async => ThreadMessages(thread: thread(id), messages: [for (var i = 0; i < 500; i++) serverMsg('m$i', 'x')]);
       final c = make();
       await c.loadThread();
@@ -274,7 +274,8 @@ void main() {
       await pumpEventQueue();
       poller.fire();
       await pumpEventQueue();
-      expect(c.messages.map((m) => m.id), ['m1', 'm2', 'm5']);
+      expect(c.messages.map((m) => m.id).toSet(), {'m1', 'm2', 'm5', 'm6'}, reason: 'merged by _id: nothing lost, the sent message kept');
+      expect(c.messages, hasLength(4));
       expect(c.newIncoming.value, 1);
       expect(c.composer.text, 'half-typed');
     });
@@ -284,11 +285,46 @@ void main() {
       final c = await opened(unread: false);
       c.send('stuck');
       await pumpEventQueue();
-      repo.messages = (id) async => ThreadMessages(thread: thread(id), messages: [serverMsg('m1', 'a'), serverMsg('m7', 'b')]);
+      repo.messages = (id) async => ThreadMessages(thread: thread(id), messages: [serverMsg('m7', 'b', at: DateTime.utc(2026, 10, 5, 8, 5))]);
       poller.fire();
       await pumpEventQueue();
-      expect(c.messages.map((m) => m.body), ['a', 'b', 'stuck']);
+      expect(c.messages.map((m) => m.body), ['Hello ma\'am', 'Sure', 'b', 'stuck']);
       expect(c.messages.last.state, SendState.failed);
+    });
+
+    test('a poll asks only for messages after the newest createdAt it holds and appends them in order', () async {
+      final t0 = DateTime.utc(2026, 10, 5, 8), t1 = DateTime.utc(2026, 10, 5, 8, 30);
+      final c = await opened(unread: false, msgs: [serverMsg('m1', 'a', at: t0), serverMsg('m2', 'b', mine: true, at: t1)]);
+      expect(repo.afters, [null], reason: 'the initial load has no after');
+      repo.messagesAfter = (id, after) async => ThreadMessages(thread: thread(id), messages: [serverMsg('m3', 'c', at: DateTime.utc(2026, 10, 5, 9))]);
+      poller.fire();
+      await pumpEventQueue();
+      expect(repo.afters.last, t1);
+      expect(c.messages.map((m) => m.id), ['m1', 'm2', 'm3']);
+      expect(c.newIncoming.value, 1);
+      // an empty answer changes nothing
+      repo.messagesAfter = (id, after) async => ThreadMessages(thread: thread(id), messages: const []);
+      poller.fire();
+      await pumpEventQueue();
+      expect(repo.afters.last, DateTime.utc(2026, 10, 5, 9));
+      expect(c.messages.map((m) => m.id), ['m1', 'm2', 'm3']);
+    });
+
+    test('a server that ignores after (older deployment) answers the whole thread: merged by _id, no duplicates, no new-message count for known ones', () async {
+      final t0 = DateTime.utc(2026, 10, 5, 8), t1 = DateTime.utc(2026, 10, 5, 8, 30);
+      final c = await opened(unread: false, msgs: [serverMsg('m1', 'a', at: t0), serverMsg('m2', 'b', at: t1)]);
+      final before = c.messages.toList();
+      repo.messagesAfter = (id, after) async => ThreadMessages(thread: thread(id), messages: [serverMsg('m1', 'a', at: t0), serverMsg('m2', 'b', at: t1)]);
+      poller.fire();
+      await pumpEventQueue();
+      expect(c.messages.map((m) => m.id), ['m1', 'm2']);
+      expect(identical(c.messages[0], before[0]), isTrue, reason: 'known rows are left alone (no flicker)');
+      expect(c.newIncoming.value, 0);
+      repo.messagesAfter = (id, after) async => ThreadMessages(thread: thread(id), messages: [serverMsg('m1', 'a', at: t0), serverMsg('m2', 'b', at: t1), serverMsg('m3', 'c', at: DateTime.utc(2026, 10, 5, 9))]);
+      poller.fire();
+      await pumpEventQueue();
+      expect(c.messages.map((m) => m.id), ['m1', 'm2', 'm3']);
+      expect(c.newIncoming.value, 1);
     });
 
     test('a failing poll keeps the messages on screen and flags it; the next good poll clears the flag', () async {

@@ -36,9 +36,11 @@ class MessagingRepository {
         return ThreadsResult.fromJson(body);
       });
 
-  /// `GET /staff-portal/threads/:id/messages` (SPC:56-57 -> SPS:233-237): `{ thread, messages }`, messages oldest first.
-  Future<ThreadMessages> fetchThreadMessages(String id) => _guard(() async {
-        final res = await _client.get(ApiConstants.threadMessages(id));
+  /// `GET /staff-portal/threads/:id/messages[?after=<ISO>]` (SPC:56-57 -> SPS:240-251, backend 265fcfa): `{ thread, messages }`, messages
+  /// oldest first. Without [after]: the NEWEST 500 (oldest -> newest). With [after] (a valid date): only messages with createdAt strictly
+  /// newer, oldest first, at most 500. A server that predates the parameter ignores it and answers the whole thread: callers merge by `_id`.
+  Future<ThreadMessages> fetchThreadMessages(String id, {DateTime? after}) => _guard(() async {
+        final res = await _client.get(ApiConstants.threadMessages(id), queryParameters: {if (after != null) 'after': after.toUtc().toIso8601String()});
         final body = expectMap(res.data, what: 'this conversation');
         final thread = body['thread'];
         if (thread is! Map) throw UnexpectedResponseShape('this conversation', '"thread" is not an object');

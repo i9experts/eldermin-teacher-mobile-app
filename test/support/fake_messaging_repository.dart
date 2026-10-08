@@ -86,6 +86,9 @@ class FakeMessagingRepository extends MessagingRepository {
   Future<List<StudentLeaveRequest>> Function(LeaveStatus? status, int limit) leaves = (_, __) async => [];
   Future<StudentLeaveRequest> Function(String id, LeaveStatus status, String? remarks) review = (id, s, r) async => leaveReq(id, status: s.wire);
 
+  /// When set, replaces [messages] and also sees the `after` cursor.
+  Future<ThreadMessages> Function(String id, DateTime? after)? messagesAfter;
+  final afters = <DateTime?>[];
   final calls = <String>[];
   final sentBodies = <String>[];
 
@@ -96,9 +99,11 @@ class FakeMessagingRepository extends MessagingRepository {
   }
 
   @override
-  Future<ThreadMessages> fetchThreadMessages(String id) {
+  Future<ThreadMessages> fetchThreadMessages(String id, {DateTime? after}) {
     calls.add('messages:$id');
-    return messages(id);
+    afters.add(after);
+    final h = messagesAfter;
+    return h != null ? h(id, after) : messages(id);
   }
 
   @override

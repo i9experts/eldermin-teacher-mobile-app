@@ -1248,7 +1248,7 @@ class Handler(BaseHTTPRequestHandler):
             if feature == "threads":
                 r = (200, {"items": [], "unreadCount": 0}) if empty else stub_7a.list_threads(a, q)
             elif feature == "threadmsgs":
-                r = stub_7a.thread_messages(a, m_msgs.group(1), mode=special)
+                r = stub_7a.thread_messages(a, m_msgs.group(1), mode=special, after=(q.get('after') or [''])[0])
             elif feature == "threadsend":
                 r = stub_7a.send_message(a, m_msgs.group(1), jbody(), mode=special)
             elif feature == "threadread":

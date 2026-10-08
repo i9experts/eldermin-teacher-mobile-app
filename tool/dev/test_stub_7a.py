@@ -50,6 +50,29 @@ class Threads(unittest.TestCase):
         self.assertTrue(all(m["senderRole"] in ("guardian", "staff") for m in r["messages"]))
         self.assertNotIn("phone", json.dumps(r).lower())
 
+    def test_messages_newest_500_and_after_cursor(self):
+        tid = p.list_threads(T, {})[1]["items"][0]["_id"]
+        full = p.thread_messages(T, tid)[1]["messages"]
+        self.assertGreaterEqual(len(full), 2)
+        # force a long thread: the NEWEST 500 come back, oldest -> newest (SPS:249-250)
+        base = p._now() - p.datetime.timedelta(days=2)
+        p._state["messages"][tid] = [dict(full[0], _id=p._oid(0xC000 + i), createdAt=p._iso(base + p.datetime.timedelta(seconds=i))) for i in range(520)]
+        got = p.thread_messages(T, tid)[1]["messages"]
+        self.assertEqual(len(got), 500)
+        self.assertEqual(got[-1]["_id"], p._oid(0xC000 + 519))
+        self.assertEqual(got[0]["_id"], p._oid(0xC000 + 20))
+        # after: strictly newer, oldest first (SPS:244-247)
+        cut = p._iso(base + p.datetime.timedelta(seconds=517))
+        self.assertEqual([m["_id"] for m in p.thread_messages(T, tid, after=cut)[1]["messages"]], [p._oid(0xC000 + 518), p._oid(0xC000 + 519)])
+        # an unparseable after is ignored (SPS:244)
+        self.assertEqual(len(p.thread_messages(T, tid, after="not-a-date")[1]["messages"]), 500)
+        # the older-deployment mode ignores it
+        self.assertEqual(len(p.thread_messages(T, tid, mode="ignoreafter", after=cut)[1]["messages"]), 500)
+
+    def test_unread_count_counts_all_matching_threads(self):
+        r = p.list_threads(T, {})[1]
+        self.assertEqual(r["unreadCount"], sum(1 for t in r["items"] if t["staffHasUnread"]))
+
     def test_get_messages_does_not_clear_unread_but_read_does(self):
         t = next(x for x in p.list_threads(T, {})[1]["items"] if x["staffHasUnread"] and x["status"] == "open")
         p.thread_messages(T, t["_id"])

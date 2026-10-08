@@ -18,7 +18,8 @@ Timer _periodic(Duration d, void Function() tick) => Timer.periodic(d, (_) => ti
 
 /// One conversation (`/messages/:threadId`).
 ///
-/// * Load: `GET /staff-portal/threads/:id/messages` -> thread + messages (oldest first).
+/// * Load: `GET /staff-portal/threads/:id/messages` -> thread + the newest 500 messages (oldest first, backend 265fcfa). Polls ask
+///   `?after=<createdAt of the newest message held>` and merge the answer by `_id` (works with a server that ignores `after`).
 /// * Mark read: `POST .../read` when the thread says `staffHasUnread` (the GET does not clear it, SPS:233-237); retried on the next poll while
 ///   it is still unread. A failure is silent (nothing the teacher can do about it).
 /// * Polling (v1 has no sockets and no push): every [pollInterval] (10 s) while the chat is open AND the app is in the foreground; stopped
@@ -67,7 +68,7 @@ class ChatController extends GetxController with WidgetsBindingObserver {
   final closeFailure = Rxn<ActionFailure>();
   final pollFailing = false.obs;
 
-  /// The server cut the thread at its 500-message limit: newer messages cannot be fetched (UNVERIFIED consequence, see the report).
+  /// The thread reached the server's 500-message limit: EARLIER messages are not shown (the newest 500 always are).
   final truncated = false.obs;
 
   /// Guardian messages that arrived through polling since the view last reached the bottom (drives the "New messages" chip).
@@ -172,7 +173,7 @@ class ChatController extends GetxController with WidgetsBindingObserver {
     _polling = true;
     final token = _loadToken;
     try {
-      final r = await repo.fetchThreadMessages(threadId);
+      final r = await repo.fetchThreadMessages(threadId, after: _newestKnown());
       if (token != _loadToken || _disposed || _inFlightSends > 0) return;
       pollFailing.value = false;
       _applyServer(r, initial: false);
@@ -186,15 +187,50 @@ class ChatController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  /// `createdAt` of the newest message we hold from the server (the `after` cursor of a poll); null when we hold none (then the poll asks
+  /// for the whole thread, like the first load).
+  DateTime? _newestKnown() {
+    DateTime? newest;
+    for (final m in messages) {
+      final at = m.createdAt;
+      if (m.id.isEmpty || at == null) continue;
+      if (newest == null || at.isAfter(newest)) newest = at;
+    }
+    return newest;
+  }
+
+  /// Initial load: replaces the list. Poll: MERGES by `_id` (a server that ignored `after` answers the whole thread; known messages are not
+  /// duplicated, replaced in place so the list does not flicker, and an unchanged list is not reassigned).
   void _applyServer(ThreadMessages r, {required bool initial}) {
-    final known = {for (final m in messages) if (m.id.isNotEmpty) m.id};
     final locals = messages.where((m) => m.state != SendState.sent).toList();
-    // A local message whose server twin was already fetched (poll raced the send answer) is dropped, never shown twice.
-    final server = r.messages;
-    final incoming = initial ? 0 : server.where((m) => !m.fromMe && !known.contains(m.id)).length;
-    messages.assignAll([...server, ...locals]);
-    if (incoming > 0) newIncoming.value += incoming;
-    truncated.value = r.possiblyTruncated;
+    if (initial) {
+      messages.assignAll([...r.messages, ...locals]);
+      truncated.value = r.possiblyTruncated;
+    } else {
+      final sentNow = messages.where((m) => m.state == SendState.sent).toList();
+      final byId = {for (final m in sentNow) if (m.id.isNotEmpty) m.id: m};
+      final fresh = <ChatMessage>[];
+      for (final m in r.messages) {
+        if (m.id.isEmpty || byId.containsKey(m.id)) continue;
+        byId[m.id] = m;
+        fresh.add(m);
+      }
+      final incoming = fresh.where((m) => !m.fromMe).length;
+      if (fresh.isNotEmpty) {
+        final merged = [...sentNow, ...fresh];
+        // Stable sort by createdAt (messages without a date keep their place at the end of the sent ones).
+        final indexed = [for (var i = 0; i < merged.length; i++) (i, merged[i])];
+        indexed.sort((a, b) {
+          final x = a.$2.createdAt, y = b.$2.createdAt;
+          if (x == null || y == null) return a.$1.compareTo(b.$1);
+          final c = x.compareTo(y);
+          return c != 0 ? c : a.$1.compareTo(b.$1);
+        });
+        // A local message whose server twin was fetched is dropped by the send path (it swaps by id); the rest stay at the end.
+        messages.assignAll([...indexed.map((e) => e.$2), ...locals]);
+        newIncoming.value += incoming;
+      }
+    }
     closed.value = r.thread.isClosed;
   }
 

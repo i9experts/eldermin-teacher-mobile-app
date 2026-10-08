@@ -59,15 +59,15 @@ class ChatMessage {
       );
 }
 
-/// `GET /staff-portal/threads/:id/messages` -> `{ thread, messages }` (SPS:233-237). `messages` is sorted createdAt ASC and limited to the
-/// OLDEST 500 (SPS:235): a thread with more than 500 messages would never show its newest ones (UNVERIFIED consequence, see the report).
+/// `GET /staff-portal/threads/:id/messages` -> `{ thread, messages }` (SPS:240-251, backend 265fcfa). `messages` is oldest -> newest and holds
+/// the NEWEST 500 of the thread (earlier ones are cut off, not the latest). `?after=<createdAt>` returns only strictly newer messages.
 class ThreadMessages {
   static const int serverLimit = 500;
   final MessageThread thread;
   final List<ChatMessage> messages;
   const ThreadMessages({required this.thread, this.messages = const []});
 
-  /// True when the list was cut at the server limit, so newer messages may exist that the app cannot fetch.
+  /// True when the list reached the server limit, so EARLIER messages may exist that are not shown (the newest 500 are always returned).
   bool get possiblyTruncated => messages.length >= serverLimit;
 }
 

@@ -142,7 +142,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       case SectionStatus.data:
         return Column(children: [
           if (c.pollFailing.value) const _Banner(key: Key('chat_poll_failing'), text: "Can't refresh right now. Showing what we have; trying again.", color: AppColors.amberBg, fg: AppColors.amberText),
-          if (c.truncated.value) const _Banner(key: Key('chat_truncated'), text: 'This conversation is very long: only its first 500 messages can be shown.', color: AppColors.amberBg, fg: AppColors.amberText),
+          if (c.truncated.value) const _Banner(key: Key('chat_truncated'), text: 'This conversation is very long: only its latest 500 messages are shown.', color: AppColors.amberBg, fg: AppColors.amberText),
           Expanded(child: Stack(children: [_list(), _newChip()])),
           _composer(),
         ]);

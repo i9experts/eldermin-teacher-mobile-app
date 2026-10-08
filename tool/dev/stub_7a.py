@@ -19,6 +19,7 @@ confirmed from code; every one of them is in PHASE7A_REPORT.md.
   leaves GET /staff-portal/student-leaves  leavereview PATCH /staff-portal/student-leaves/:id
   special values (each message is copied from the backend code at the cited line):
     threadmsgs=notfound        404 'Thread not found' (SPS:229-231)
+    threadmsgs=ignoreafter     answers the whole thread whatever `after` says (an older deployment; UNVERIFIED whether any exists)
     threadsend=closed          409 'This conversation is closed.' (SPS:241); the thread is flipped to closed so a reload shows it
     threadsend=blank           400 'Message body is required.' (SPS:244) (a whitespace-only body passes the DTO, the service rejects it)
     guardians=notteach         403 'You do not teach this student.' (SPS:292)
@@ -295,15 +296,18 @@ def _own_threads(a):
 
 def list_threads(a, q):
     """GET /staff-portal/threads?status= (SPC:49-50 -> SPS:217-223): filter by status ONLY when exactly open|closed (SPS:220), sorted
-    lastMessageAt desc, limit 100 (SPS:221); { items, unreadCount } where unreadCount counts the returned rows only (SPS:222)."""
+    lastMessageAt desc, limit 100 (SPS:221); { items, unreadCount } where, since backend b069872 (SPS:222-224 at 265fcfa), unreadCount counts ALL
+    matching unread threads, not only the returned rows. (Line numbers of the other SPS citations in this file are those of 0b81e55; at 265fcfa
+    getThreadMessages grew and everything after it moved by 7 lines.)"""
     if a["role"] != "teacher":
         return 403, "Forbidden resource"
     status = (q.get("status") or [""])[0]
     items = _own_threads(a)
     if status in ("open", "closed"):
         items = [t for t in items if t["status"] == status]
+    unread_all = sum(1 for t in items if t["staffHasUnread"])
     items = sorted(items, key=lambda t: t["lastMessageAt"], reverse=True)[:100]
-    return 200, {"items": items, "unreadCount": sum(1 for t in items if t["staffHasUnread"])}
+    return 200, {"items": items, "unreadCount": unread_all}
 
 
 def _own(a, thread_id):
@@ -316,14 +320,22 @@ def _own(a, thread_id):
     return t, None
 
 
-def thread_messages(a, thread_id, mode=""):
-    """GET /staff-portal/threads/:id/messages (SPC:56-57 -> SPS:233-237): { thread, messages }, createdAt ASC, limit 500 (the OLDEST 500)."""
+def thread_messages(a, thread_id, mode="", after=None):
+    """GET /staff-portal/threads/:id/messages[?after=<ISO>] (SPC:56-57 -> SPS:240-251, backend 265fcfa): { thread, messages }.
+    Without a valid `after`: the NEWEST 500, returned oldest -> newest (SPS:249-250). With a valid `after`: createdAt strictly > after,
+    oldest first, limit 500 (SPS:244-247); an unparseable `after` is ignored (SPS:244). mode=ignoreafter imitates an OLDER deployment
+    that does not know the parameter (always the whole thread; the app must merge by _id without duplicates)."""
     if mode == "notfound":
         return 404, "Thread not found"
     t, err = _own(a, thread_id)
     if err:
         return err
-    msgs = sorted(_state["messages"].get(t["_id"], []), key=lambda m: m["createdAt"])[:500]
+    rows = sorted(_state["messages"].get(t["_id"], []), key=lambda m: m["createdAt"])
+    cut = None if mode == "ignoreafter" or not after else _parse_date(after)
+    if cut is not None:
+        msgs = [m for m in rows if (_parse_date(m["createdAt"]) or datetime.datetime.min) > cut][:500]
+    else:
+        msgs = rows[-500:]
     return 200, {"thread": dict(t), "messages": [dict(m) for m in msgs]}
 
 

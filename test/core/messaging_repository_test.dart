@@ -51,6 +51,9 @@ void main() {
       c.body = {'thread': {'_id': id}, 'messages': []};
       await r.fetchThreadMessages(id);
       expect(c.calls.last.url, endsWith('/staff-portal/threads/$id/messages'));
+      expect(c.calls.last.query, isEmpty, reason: 'the first load has no after');
+      await r.fetchThreadMessages(id, after: DateTime.utc(2026, 10, 5, 8, 30, 1, 250));
+      expect(c.calls.last.query, {'after': '2026-10-05T08:30:01.250Z'});
 
       c.body = {'_id': 'm1', 'body': 'hi', 'senderRole': 'staff'};
       final m = await r.sendMessage(id, 'hi');
