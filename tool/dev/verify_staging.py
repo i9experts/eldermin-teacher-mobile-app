@@ -520,6 +520,85 @@ EXPECTATIONS = {
         ("[].status", S, True, ("enum", ["open", "assigned", "completed", "cancelled"])),
         ("[].startTime", S, False, ("fmt", "hm")),
     ],
+    # GET /teaching/ptm?teacherId=<me> (all my meetings, newest first, max 200). Backend modules/teaching/ptm.controller.ts:19-22 -> ptm.service.ts:124-137; schema
+    # schemas/ptm-meeting.schema.ts:26-70 (status :51). App: ptm_models.dart ParentMeeting. guardianPhone / guardianEmail must NOT be present (teacher projection,
+    # students/teacher-student-projection.util.ts; checked separately by key NAME). PTM guardianName stays.
+    "ptm_mine": [
+        ("[]._id", S, True, ("fmt", "id")),
+        ("[].studentId", S, True, ("fmt", "id")),
+        ("[].studentName", S, True, None),
+        ("[].teacherId", S, True, ("fmt", "id")),
+        ("[].scheduledDate", S, True, ("fmt", "iso")),
+        ("[].startTime", SN, False, ("fmt", "hm")),
+        ("[].endTime", SN, False, ("fmt", "hm")),
+        ("[].guardianName", SN, False, None),
+        ("[].status", S, True, ("enum", ["requested", "confirmed", "completed", "cancelled", "no_show"])),
+        ("[].discussionPoints", L, False, None),
+        ("[].actionItems", L, False, None),
+        ("[].actionItems[]._id", S, True, ("fmt", "id")),
+        ("[].actionItems[].status", S, True, ("enum", ["pending", "done"])),
+    ],
+    # GET /teaching/ptm/:id (ONE meeting of mine; no ownership check on the server for reads). Backend ptm.controller.ts:37-40 -> ptm.service.ts:139-145. App: ParentMeeting.
+    "ptm_one": [
+        ("_id", S, True, ("fmt", "id")),
+        ("teacherId", S, True, ("fmt", "id")),
+        ("scheduledDate", S, True, ("fmt", "iso")),
+        ("status", S, True, ("enum", ["requested", "confirmed", "completed", "cancelled", "no_show"])),
+        ("academicYear", S, False, None),
+        ("meetingNotes", SN, False, None),
+        ("parentAttended", B, False, None),
+    ],
+    # GET /teaching/ptm/student/:studentId/history. Backend ptm.controller.ts:32-35 -> ptm.service.ts:147-153. App: ParentMeeting list (meeting detail, "earlier meetings").
+    "ptm_history": [
+        ("[]._id", S, True, ("fmt", "id")),
+        ("[].status", S, True, ("enum", ["requested", "confirmed", "completed", "cancelled", "no_show"])),
+        ("[].scheduledDate", S, True, ("fmt", "iso")),
+        ("[].teacherName", SN, False, None),
+    ],
+    # GET /teaching/fixtures?teacherId=<me>&from (original OR substitute). Backend modules/teaching/substitution.controller.ts:42-45 -> substitution.service.ts:232-245; schema
+    # schemas/substitution.schema.ts:23-58 (status :51). App: home/teaching.dart Substitution (Fixtures screens).
+    "fixtures_mine": [
+        ("[]._id", S, True, ("fmt", "id")),
+        ("[].date", S, True, ("fmt", "iso")),
+        ("[].periodNo", I, False, None),
+        ("[].originalTeacherId", SN, True, None),
+        ("[].substituteTeacherId", SN, False, None),
+        ("[].originalTeacherName", SN, False, None),
+        ("[].substituteTeacherName", SN, False, None),
+        ("[].status", S, True, ("enum", ["open", "assigned", "completed", "cancelled"])),
+        ("[].startTime", SN, False, ("fmt", "hm")),
+        ("[].endTime", SN, False, ("fmt", "hm")),
+        ("[].reason", SN, False, ("enum", ["absence", "leave", "training", "other"])),
+    ],
+    # GET /hr/leave/self/balance. Backend modules/hr/hr.controller.ts:241-243 -> hr.service.ts:1430-1434 -> formatLeaveBalance :1397-1409. App: leave_models.dart LeaveBalanceSummary.
+    "leave_balance": [
+        ("hasPolicy", B, True, None),
+        ("annual", D, True, None),
+        ("annual.entitled", NUM, True, None),
+        ("annual.used", NUM, True, None),
+        ("annual.remaining", NUM, True, None),
+        ("sick", D, True, None),
+        ("casual", D, True, None),
+        ("maternity", D, True, None),
+        ("paternity", D, True, None),
+        ("hajj", D, True, None),
+    ],
+    # GET /hr/leave/self/history (my applications, newest first). Backend hr.controller.ts:245-247 -> hr.service.ts:1436-1439 -> getLeaveApplications :680-685; schema
+    # schemas/leave-application.schema.ts:6-31 (status :24, leaveType :14). App: leave_models.dart StaffLeaveRequest. `approvedBy` is populated with the approver's
+    # profile + EMAIL (hr.service.ts:684): the app never reads it; checked separately by key NAME (a NOTE, not a failure).
+    "leave_history": [
+        ("[]._id", S, True, ("fmt", "id")),
+        ("[].leaveType", S, True, ("enum", ["annual", "sick", "casual", "maternity", "paternity", "emergency", "unpaid", "study", "hajj", "other"])),
+        ("[].fromDate", S, True, ("fmt", "iso")),
+        ("[].toDate", S, True, ("fmt", "iso")),
+        ("[].totalDays", NUM, True, None),
+        ("[].isHalfDay", B, False, None),
+        ("[].reason", S, True, None),
+        ("[].status", S, True, ("enum", ["pending", "approved", "rejected", "cancelled", "on_hold"])),
+        ("[].approverName", SN, False, None),
+        ("[].approverNote", SN, False, None),
+        ("[].createdAt", S, False, ("fmt", "iso")),
+    ],
     # GET /staff-portal/threads?status=open. Backend staff-portal.service.ts:217-223; schema
     # notification-and-message.schema.ts:41-59. App: messaging.dart (ThreadsResult/MessageThread).
     "threads_open": [
@@ -963,6 +1042,43 @@ def run_user(rep, who, base, slug, email, password, class_teacher):
     if class_teacher:
         st, b = get("/staff-portal/student-leaves", {"limit": 5})
         rep.endpoint(who, "GET /staff-portal/student-leaves?limit=5", st, b, "student_leaves")
+    # Phase 7b (all GET, read-only): my PTM meetings (+ ONE meeting and its student's history), my substitutions, My Leave balance and history. No write route is
+    # ever called (never POST ptm / hr/leave/self, PATCH confirm / reschedule / outcome / cancel / action-items, fixtures complete).
+    if True:
+        if staff_id:
+            st, pm = get("/teaching/ptm", {"teacherId": staff_id})
+            rep.endpoint(who, "GET /teaching/ptm?teacherId (all my meetings)", st, pm, "ptm_mine")
+            if st == 200:
+                bad = contact_key_names(pm)
+                if bad:
+                    rep.fails += 1
+                rep.line(f"        {'FAIL' if bad else 'PASS'} ptm[] carries no guardian contact keys : " + (f"key names found: {', '.join(bad)}" if bad else "no phone/email/cnic/whatsapp/address key"))
+            first_m = next((r for r in pm if isinstance(r, dict)), None) if st == 200 and isinstance(pm, list) else None
+            if first_m and isinstance(first_m.get("_id"), str) and _FORMATS["id"].match(first_m["_id"]):
+                st, b = get(f"/teaching/ptm/{first_m['_id']}")
+                rep.endpoint(who, "GET /teaching/ptm/:id", st, b, "ptm_one")
+                sid = first_m.get("studentId")
+                if isinstance(sid, str) and _FORMATS["id"].match(sid):
+                    st, b = get(f"/teaching/ptm/student/{sid}/history")
+                    rep.endpoint(who, "GET /teaching/ptm/student/:id/history", st, b, "ptm_history")
+                    if st == 200:
+                        bad = contact_key_names(b)
+                        rep.line(f"        {'FAIL' if bad else 'PASS'} history[] carries no guardian contact keys : " + (f"key names found: {', '.join(bad)}" if bad else "none"))
+                        if bad:
+                            rep.fails += 1
+            else:
+                rep.skip(who, "GET /teaching/ptm/:id and student history", "no meeting of mine to check")
+            st, b = get("/teaching/fixtures", {"teacherId": staff_id, "from": (today - datetime.timedelta(days=14)).isoformat() + "T00:00:00.000Z"})
+            rep.endpoint(who, "GET /teaching/fixtures?teacherId&from (mine, 14 days back)", st, b, "fixtures_mine")
+        else:
+            rep.skip(who, "GET /teaching/ptm (mine) and fixtures", "no staffId from /staff-portal/me")
+        st, b = get("/hr/leave/self/balance")
+        rep.endpoint(who, "GET /hr/leave/self/balance", st, b, "leave_balance")
+        st, b = get("/hr/leave/self/history")
+        rep.endpoint(who, "GET /hr/leave/self/history", st, b, "leave_history")
+        if st == 200 and isinstance(b, list):
+            populated = sorted({k for r in b[:MAX_ITEMS_CHECKED] if isinstance(r, dict) and isinstance(r.get("approvedBy"), dict) for k in r["approvedBy"] if re.search(r"email|phone", str(k), re.I)})
+            rep.line(f"        NOTE approvedBy (populated approver) carries contact key names the app never reads: {', '.join(populated) if populated else 'none'}")
     if class_teacher:
         grade = class_of.get("gradeName") if isinstance(class_of, dict) else None
         section = class_of.get("sectionName") if isinstance(class_of, dict) else None

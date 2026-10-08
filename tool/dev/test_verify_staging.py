@@ -418,5 +418,62 @@ class TestPhase6bExpectations(unittest.TestCase):
         self.assertFalse(v.request_allowed("PATCH", "/assessments/report-cards/x/remarks"))
 
 
+class TestPhase7bExpectations(unittest.TestCase):
+    def ok(self, key, body):
+        return all(st != "FAIL" for _, st, _ in v.check_expectations(body, v.EXPECTATIONS[key]))
+
+    def test_good_stub_bodies_pass(self):
+        import stub_server as s
+        import stub_7b as p
+        T = s.ACCOUNTS["teacher"]
+        p.reset()
+        p.seed()
+        pm = p.list_meetings(T, {"teacherId": [T["staffId"]]})[1]
+        self.assertTrue(self.ok("ptm_mine", pm))
+        self.assertTrue(self.ok("ptm_one", pm[0]))
+        self.assertTrue(self.ok("ptm_history", p.student_history(T, pm[0]["studentId"])[1]))
+        self.assertTrue(self.ok("fixtures_mine", p.list_fixtures(T, {"teacherId": [T["staffId"]]})[1]))
+        self.assertTrue(self.ok("leave_balance", p.leave_balance(T)[1]))
+        self.assertTrue(self.ok("leave_history", p.leave_history(T)[1]))
+        self.assertEqual(v.contact_key_names(pm), [])
+
+    def test_drift_is_caught(self):
+        bad = [{"_id": SECRET_ID, "studentId": SECRET_ID, "studentName": "N", "teacherId": SECRET_ID, "scheduledDate": "2026-10-05T00:00:00.000Z", "status": "rescheduled"}]
+        self.assertEqual({p for p, st, _ in v.check_expectations(bad, v.EXPECTATIONS["ptm_mine"]) if st == "FAIL"}, {"[].status"})
+        fx = [{"_id": SECRET_ID, "date": "2026-10-05T00:00:00.000Z", "originalTeacherId": SECRET_ID, "status": "pending"}]
+        self.assertEqual({p for p, st, _ in v.check_expectations(fx, v.EXPECTATIONS["fixtures_mine"]) if st == "FAIL"}, {"[].status"})
+        lv = [{"_id": SECRET_ID, "leaveType": "vacation", "fromDate": "2026-10-05", "toDate": "2026-10-06", "totalDays": "2", "reason": "r", "status": "pending"}]
+        self.assertEqual({p for p, st, _ in v.check_expectations(lv, v.EXPECTATIONS["leave_history"]) if st == "FAIL"}, {"[].leaveType", "[].totalDays"})
+        bal = {"hasPolicy": "yes", "annual": {"entitled": 21, "used": 4, "remaining": "17"}, "sick": {}, "casual": {}, "maternity": {}, "paternity": {}, "hajj": {}}
+        self.assertEqual({p for p, st, _ in v.check_expectations(bal, v.EXPECTATIONS["leave_balance"]) if st == "FAIL"}, {"hasPolicy", "annual.remaining"})
+
+    def test_guardian_contact_keys_in_ptm_rows_are_reported_by_name_only(self):
+        rows = [{"_id": SECRET_ID, "guardianName": SECRET_NAME, "guardianPhone": "0300-1", "guardianEmail": SECRET_EMAIL}]
+        self.assertEqual(v.contact_key_names(rows), ["guardianEmail", "guardianPhone"])
+
+    def test_values_are_never_printed(self):
+        rep = v.Report()
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rep.endpoint("teacher", "GET /hr/leave/self/history", 200, [{"_id": SECRET_ID, "leaveType": "sick", "fromDate": "2026-10-05T00:00:00.000Z", "toDate": "2026-10-06T00:00:00.000Z",
+                                                                      "totalDays": 2, "reason": SECRET_NAME, "status": "approved", "approverName": SECRET_NAME,
+                                                                      "approvedBy": {"email": SECRET_EMAIL}}], "leave_history")
+        out = buf.getvalue()
+        for secret in (SECRET_ID, SECRET_NAME, SECRET_EMAIL):
+            self.assertNotIn(secret, out)
+
+    def test_only_get_endpoints_are_called_for_7b(self):
+        src = open(v.__file__).read()
+        block = src[src.index("# Phase 7b (all GET"):src.index("    if class_teacher:\n        grade =")]
+        block = "\n".join(l for l in block.splitlines() if not l.strip().startswith("#"))
+        for bad in ('http("POST"', '"PATCH"', '"PUT"', '"DELETE"', "/confirm", "/reschedule", "/outcome", "/cancel", "/complete", "action-items", "hr/leave/self\", {"):
+            self.assertNotIn(bad, block)
+        self.assertTrue(v.request_allowed("GET", "/hr/leave/self/balance"))
+        for path in ("/hr/leave/self", "/teaching/ptm", "/teaching/ptm/x/confirm", "/teaching/fixtures/x/complete"):
+            self.assertFalse(v.request_allowed("POST", path), path)
+        for path in ("/teaching/ptm/x/cancel", "/teaching/ptm/x/outcome", "/teaching/fixtures/x/complete"):
+            self.assertFalse(v.request_allowed("PATCH", path), path)
+
+
 if __name__ == "__main__":
     unittest.main()
