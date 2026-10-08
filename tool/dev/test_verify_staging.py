@@ -205,6 +205,48 @@ class ExpectationsTableTests(unittest.TestCase):
         self.assertGreaterEqual(src.count("Backend"), 10)
 
 
+class TestPhase7aExpectations(unittest.TestCase):
+    def fails(self, body, key):
+        return {p for p, st, _ in v.check_expectations(body, v.EXPECTATIONS[key]) if st == "FAIL"}
+
+    def test_good_bodies_pass_and_ignore_extra_keys(self):
+        threads = {"items": [{"_id": SECRET_ID, "subject": "S", "studentName": "N", "guardianName": "G", "lastMessagePreview": "p", "lastMessageAt": "2026-10-05T08:00:00.000Z",
+                              "staffHasUnread": True, "status": "closed", "guardianUserId": SECRET_ID}], "unreadCount": 1}
+        self.assertEqual(self.fails(threads, "threads_all"), set())
+        msgs = {"thread": {"_id": SECRET_ID, "status": "open", "staffHasUnread": False},
+                "messages": [{"_id": SECRET_ID, "senderRole": "guardian", "body": "b", "createdAt": "2026-10-05T08:00:00.000Z"}]}
+        self.assertEqual(self.fails(msgs, "thread_messages"), set())
+        page = {"items": [{"_id": SECRET_ID, "type": "message", "title": "t", "body": "b", "isRead": False, "createdAt": "2026-10-05T08:00:00.000Z"}],
+                "nextCursor": None, "unreadCount": 0}
+        self.assertEqual(self.fails(page, "notifications_page"), set())
+        leaves = {"items": [{"_id": SECRET_ID, "studentName": "N", "fromDate": "2026-10-05T00:00:00.000Z", "toDate": "2026-10-06T00:00:00.000Z", "reason": "r",
+                             "leaveType": "sick", "requestedByName": "G", "status": "pending"}]}
+        self.assertEqual(self.fails(leaves, "student_leaves"), set())
+        self.assertEqual(self.fails([{"userId": SECRET_ID, "name": "G"}], "guardians"), set())
+
+    def test_drift_is_caught(self):
+        self.assertEqual(self.fails({"items": [{"_id": SECRET_ID, "guardianName": "G", "staffHasUnread": "yes", "status": "archived"}], "unreadCount": 1}, "threads_all"),
+                         {"items[].staffHasUnread", "items[].status"})
+        self.assertIn("messages[].senderRole", self.fails({"thread": {"_id": SECRET_ID, "status": "open", "staffHasUnread": False}, "messages": [
+            {"_id": SECRET_ID, "senderRole": "parent", "body": "b", "createdAt": "2026-10-05T08:00:00.000Z"}]}, "thread_messages"))
+        self.assertIn("items[].type", self.fails({"items": [{"_id": SECRET_ID, "type": "zzz", "title": "t", "body": "b", "isRead": False, "createdAt": "2026-10-05T08:00:00.000Z"}],
+                                                  "nextCursor": None, "unreadCount": 0}, "notifications_page"))
+        self.assertIn("items[].status", self.fails({"items": [{"_id": SECRET_ID, "studentName": "N", "fromDate": "2026-10-05", "toDate": "2026-10-06", "reason": "r",
+                                                               "requestedByName": "G", "status": "done"}]}, "student_leaves"))
+        self.assertIn("[].userId", self.fails([{"name": "G"}], "guardians"))
+
+    def test_contact_key_detector_reports_names_only(self):
+        self.assertEqual(v.contact_key_names([{"userId": "1", "name": "G"}]), [])
+        self.assertEqual(v.contact_key_names([{"userId": "1", "name": "G", "phone": "0300-5550001", "personalEmail": "a@b.c"}]), ["personalEmail", "phone"])
+        self.assertEqual(v.contact_key_names({"not": "a list"}), [])
+
+    def test_phase7a_calls_are_get_only(self):
+        self.assertTrue(v.request_allowed("GET", "/staff-portal/threads"))
+        for m, path in (("POST", "/staff-portal/threads"), ("POST", "/staff-portal/threads/x/messages"), ("PATCH", "/staff-portal/threads/x/close"),
+                        ("POST", "/staff-portal/notifications/read-all"), ("PATCH", "/staff-portal/student-leaves/x")):
+            self.assertFalse(v.request_allowed(m, path), (m, path))
+
+
 class TestPhase5aExpectations(unittest.TestCase):
     def test_good_students_list_passes_and_ignores_fee_keys(self):
         body = {"data": [{"_id": SECRET_ID, "firstName": "A", "lastName": "B", "currentGrade": "Grade 5", "currentSection": "A",

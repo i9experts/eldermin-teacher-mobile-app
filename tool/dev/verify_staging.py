@@ -206,6 +206,19 @@ def check_expectations(body, specs):
     return [(s[0], *check_field(body, s)) for s in specs]
 
 
+def contact_key_names(rows):
+    """Key NAMES (never values) in guardian rows that look like contact data (phone / email / cnic / whatsapp / address). The owner rule is that
+    the server hides them from teachers; a non-empty answer means the privacy rule is NOT in effect on that server."""
+    bad = set()
+    if isinstance(rows, list):
+        for r in rows[:MAX_ITEMS_CHECKED]:
+            if isinstance(r, dict):
+                for k in r:
+                    if re.search(r"phone|mobile|email|cnic|whatsapp|address|income", str(k), re.I):
+                        bad.add(str(k))
+    return sorted(bad)
+
+
 def body_summary(body):
     """Top-level shape only: 'dict' or 'list[<len>]'."""
     if isinstance(body, list):
@@ -516,6 +529,69 @@ EXPECTATIONS = {
         ("items[].staffHasUnread", B, True, None),
         ("items[].status", S, True, ("enum", ["open"])),  # status=open must filter server-side
         ("items[].lastMessageAt", SN, False, ("fmt", "iso")),
+    ],
+    # GET /staff-portal/threads (no status filter: open AND closed). Backend staff-portal.service.ts:217-223 (staff-portal.controller.ts:49-50); schema
+    # notification-and-message.schema.ts:41-59. App: messaging.dart MessageThread / ThreadsResult (Phase 7a Messages inbox, closed filter).
+    "threads_all": [
+        ("items", L, True, None),
+        ("unreadCount", I, True, None),
+        ("items[]._id", S, True, ("fmt", "id")),
+        ("items[].subject", S, False, None),
+        ("items[].studentName", SN, False, None),
+        ("items[].guardianName", S, True, None),
+        ("items[].lastMessagePreview", SN, False, None),
+        ("items[].lastMessageAt", SN, False, ("fmt", "iso")),
+        ("items[].staffHasUnread", B, True, None),
+        ("items[].status", S, True, ("enum", ["open", "closed"])),
+    ],
+    # GET /staff-portal/threads/:id/messages (ONE thread; GET never marks it read, SPS:233-237). Backend staff-portal.service.ts:233-237 (controller :56-57); schema
+    # notification-and-message.schema.ts:67-74. App: chat_models.dart ThreadMessages / ChatMessage.
+    "thread_messages": [
+        ("thread", D, True, None),
+        ("thread._id", S, True, ("fmt", "id")),
+        ("thread.status", S, True, ("enum", ["open", "closed"])),
+        ("thread.staffHasUnread", B, True, None),
+        ("messages", L, True, None),
+        ("messages[]._id", S, True, ("fmt", "id")),
+        ("messages[].senderRole", S, True, ("enum", ["guardian", "staff"])),
+        ("messages[].body", S, True, None),
+        ("messages[].createdAt", S, True, ("fmt", "iso")),
+    ],
+    # GET /staff-portal/notifications?limit=5. Backend staff-portal.service.ts:172-189 (controller :34-35); schema notification-and-message.schema.ts:15-29.
+    # App: notification_models.dart NotificationsPage / AppNotification. `type` enum = the schema enum (:18-21); relatedEntityId is optional free text (:25).
+    "notifications_page": [
+        ("items", L, True, None),
+        ("nextCursor", SN, True, ("fmt", "iso")),
+        ("unreadCount", I, True, None),
+        ("items[]._id", S, True, ("fmt", "id")),
+        ("items[].type", S, True, ("enum", ["circular", "consent", "leave_decision", "fee_due", "homework", "result", "behaviour", "message", "ptm", "substitution", "lesson_plan", "leave_status", "other"])),
+        ("items[].title", S, True, None),
+        ("items[].body", S, True, None),
+        ("items[].relatedEntityId", SN, False, None),
+        ("items[].isRead", B, True, None),
+        ("items[].createdAt", S, True, ("fmt", "iso")),
+    ],
+    # GET /staff-portal/student-leaves?limit=5 (class teacher only). Backend staff-portal.service.ts:327-341 (controller :78-79); schema
+    # parent-portal/schemas/consent-and-leave.schema.ts:54-70. App: student_leave_models.dart StudentLeaveRequest.
+    "student_leaves": [
+        ("items", L, True, None),
+        ("items[]._id", S, True, ("fmt", "id")),
+        ("items[].studentName", S, True, None),
+        ("items[].fromDate", S, True, ("fmt", "iso")),
+        ("items[].toDate", S, True, ("fmt", "iso")),
+        ("items[].reason", S, True, None),
+        ("items[].leaveType", S, False, ("enum", ["sick", "family", "travel", "other"])),
+        ("items[].requestedByName", S, True, None),
+        ("items[].status", S, True, ("enum", ["pending", "approved", "rejected"])),
+        ("items[].approverName", SN, False, None),
+        ("items[].approvedAt", SN, False, ("fmt", "iso")),
+    ],
+    # GET /staff-portal/students/:studentId/guardians (ONE roster student). Backend staff-portal.service.ts:274-284 (controller :72-75): names only.
+    # App: chat_models.dart GuardianName. Contact data must NOT be present (see contact_key_names).
+    "guardians": [
+        ("[]", D, False, None),
+        ("[].userId", S, True, ("fmt", "id")),
+        ("[].name", S, True, None),
     ],
     # GET /staff-portal/notifications/unread-count. Backend staff-portal.controller.ts:36-37 -> staff-portal.service.ts:191-195. App: home_repository.dart.
     "unread_count": [("unreadCount", I, True, None)],
@@ -870,6 +946,23 @@ def run_user(rep, who, base, slug, email, password, class_teacher):
             rep.endpoint(who, "GET /assessments/report-cards?assessmentId&limit=5", st, b, "report_cards")
         else:
             rep.skip(who, "GET /assessments/report-cards", "no assessment with generated report cards")
+    # Phase 7a (all GET, read-only): threads (all statuses), ONE thread's messages, the notifications first page, and (class teacher) student leaves.
+    # No write route is ever called (never POST threads / messages / read / read-all, PATCH close / student-leaves). Reading a thread does NOT mark it read.
+    st, th = get("/staff-portal/threads")
+    rep.endpoint(who, "GET /staff-portal/threads (all statuses)", st, th, "threads_all")
+    first_t = None
+    if st == 200 and isinstance(th, dict) and isinstance(th.get("items"), list):
+        first_t = next((r.get("_id") for r in th["items"] if isinstance(r, dict)), None)
+    if isinstance(first_t, str) and _FORMATS["id"].match(first_t):
+        st, b = get(f"/staff-portal/threads/{first_t}/messages")
+        rep.endpoint(who, "GET /staff-portal/threads/:id/messages", st, b, "thread_messages")
+    else:
+        rep.skip(who, "GET /staff-portal/threads/:id/messages", "no thread to check")
+    st, b = get("/staff-portal/notifications", {"limit": 5})
+    rep.endpoint(who, "GET /staff-portal/notifications?limit=5", st, b, "notifications_page")
+    if class_teacher:
+        st, b = get("/staff-portal/student-leaves", {"limit": 5})
+        rep.endpoint(who, "GET /staff-portal/student-leaves?limit=5", st, b, "student_leaves")
     if class_teacher:
         grade = class_of.get("gradeName") if isinstance(class_of, dict) else None
         section = class_of.get("sectionName") if isinstance(class_of, dict) else None
@@ -903,6 +996,16 @@ def run_user(rep, who, base, slug, email, password, class_teacher):
             rep.endpoint(who, "GET /students/:id/attendance/summary?month", st, b, "attendance_summary")
         else:
             rep.skip(who, "GET /students/:id/360 and attendance/summary", "no roster student to check")
+        if isinstance(first, str) and _FORMATS["id"].match(first):
+            st, b = get(f"/staff-portal/students/{first}/guardians")
+            rep.endpoint(who, "GET /staff-portal/students/:id/guardians", st, b, "guardians")
+            if st == 200:
+                bad = contact_key_names(b)
+                if bad:
+                    rep.fails += 1
+                rep.line(f"        {'FAIL' if bad else 'PASS'} guardians[] carries no contact keys : " + (f"key names found: {', '.join(bad)}" if bad else "none of phone/email/cnic/whatsapp/address/income"))
+        else:
+            rep.skip(who, "GET /staff-portal/students/:id/guardians", "no roster student to check")
 
 
 def main(argv):
