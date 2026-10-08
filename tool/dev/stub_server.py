@@ -1053,8 +1053,8 @@ class Handler(BaseHTTPRequestHandler):
                     "413": "File too large",
                     "422": "Unprocessable entity (stub mode 422: the real backend answers validation errors with 400)",
                     "500": "Internal server error",
-                    # upload=503: PLANNED backend answer when storage is not configured (owner decision 2026-10-08; text UNVERIFIED until the
-                    # backend task documents it); other features get a plain 503
+                    # upload=503: the backend's answer when storage is not configured (eldermin-backend feat/staff-portal commit 9890ad1, upload.service.ts;
+                    # exact text copied from that commit); other features get a plain 503
                     "503": ("File uploads are not available on this server (storage is not configured)." if feature == "upload" else "Service Unavailable")}
             self._err(int(mode), msgs[mode])
             return True

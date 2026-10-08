@@ -19,8 +19,8 @@ class ActionFailure {
 
   /// [what] completes "You can't …": e.g. "edit this homework".
   ///
-  /// [upload]: the request was a file upload; a 503 then means "storage is not configured on this server" (backend change planned
-  /// 2026-10-08: 503 'File uploads are not available on this server (storage is not configured).', UNVERIFIED until it lands) and maps to
+  /// [upload]: the request was a file upload; a 503 then means "storage is not configured on this server" (backend, eldermin-backend feat/staff-portal
+  /// commit 9890ad1 (2026-10-08): 503 'File uploads are not available on this server (storage is not configured).') and maps to
   /// [ActionFailureKind.uploadUnavailable]: retrying cannot help.
   factory ActionFailure.from(Object e, {required String what, String keep = 'Your changes are kept.', bool upload = false}) {
     if (e is! ApiException) return ActionFailure(ActionFailureKind.other, "Couldn't $what. $keep Try again.");

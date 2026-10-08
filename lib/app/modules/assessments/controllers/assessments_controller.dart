@@ -54,7 +54,8 @@ MarksAccess marksAccessFor(Assessment a, AssessmentSubject s, {required bool iTe
 }
 
 /// Why a teacher can no longer change the marks of [a] (results published, or cancelled); null while marks can still change. The server
-/// refuses these writes with 403 (backend change planned 2026-10-08; its exact text, UNVERIFIED until it lands in docs/staff-portal/PHASE6_FIXES.md:
+/// refuses these writes with 403 (backend commit e7c4ed2, assessment.service.ts assertTeacherMarksNotLocked; exact text, copied from there and
+/// documented in docs/staff-portal/PHASE6_FIXES.md:
 /// "Results for this assessment are published (or the assessment is cancelled): marks can no longer be changed. Contact an administrator.").
 String? marksLockMessage(Assessment a) {
   if (a.isResultPublished) return 'Results are published \u2014 marks are locked. Ask an administrator to change them.';

@@ -48,7 +48,7 @@ import re
 
 S = None  # the stub_server module, injected by bind()
 
-# PLANNED backend message (owner decision 2026-10-08, backend task in parallel). UNVERIFIED until it is in docs/staff-portal/PHASE6_FIXES.md.
+# Backend message as landed (eldermin-backend feat/staff-portal commit e7c4ed2, TEACHER_MARKS_LOCKED_MESSAGE in assessment.service.ts).
 PUBLISHED_LOCK_TEXT = ("Results for this assessment are published (or the assessment is cancelled): marks can no longer be changed. "
                        "Contact an administrator.")
 

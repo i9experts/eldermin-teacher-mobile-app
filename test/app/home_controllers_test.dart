@@ -451,17 +451,26 @@ void main() {
     test('polls on the interval and refreshes on resume; stops in the background', () async {
       final h = await signedIn();
       final b = HomeBadgesController(repository: repo, auth: h.auth, pollInterval: const Duration(milliseconds: 40));
+      int unread() => repo.calls.where((c) => c == 'unread').length;
+      // Wait for a condition instead of a fixed delay: wall-clock timing made this flaky under a busy parallel run.
+      Future<bool> until(bool Function() ok, {int maxMs = 3000}) async {
+        final sw = Stopwatch()..start();
+        while (!ok()) {
+          if (sw.elapsedMilliseconds > maxMs) return false;
+          await Future<void>.delayed(const Duration(milliseconds: 5));
+        }
+        return true;
+      }
+
       b.onReady();
-      await Future<void>.delayed(const Duration(milliseconds: 190));
-      final polled = repo.calls.where((c) => c == 'unread').length;
-      expect(polled, greaterThanOrEqualTo(3));
+      expect(await until(() => unread() >= 3), isTrue, reason: 'polls repeatedly on the interval');
       b.didChangeAppLifecycleState(AppLifecycleState.paused);
-      final atPause = repo.calls.where((c) => c == 'unread').length;
-      await Future<void>.delayed(const Duration(milliseconds: 150));
-      expect(repo.calls.where((c) => c == 'unread').length, atPause, reason: 'no polling in the background');
+      await Future<void>.delayed(const Duration(milliseconds: 60)); // let an in-flight tick finish
+      final atPause = unread();
+      await Future<void>.delayed(const Duration(milliseconds: 250)); // several intervals
+      expect(unread(), atPause, reason: 'no polling in the background');
       b.didChangeAppLifecycleState(AppLifecycleState.resumed);
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-      expect(repo.calls.where((c) => c == 'unread').length, greaterThan(atPause), reason: 'immediate refresh on resume');
+      expect(await until(() => unread() > atPause), isTrue, reason: 'immediate refresh on resume');
       b.onClose();
     });
   });
