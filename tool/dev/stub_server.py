@@ -988,6 +988,8 @@ import stub_6a  # Phase 6a logic (lesson plans, syllabus tracking)
 stub_6a.bind(_sys.modules[__name__])
 import stub_6b  # Phase 6b logic (assessments, marks entry, report remarks, quiz grading, curriculum, library)
 stub_6b.bind(_sys.modules[__name__])
+import stub_7a  # Phase 7a logic (messages with guardians, notifications inbox, student-leave review)
+stub_7a.bind(_sys.modules[__name__])
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1188,6 +1190,89 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return None
         return self._send(status, body)
+
+    # -- Phase 7a routes (messages, notifications inbox, student-leave review). True when handled.
+    def _p7a(self, method, path, q):
+        base = "/api/v1/staff-portal/"
+        if not path.startswith(base):
+            return False
+        rest = path[len(base):]
+        m_msgs = re.fullmatch(r"threads/([^/]+)/messages", rest)
+        m_read = re.fullmatch(r"threads/([^/]+)/read", rest)
+        m_close = re.fullmatch(r"threads/([^/]+)/close", rest)
+        m_guard = re.fullmatch(r"students/([^/]+)/guardians", rest)
+        m_nread = re.fullmatch(r"notifications/([^/]+)/read", rest)
+        m_leave = re.fullmatch(r"student-leaves/([^/]+)", rest)
+        feature = None
+        if method == "GET":
+            feature = {"threads": "threads", "notifications": "notifs", "notifications/unread-count": "unread", "student-leaves": "leaves"}.get(rest)
+            if m_msgs:
+                feature = "threadmsgs"
+            elif m_guard:
+                feature = "guardians"
+        elif method == "POST":
+            if rest == "threads":
+                feature = "threadcreate"
+            elif m_msgs:
+                feature = "threadsend"
+            elif m_read:
+                feature = "threadread"
+            elif rest == "notifications/read-all":
+                feature = "notifreadall"
+            elif m_nread:
+                feature = "notifread"
+        elif method == "PATCH":
+            if m_close:
+                feature = "threadclose"
+            elif m_leave:
+                feature = "leavereview"
+        if not feature:
+            return False
+        a = self._authed()
+        if not a:
+            return True
+        raw = self._raw() if method in ("POST", "PATCH") else b""
+        gate = self._feature_gate(feature)
+        if gate is True:
+            return True
+        with _lock:
+            special = _modes.get(feature, "ok")
+        empty = gate == "empty"
+
+        def jbody():
+            try:
+                return json.loads(raw or b"{}")
+            except Exception:
+                return {}
+        with _lock:
+            if feature == "threads":
+                r = (200, {"items": [], "unreadCount": 0}) if empty else stub_7a.list_threads(a, q)
+            elif feature == "threadmsgs":
+                r = stub_7a.thread_messages(a, m_msgs.group(1), mode=special)
+            elif feature == "threadsend":
+                r = stub_7a.send_message(a, m_msgs.group(1), jbody(), mode=special)
+            elif feature == "threadread":
+                r = stub_7a.mark_thread_read(a, m_read.group(1))
+            elif feature == "threadclose":
+                r = stub_7a.close_thread(a, m_close.group(1))
+            elif feature == "threadcreate":
+                r = stub_7a.create_thread(a, jbody(), mode=special)
+            elif feature == "guardians":
+                r = (200, []) if empty else stub_7a.list_guardians(a, m_guard.group(1), mode=special)
+            elif feature == "notifs":
+                r = (200, {"items": [], "nextCursor": None, "unreadCount": 0}) if empty else stub_7a.list_notifications(a, q)
+            elif feature == "unread":
+                r = (200, {"unreadCount": 0}) if empty else stub_7a.unread_count(a)
+            elif feature == "notifread":
+                r = stub_7a.read_notification(a, m_nread.group(1))
+            elif feature == "notifreadall":
+                r = stub_7a.read_all(a)
+            elif feature == "leaves":
+                r = (200, {"items": []}) if empty else stub_7a.list_leaves(a, q, mode=special)
+            else:
+                r = stub_7a.review_leave(a, m_leave.group(1), jbody(), mode=special)
+        self._reply(*r)
+        return True
 
     # -- Phase 6a routes (lesson plans, syllabus). True when handled.
     def _p6a(self, method, path, q):
@@ -1443,6 +1528,8 @@ class Handler(BaseHTTPRequestHandler):
             if a["role"] != "teacher":
                 return self._err(403, "Forbidden resource")
             self._send(200, staff_me(a))
+        elif path.startswith("/api/v1/staff-portal/") and self._p7a("GET", path, parse_qs(urlparse(self.path).query)):
+            return
         elif path.startswith("/api/v1/") and (self._p6b("GET", path, parse_qs(urlparse(self.path).query)) or self._p6a("GET", path, parse_qs(urlparse(self.path).query))):
             return
         elif (path.startswith("/api/v1/") or path.startswith("/__stub/files/")) and self._p5b("GET", path, parse_qs(urlparse(self.path).query)):
@@ -1454,13 +1541,13 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/__stub/state":
             with _lock:
                 self._send(200, {"classTeacher": {k: v["classTeacher"] for k, v in ACCOUNTS.items()}, **_state,
-                                 "attendance": {"records": len(ATT), **_att_last}, "phase5b": stub_5b.state_summary(), "phase6a": stub_6a.state_summary(), "phase6b": stub_6b.state_summary()})
+                                 "attendance": {"records": len(ATT), **_att_last}, "phase5b": stub_5b.state_summary(), "phase6a": stub_6a.state_summary(), "phase6b": stub_6b.state_summary(), "phase7a": stub_7a.state_summary()})
         else:
             self._err(404, f"Cannot GET {path}")
 
     def do_PATCH(self):
         path = urlparse(self.path).path
-        if not (self._p6b("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p6a("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p5b("PATCH", path, parse_qs(urlparse(self.path).query))):
+        if not (self._p7a("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p6b("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p6a("PATCH", path, parse_qs(urlparse(self.path).query)) or self._p5b("PATCH", path, parse_qs(urlparse(self.path).query))):
             self._err(404, f"Cannot PATCH {path}")
 
     def do_DELETE(self):
@@ -1471,7 +1558,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urlparse(self.path)
         path = u.path
-        if self._p6b("POST", path, parse_qs(u.query)) or self._p6a("POST", path, parse_qs(u.query)) or self._p5b("POST", path, parse_qs(u.query)):
+        if self._p7a("POST", path, parse_qs(u.query)) or self._p6b("POST", path, parse_qs(u.query)) or self._p6a("POST", path, parse_qs(u.query)) or self._p5b("POST", path, parse_qs(u.query)):
             return
         if path == "/api/v1/auth/login":
             b = self._json()
@@ -1523,6 +1610,17 @@ class Handler(BaseHTTPRequestHandler):
             with _lock:
                 _modes[(q.get("feature") or [""])[0]] = (q.get("value") or ["ok"])[0]
             return self._send(200, {"modes": _modes})
+        if path == "/__stub/guardian-reply":
+            q = parse_qs(u.query)
+            with _lock:
+                r = stub_7a.guardian_reply((q.get("thread") or [""])[0], (q.get("body") or ["Thank you."])[0])
+            return self._reply(*r)
+        if path == "/__stub/notify":
+            q = parse_qs(u.query)
+            with _lock:
+                r = stub_7a.add_notification(ACCOUNTS[(q.get("account") or ["classteacher"])[0]], (q.get("type") or ["other"])[0],
+                                             (q.get("title") or ["A new notification"])[0], (q.get("body") or [""])[0], (q.get("entity") or [""])[0])
+            return self._reply(*r)
         if path == "/__stub/attendance":
             q = parse_qs(u.query)
             with _lock:
@@ -1547,6 +1645,7 @@ class Handler(BaseHTTPRequestHandler):
                 stub_5b.reset()
                 stub_6a.reset()
                 stub_6b.reset()
+                stub_7a.reset()
                 ACCOUNTS["teacher"]["classTeacher"] = False
                 ACCOUNTS["classteacher"]["classTeacher"] = True
             return self._send(200, {"ok": True})
