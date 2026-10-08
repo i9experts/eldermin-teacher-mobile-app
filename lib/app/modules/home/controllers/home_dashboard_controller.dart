@@ -26,6 +26,11 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
   final HomeBadgesController? _badges;
   final Clock clock;
 
+  /// Overall deadline of ONE pull-to-refresh (owner decision 2026-10-08): whatever has not answered by then ends in its error state with
+  /// Retry (old data stays visible until then); a late answer is ignored. Dio's own timeouts (connect 8 s, receive 15 s) normally end
+  /// the requests first, this is the belt for a server that trickles bytes.
+  final Duration pullDeadline;
+
   /// How often the "now" used for current/next highlighting advances (null = no ticker, for tests).
   final Duration? tick;
 
@@ -36,6 +41,7 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
     HomeBadgesController? badges,
     Clock? clock,
     this.tick = const Duration(seconds: 30),
+    this.pullDeadline = const Duration(seconds: 20),
   })  : _repo = repository,
         _auth = auth,
         _perms = permissions,
@@ -147,10 +153,33 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
   void advanceClock() => _advanceClock();
 
   // ── Loading ──────────────────────────────────────────────────
-  /// Pull-to-refresh: refresh the profile first (class-teacher changes), then everything.
+  int _pullGen = 0;
+
+  /// Pull-to-refresh. `/staff-portal/me` and every section load start TOGETHER (the sections do not depend on the refreshed profile; when it
+  /// arrives with a changed class-teacher / staff id the profile watcher re-evaluates the dependent sections, see [_onProfileChanged]), so a hung
+  /// server costs one timeout, not two. Everything still pending after [pullDeadline] ends in an error state (Retry) and cannot be overwritten
+  /// by a late answer (per-section token guard).
   Future<void> refreshAll() async {
-    await auth.refreshProfile(force: true);
-    await loadAll(userInitiated: true);
+    final gen = ++_pullGen;
+    await Future.wait<void>([
+      auth.refreshProfile(force: true),
+      loadAll(userInitiated: true),
+    ]).timeout(pullDeadline, onTimeout: () {
+      if (gen == _pullGen) _expirePending();
+      return <void>[];
+    });
+  }
+
+  /// section Rx -> closure that ends its in-flight load in the timeout error state (entry removed when the load finishes).
+  final _inflight = Map<Object, void Function()>.identity();
+  static const _timeoutMessage = 'The server is taking too long to answer. Please try again.';
+
+  void _expirePending() {
+    for (final expire in _inflight.values.toList()) {
+      expire();
+    }
+    _inflight.clear();
+    badges.expireThreads(_timeoutMessage);
   }
 
   Future<void> loadAll({bool userInitiated = false}) async {
@@ -178,6 +207,11 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
     _tokens[rx] = token;
     final prev = rx.value;
     if (!prev.hasData) rx.value = const SectionState.loading();
+    _inflight[rx] = () {
+      if (_tokens[rx] != token) return;
+      _tokens[rx] = token + 1; // whatever the request still answers later is ignored
+      rx.value = SectionState<T>.error(_timeoutMessage);
+    };
     try {
       final r = await fetch();
       if (_tokens[rx] != token) return;
@@ -185,6 +219,8 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
     } catch (e) {
       if (_tokens[rx] != token) return;
       rx.value = SectionState<T>.fromError(e);
+    } finally {
+      if (_tokens[rx] == token) _inflight.remove(rx);
     }
   }
 

@@ -25,12 +25,21 @@ class HarnessApi extends AuthApiService {
   List<Map<String, Object?>> assignments = const [];
   List<String> subjects = const [];
 
+  /// When set, `/staff-portal/me` waits for it (a hung server); pass `Completer().future` for "never answers".
+  Future<void>? staffMeGate;
+
   @override
   Future<AuthMe> fetchAuthMe({String? token}) async =>
       AuthMe(id: 'u', name: 'Tess Teacher', email: 't@s.test', role: role);
 
   @override
-  Future<StaffMe> fetchStaffMe() async => StaffMe.fromJson({
+  Future<StaffMe> fetchStaffMe() async {
+    final gate = staffMeGate;
+    if (gate != null) await gate;
+    return _staffMe();
+  }
+
+  StaffMe _staffMe() => StaffMe.fromJson({
         'user': {
           'id': 'u',
           'name': 'Tess Teacher',

@@ -22,11 +22,15 @@ class HomeBadgesController extends GetxController with WidgetsBindingObserver {
   final Duration pollInterval;
   final bool autoPoll;
 
+  /// A refresh that has not finished after this long is abandoned: the next poll / pull starts a FRESH request instead of joining a hung one.
+  final Duration refreshDeadline;
+
   HomeBadgesController({
     HomeRepository? repository,
     AuthController? auth,
     this.pollInterval = const Duration(seconds: 60),
     this.autoPoll = true,
+    this.refreshDeadline = const Duration(seconds: 20),
   })  : _repo = repository,
         _auth = auth;
 
@@ -101,8 +105,10 @@ class HomeBadgesController extends GetxController with WidgetsBindingObserver {
     // Startup calls from the shell and the dashboard share one request.
     final running = _inFlight;
     if (running != null && !userInitiated) return running;
-    final f = Future.wait([refreshNotifications(), refreshThreads(userInitiated: userInitiated)])
-        .then((_) {});
+    final f = Future.wait<void>([refreshNotifications(), refreshThreads(userInitiated: userInitiated)]).timeout(refreshDeadline, onTimeout: () {
+      expireThreads('The server is taking too long to answer. Please try again.', onlyIfNoData: !userInitiated);
+      return <void>[];
+    }).then((_) {});
     _inFlight = f;
     try {
       await f;
@@ -129,16 +135,33 @@ class HomeBadgesController extends GetxController with WidgetsBindingObserver {
 
   int _threadsToken = 0;
 
+  /// Ends a pending threads load in an error state and makes any late answer irrelevant. A silent poll ([onlyIfNoData]) keeps real data.
+  void expireThreads(String message, {bool onlyIfNoData = false}) {
+    final t = threads.value;
+    if (onlyIfNoData && t.hasData) {
+      _threadsToken++;
+      return;
+    }
+    if (t.status != SectionStatus.loading && !_threadsPending) return;
+    _threadsToken++;
+    threads.value = SectionState<ThreadsResult>.error(message);
+  }
+
+  bool _threadsPending = false;
+
   Future<void> refreshThreads({bool userInitiated = false}) async {
     final token = ++_threadsToken;
     final previous = threads.value;
     if (!previous.hasData) threads.value = const SectionState.loading();
+    _threadsPending = true;
     try {
       final r = await repo.fetchOpenThreads();
       if (token != _threadsToken) return;
+      _threadsPending = false;
       threads.value = SectionState.data(r);
     } catch (e) {
       if (token != _threadsToken) return;
+      _threadsPending = false;
       final failed = SectionState<ThreadsResult>.fromError(e);
       final transient = failed.status == SectionStatus.error;
       if (previous.hasData && transient && !userInitiated) {

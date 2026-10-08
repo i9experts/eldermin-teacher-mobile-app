@@ -15,9 +15,13 @@ class ApiConstants {
   static const String apiPrefix = '$baseUrl/api/v1';
 
   // Timeouts (ms)
-  static const int connectTimeout = 20000;
-  static const int receiveTimeout = 20000;
+  // Ordinary reads / writes fail fast (owner decision 2026-10-08: errors must show within ~20 s on a hung server). Only multipart uploads
+  // (files, AI document parsing) get the long ones, set per request in BaseClient.multipart.
+  static const int connectTimeout = 8000;
+  static const int receiveTimeout = 15000;
   static const int sendTimeout = 30000;
+  static const int uploadSendTimeout = 120000;
+  static const int uploadReceiveTimeout = 90000;
 
   // ── Auth ─────────────────────────────────────────────────────
   static const String login = '$apiPrefix/auth/login';

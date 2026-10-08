@@ -26,6 +26,9 @@ const Set<String> kAllowedRoles = {'teacher'};
 /// re-login.
 const Duration kProfileRefreshInterval = Duration(minutes: 10);
 
+/// Longest a profile re-read may take before it is abandoned (the last good profile stays).
+const Duration kProfileRefreshDeadline = Duration(seconds: 20);
+
 const String kSessionExpiredMessage = 'Session expired, please sign in again';
 
 /// Global session state - the single source of truth for whether the app
@@ -291,7 +294,8 @@ class AuthController extends GetxController with WidgetsBindingObserver {
     if (!force && last != null && _clock().difference(last) < _refreshInterval) return;
     _refreshing = true;
     try {
-      _applyMe(await _api.fetchStaffMe());
+      // Bounded: a hung server must not keep `_refreshing` set (it would block every later refresh).
+      _applyMe(await _api.fetchStaffMe().timeout(kProfileRefreshDeadline));
     } catch (_) {
       // Offline / transient: keep what we have. A 401 is handled globally.
     } finally {

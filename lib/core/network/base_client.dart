@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../constants/api_constants.dart';
 import 'dio_service.dart';
 
 /// Thin wrapper over the shared [Dio] instance - every API service call
@@ -96,6 +97,9 @@ class BaseClient {
       options: Options(
         method: method,
         contentType: 'multipart/form-data',
+        // long timeouts ONLY here (big files on a slow link, server-side AI parsing); every other request keeps the short defaults
+        sendTimeout: const Duration(milliseconds: ApiConstants.uploadSendTimeout),
+        receiveTimeout: const Duration(milliseconds: ApiConstants.uploadReceiveTimeout),
         extra: {'requiresAuth': requiresAuth},
       ),
     );
