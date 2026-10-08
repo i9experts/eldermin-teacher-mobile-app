@@ -125,6 +125,7 @@ class ApiConstants {
   // ── PTM ──────────────────────────────────────────────────────
   static const String ptm = '$apiPrefix/teaching/ptm';
   static const String ptmUpcomingMine = '$apiPrefix/teaching/ptm/upcoming/mine'; // ?teacherId=<staffId>
+  static String ptmStudentHistory(String studentId) => '$apiPrefix/teaching/ptm/student/$studentId/history';
   static String ptmById(String id) => '$apiPrefix/teaching/ptm/$id';
   static String ptmConfirm(String id) => '$apiPrefix/teaching/ptm/$id/confirm';
   static String ptmReschedule(String id) => '$apiPrefix/teaching/ptm/$id/reschedule';

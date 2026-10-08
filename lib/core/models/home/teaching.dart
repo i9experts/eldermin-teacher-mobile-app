@@ -159,6 +159,11 @@ class Substitution {
   final String substituteTeacherName;
   final String status; // open|assigned|completed|cancelled
 
+  /// `reason` (absence|leave|training|other, substitution.schema.ts:46) and free-text `notes` (:57). Never parsed: notifiedAt,
+  /// notificationStatus, assignedBy, leaveApplicationId.
+  final String reason;
+  final String notes;
+
   const Substitution({
     required this.id,
     this.date,
@@ -174,6 +179,8 @@ class Substitution {
     this.substituteTeacherId,
     this.substituteTeacherName = '',
     this.status = '',
+    this.reason = '',
+    this.notes = '',
   });
 
   factory Substitution.fromJson(Map<String, dynamic> j) => Substitution(
@@ -191,7 +198,28 @@ class Substitution {
         substituteTeacherId: readId(j['substituteTeacherId']),
         substituteTeacherName: readText(j['substituteTeacherName']),
         status: readText(j['status']),
+        reason: readText(j['reason']),
+        notes: readText(j['notes']),
       );
 
   String get classLabel => [gradeLevel, sectionName].where((e) => e.isNotEmpty).join(' - ');
+
+  Substitution copyWithStatus(String newStatus) => Substitution(
+        id: id,
+        date: date,
+        periodNo: periodNo,
+        startTime: startTime,
+        endTime: endTime,
+        gradeLevel: gradeLevel,
+        sectionName: sectionName,
+        subject: subject,
+        roomNo: roomNo,
+        originalTeacherId: originalTeacherId,
+        originalTeacherName: originalTeacherName,
+        substituteTeacherId: substituteTeacherId,
+        substituteTeacherName: substituteTeacherName,
+        status: newStatus,
+        reason: reason,
+        notes: notes,
+      );
 }
