@@ -133,6 +133,38 @@ class HomeBadgesController extends GetxController with WidgetsBindingObserver {
     } catch (_) {}
   }
 
+  // ── Local sync (Messages tab / Home card stay consistent with what the teacher just did, without waiting for the next poll) ──
+
+  /// Applies [change] to the open-thread list row [id] (e.g. unread cleared after opening it, a fresh preview after sending).
+  /// A closed result leaves the open list; an unknown id is ignored. Never invents data: it only edits rows the server sent.
+  void applyThreadChange(String id, MessageThread Function(MessageThread) change) {
+    final cur = threads.value.data;
+    if (cur == null || !threads.value.hasData) return;
+    final next = <MessageThread>[];
+    for (final t in cur.items) {
+      if (t.id != id) {
+        next.add(t);
+        continue;
+      }
+      final c = change(t);
+      if (!c.isClosed) next.add(c);
+    }
+    threads.value = SectionState.data(cur.withItems(next));
+  }
+
+  /// A thread the teacher just started goes to the top of the open list (the server sorts by lastMessageAt desc).
+  void addOpenThread(MessageThread t) {
+    final cur = threads.value.data;
+    if (cur == null || !threads.value.hasData) return;
+    threads.value = SectionState.data(cur.withItems([t, ...cur.items.where((x) => x.id != t.id)]));
+  }
+
+  /// Bell badge set from a fresh server count (notifications inbox) or a local read/read-all.
+  void setNotificationUnread(int n) {
+    notificationsUnavailable.value = false;
+    notificationUnread.value = n < 0 ? 0 : n;
+  }
+
   int _threadsToken = 0;
 
   /// Ends a pending threads load in an error state and makes any late answer irrelevant. A silent poll ([onlyIfNoData]) keeps real data.
