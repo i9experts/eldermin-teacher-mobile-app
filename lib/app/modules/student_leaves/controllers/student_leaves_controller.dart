@@ -151,7 +151,8 @@ class StudentLeavesController extends GetxController {
     // Out of its old list(s), into the list of its new status (when that list is loaded; otherwise it is re-read when opened).
     for (final s in LeaveStatus.values) {
       final st = lists[s];
-      final rows = st?.data;
+      // A loaded list is either data or the empty state (an empty list is still a list the decision must be added to).
+      final rows = st == null ? null : (st.status == SectionStatus.empty ? const <StudentLeaveRequest>[] : st.data);
       if (rows == null) continue;
       final kept = rows.where((l) => l.id != u.id).toList();
       if (s == u.status) {

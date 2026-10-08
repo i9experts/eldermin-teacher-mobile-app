@@ -1,0 +1,56 @@
+{
+ "thread": {
+  "_id": "64e000000000000000000a01",
+  "subject": "Homework query",
+  "studentId": "64f000000000000000000201",
+  "studentName": "Zara Qureshi (DUMMY)",
+  "guardianUserId": "64f000000000000000007804",
+  "guardianName": "Mr Qureshi (DUMMY)",
+  "staffId": "64a0000000000000000000a1",
+  "staffName": "Tess Teacher",
+  "lastMessagePreview": "Thank you ma'am, we will send it tomorrow.",
+  "lastMessageAt": "2026-10-08T12:31:08.678Z",
+  "guardianHasUnread": false,
+  "staffHasUnread": true,
+  "status": "open",
+  "schoolSlug": "demo-school",
+  "createdAt": "2026-10-05T12:43:08.678Z",
+  "updatedAt": "2026-10-08T12:31:08.678Z",
+  "__v": 0
+ },
+ "messages": [
+  {
+   "_id": "64e000000000000000000c0b",
+   "threadId": "64e000000000000000000a01",
+   "senderRole": "guardian",
+   "senderName": "Mr Qureshi (DUMMY)",
+   "body": "Assalamu alaikum, what is the homework for Monday?",
+   "schoolSlug": "demo-school",
+   "createdAt": "2026-10-07T10:43:08.678Z",
+   "updatedAt": "2026-10-07T10:43:08.678Z",
+   "__v": 0
+  },
+  {
+   "_id": "64e000000000000000000c0c",
+   "threadId": "64e000000000000000000a01",
+   "senderRole": "staff",
+   "senderName": "Tess Teacher",
+   "body": "Walaikum assalam. Please complete exercise 4 on page 32.",
+   "schoolSlug": "demo-school",
+   "createdAt": "2026-10-07T11:43:08.678Z",
+   "updatedAt": "2026-10-07T11:43:08.678Z",
+   "__v": 0
+  },
+  {
+   "_id": "64e000000000000000000c0d",
+   "threadId": "64e000000000000000000a01",
+   "senderRole": "guardian",
+   "senderName": "Mr Qureshi (DUMMY)",
+   "body": "Thank you ma'am, we will send it tomorrow.",
+   "schoolSlug": "demo-school",
+   "createdAt": "2026-10-08T12:31:08.678Z",
+   "updatedAt": "2026-10-08T12:31:08.678Z",
+   "__v": 0
+  }
+ ]
+}
