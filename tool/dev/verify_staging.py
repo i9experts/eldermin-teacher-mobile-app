@@ -226,6 +226,56 @@ def body_summary(body):
     return type_name(body)
 
 
+FEE_KEY_RE = re.compile(r"fee|invoice|amount|price|balance|outstanding|revenue|payment|discount|promo|ticket|total(?!s?$)|currency|payable|due", re.I)
+
+
+def fee_like_key_names(body, limit=12):
+    """Key NAMES (never values) at any depth of a calendar / event payload that look like fee, invoice, price, ticket or promo data. The owner rule is that the app
+    never parses or shows them; this check reports whether the SERVER exposes them to a teacher. `dueDate`-style names count (invoices)."""
+    found = set()
+
+    def walk(n, depth):
+        if depth > 6:
+            return
+        if isinstance(n, dict):
+            for k, v in n.items():
+                if FEE_KEY_RE.search(str(k)):
+                    found.add(str(k))
+                walk(v, depth + 1)
+        elif isinstance(n, list):
+            for x in n[:MAX_ITEMS_CHECKED]:
+                walk(x, depth + 1)
+
+    walk(body, 0)
+    return sorted(found)[:limit]
+
+
+def fee_row_count(rows):
+    """Number of calendar rows that are finance rows (type fee_due / source finance / id fee-due-*): the description of such a row carries money. Counted, never read."""
+    n = 0
+    if isinstance(rows, list):
+        for r in rows[:MAX_ITEMS_CHECKED * 10]:
+            if isinstance(r, dict) and (r.get("type") == "fee_due" or r.get("source") == "finance" or str(r.get("_id", "")).startswith("fee-due-")):
+                n += 1
+    return n
+
+
+def audience_counts(rows):
+    """(total, not_for_staff, not_published) of circular rows: the list endpoint returns every audience and status (SCS:190-195). Counts only."""
+    total = nfs = npub = 0
+    if isinstance(rows, list):
+        for r in rows[:MAX_ITEMS_CHECKED * 10]:
+            if not isinstance(r, dict):
+                continue
+            total += 1
+            aud = r.get("audience") if isinstance(r.get("audience"), dict) else {}
+            if "staff" not in (aud.get("roles") or []):
+                nfs += 1
+            if r.get("status") != "published":
+                npub += 1
+    return total, nfs, npub
+
+
 def endpoint_verdict(status):
     if status == 404:
         return "NOT-DEPLOYED(404)"
@@ -599,6 +649,84 @@ EXPECTATIONS = {
         ("[].approverNote", SN, False, None),
         ("[].createdAt", S, False, ("fmt", "iso")),
     ],
+    # GET /school-calendar/events?from&to (Phase 7c). Backend school-calendar.controller.ts:30-34 -> school-calendar.service.ts:74-161 (SCS); schema
+    # schemas/calendar-event.schema.ts:11-47 (type enum :11-13, colours :15-28). App: calendar_models.dart CalendarEntry (WHITELIST). startDate/endDate arrive as an ISO
+    # instant (manual / exam / term rows) OR a plain YYYY-MM-DD (the synthetic fee-due rows, SCS:91-103). Fee rows (type fee_due, source finance) are a known leak: see the FEE check.
+    "calendar_events": [
+        ("[]._id", S, True, None),
+        ("[].title", S, True, None),
+        ("[].description", SN, False, None),
+        ("[].type", S, True, ("enum", ["holiday", "exam", "event", "admission_deadline", "training", "half_day", "public_holiday", "other", "fee_due", "academic_term"])),
+        ("[].color", SN, False, None),
+        ("[].startDate", S, True, ("fmt", "iso")),
+        ("[].endDate", S, True, ("fmt", "iso")),
+        ("[].allDay", B, False, None),
+        ("[].gradeLevels", L, False, None),
+        ("[].source", S, False, ("enum", ["manual", "finance", "assessments", "academics"])),
+    ],
+    # GET /school-calendar/circulars?status=published (Phase 7c). Backend school-calendar.controller.ts:59-63 -> service :190-195 (EVERY audience, newest first, limit 100); schema
+    # schemas/circular.schema.ts:6-8, 18-46. App: calendar_models.dart Circular (whitelist; audience is read only to decide whether a teacher sees it).
+    "circulars": [
+        ("[]._id", S, True, ("fmt", "id")),
+        ("[].title", S, True, None),
+        ("[].body", S, False, None),
+        ("[].category", S, False, ("enum", ["academic", "administrative", "fee", "emergency", "sports", "cultural", "other"])),
+        ("[].priority", S, False, ("enum", ["normal", "urgent"])),
+        ("[].status", S, True, ("enum", ["draft", "scheduled", "published"])),
+        ("[].requiresAcknowledgment", B, False, None),
+        ("[].publishedAt", SN, False, ("fmt", "iso")),
+        ("[].attachmentUrls", L, False, None),
+        ("[].audience", D, True, None),
+        ("[].audience.roles", L, True, None),
+        ("[].audience.scope", S, False, ("enum", ["school", "campus", "grade", "individual"])),
+    ],
+    # GET /events (Phase 7c, read only). Backend events.controller.ts:17-21 -> events.service.ts:147-152 (EVERY event, drafts included); schema schemas/event.schema.ts:6-9, 19-68.
+    # App: calendar_models.dart SchoolEvent (whitelist).
+    "events_list": [
+        ("[]._id", S, True, ("fmt", "id")),
+        ("[].title", S, True, None),
+        ("[].category", S, False, ("enum", ["open_house", "annual_day", "sports_day", "fundraiser", "alumni_meet", "workshop", "parent_teacher_conference", "graduation", "other"])),
+        ("[].status", S, True, ("enum", ["draft", "published", "cancelled", "completed"])),
+        ("[].visibility", S, True, ("enum", ["public", "unlisted", "private", "internal"])),
+        ("[].venueName", SN, False, None),
+        ("[].sessions", L, False, None),
+        ("[].sessions[].startAt", S, True, ("fmt", "iso")),
+        ("[].sessions[].endAt", S, False, ("fmt", "iso")),
+    ],
+    # GET /events/:id (Phase 7c). Backend events.controller.ts:28-32 -> events.service.ts:154-162: the event PLUS ticketTypes and promoCodes (known leak, see the FEE check).
+    "event_one": [
+        ("_id", S, True, ("fmt", "id")),
+        ("title", S, True, None),
+        ("status", S, True, ("enum", ["draft", "published", "cancelled", "completed"])),
+        ("visibility", S, True, ("enum", ["public", "unlisted", "private", "internal"])),
+        ("sessions", L, False, None),
+    ],
+    # GET /kb/articles, /kb/search?q=, /kb/articles/:module/:tabKey (Phase 7c). Backend modules/knowledge-base/knowledge-base.controller.ts:24-39 -> service :46-67; schema
+    # schemas/kb-article.schema.ts:17-43 (body = "Markdown or plain text"). App: kb_models.dart KbArticle. Global content, any authenticated user.
+    "kb_list": [
+        ("[].module", S, True, None),
+        ("[].tabKey", S, True, None),
+        ("[].title", S, True, None),
+        ("[].tagline", S, False, None),
+        ("[].body", S, False, None),
+        ("[].steps", L, False, None),
+        ("[].order", NUM, False, None),
+    ],
+    "kb_one": [
+        ("module", S, True, None),
+        ("tabKey", S, True, None),
+        ("title", S, True, None),
+        ("body", S, False, None),
+        ("steps", L, False, None),
+    ],
+    # GET /auth/me (Phase 7c profile). Backend modules/auth/auth.controller.ts:49-52 -> auth.service.ts:316-328: the user document without passwordHash (+ permissions).
+    # App: auth_me.dart AuthMe reads only name / email / primaryRole|role / profile.avatarUrl.
+    "auth_me": [
+        ("_id", S, True, ("fmt", "id")),
+        ("email", S, True, None),
+        ("primaryRole", S, False, None),
+        ("profile", DN, False, None),
+    ],
     # GET /staff-portal/threads?status=open. Backend staff-portal.service.ts:217-223; schema
     # notification-and-message.schema.ts:41-59. App: messaging.dart (ThreadsResult/MessageThread).
     "threads_open": [
@@ -883,6 +1011,20 @@ class Report:
                 self.fails += 1
             self.line(f"        {st:<4} {path} : {detail}")
 
+    def fee_check(self, body, label, rows=None):
+        """FAIL when the payload exposes fee-like key names or finance rows. Prints key names and a count only."""
+        names = fee_like_key_names(body)
+        n = fee_row_count(rows) if rows is not None else 0
+        bad = bool(names) or n > 0
+        if bad:
+            self.fails += 1
+        parts = []
+        if names:
+            parts.append(f"fee-like key names: {', '.join(names)}")
+        if n:
+            parts.append(f"{n} finance row(s) (type fee_due / source finance)")
+        self.line(f"        {'FAIL' if bad else 'PASS'} FEE: {label} expose no fee data to a teacher : " + ("; ".join(parts) + " (the app never reads them)" if bad else "no fee-like key names, no finance rows"))
+
     def skip(self, who, label, why):
         self.counts["SKIP"] += 1
         self.line(f"[SKIP] {who}: {label} ({why})")
@@ -1079,6 +1221,51 @@ def run_user(rep, who, base, slug, email, password, class_teacher):
         if st == 200 and isinstance(b, list):
             populated = sorted({k for r in b[:MAX_ITEMS_CHECKED] if isinstance(r, dict) and isinstance(r.get("approvedBy"), dict) for k in r["approvedBy"] if re.search(r"email|phone", str(k), re.I)})
             rep.line(f"        NOTE approvedBy (populated approver) carries contact key names the app never reads: {', '.join(populated) if populated else 'none'}")
+    # Phase 7c (all GET, read-only): school calendar (this month's grid window), published circulars, events + ONE event, knowledge base (list, search, ONE article), /auth/me.
+    # Never called: POST circulars/:id/acknowledge, POST compliance/safeguarding, POST auth/me/avatar, POST staff-portal/account/delete-request.
+    # The FEE check FAILS when a calendar / event payload exposes fee-like KEY NAMES or finance rows to a teacher (key names and counts only are printed).
+    if True:
+        first = today.replace(day=1)
+        last = (first + datetime.timedelta(days=32)).replace(day=1) - datetime.timedelta(days=1)
+        cf = (first - datetime.timedelta(days=7)).isoformat() + "T00:00:00.000Z"
+        ct = (last + datetime.timedelta(days=7)).isoformat() + "T23:59:59.999Z"
+        st, cal = get("/school-calendar/events", {"from": cf, "to": ct})
+        rep.endpoint(who, "GET /school-calendar/events?from&to (month grid window)", st, cal, "calendar_events")
+        if st == 200:
+            rep.fee_check(cal, "calendar rows", rows=cal)
+        st, circ = get("/school-calendar/circulars", {"status": "published"})
+        rep.endpoint(who, "GET /school-calendar/circulars?status=published", st, circ, "circulars")
+        if st == 200:
+            total, nfs, npub = audience_counts(circ)
+            rep.line(f"        NOTE circulars returned: {total}; not addressed to staff: {nfs}; not published: {npub} (the app hides both; the server returns every audience, SCS:190-195)")
+        st, evs = get("/events")
+        rep.endpoint(who, "GET /events", st, evs, "events_list")
+        if st == 200:
+            rep.fee_check(evs, "event rows")
+            if isinstance(evs, list):
+                hidden = sum(1 for e in evs if isinstance(e, dict) and (e.get("status") == "draft" or e.get("visibility") in ("private", "unlisted")))
+                rep.line(f"        NOTE events returned: {len(evs)}; draft / private / unlisted (hidden by the app): {hidden} (ES:147-152 returns every event)")
+        first_ev = next((e for e in evs if isinstance(e, dict)), None) if st == 200 and isinstance(evs, list) else None
+        if first_ev and isinstance(first_ev.get("_id"), str) and _FORMATS["id"].match(first_ev["_id"]):
+            st, eb = get(f"/events/{first_ev['_id']}")
+            rep.endpoint(who, "GET /events/:id", st, eb, "event_one")
+            if st == 200:
+                rep.fee_check(eb, "event detail")
+        else:
+            rep.skip(who, "GET /events/:id", "no event to check")
+        st, kb = get("/kb/articles")
+        kb_status = st
+        rep.endpoint(who, "GET /kb/articles", st, kb, "kb_list")
+        st, b = get("/kb/search", {"q": "leave"})
+        rep.endpoint(who, "GET /kb/search?q=leave", st, b, "kb_list")
+        first_kb = next((a for a in kb if isinstance(a, dict)), None) if kb_status == 200 and isinstance(kb, list) else None
+        if first_kb and isinstance(first_kb.get("module"), str) and isinstance(first_kb.get("tabKey"), str):
+            st, b = get(f"/kb/articles/{urllib.parse.quote(first_kb['module'], safe='')}/{urllib.parse.quote(first_kb['tabKey'], safe='')}")
+            rep.endpoint(who, "GET /kb/articles/:module/:tabKey", st, b, "kb_one")
+        else:
+            rep.skip(who, "GET /kb/articles/:module/:tabKey", "no article to check")
+        st, b = get("/auth/me")
+        rep.endpoint(who, "GET /auth/me", st, b, "auth_me")
     if class_teacher:
         grade = class_of.get("gradeName") if isinstance(class_of, dict) else None
         section = class_of.get("sectionName") if isinstance(class_of, dict) else None

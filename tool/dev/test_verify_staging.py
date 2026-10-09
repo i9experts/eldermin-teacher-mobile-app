@@ -475,5 +475,99 @@ class TestPhase7bExpectations(unittest.TestCase):
             self.assertFalse(v.request_allowed("PATCH", path), path)
 
 
+class TestPhase7cExpectations(unittest.TestCase):
+    def ok(self, key, body):
+        return all(st != "FAIL" for _, st, _ in v.check_expectations(body, v.EXPECTATIONS[key]))
+
+    def test_good_stub_bodies_pass_the_schema_checks(self):
+        import stub_server as s
+        import stub_7c as p
+        T = s.ACCOUNTS["teacher"]
+        cal = p.list_calendar({"from": ["2000-01-01"], "to": ["2100-01-01"]})[1]
+        self.assertTrue(self.ok("calendar_events", cal))
+        self.assertTrue(self.ok("circulars", p.list_circulars(T, {"status": ["published"]})[1]))
+        evs = p.list_events()[1]
+        self.assertTrue(self.ok("events_list", evs))
+        self.assertTrue(self.ok("event_one", p.get_event(evs[0]["_id"])[1]))
+        kb = p.kb_list({})[1]
+        self.assertTrue(self.ok("kb_list", kb))
+        self.assertTrue(self.ok("kb_one", p.kb_one("hr", "employees")[1]))
+        self.assertTrue(self.ok("auth_me", s.user_view(T) | {"_id": s.ACCOUNTS["teacher"]["staffId"], "primaryRole": "teacher"}))
+
+    def test_fee_leak_in_the_stub_is_detected_by_key_name_and_row_count_only(self):
+        import stub_7c as p
+        cal = p.list_calendar({"from": ["2000-01-01"], "to": ["2100-01-01"]})[1]
+        self.assertGreaterEqual(v.fee_row_count(cal), 2)  # type fee_due / source finance rows (SCS:91-103)
+        self.assertEqual(v.fee_like_key_names(cal), [])  # the real calendar rows carry no fee-like KEY names: the leak is in the rows' values
+        ev = p.get_event(p.list_events()[1][0]["_id"])[1]
+        names = v.fee_like_key_names(ev)
+        self.assertIn("ticketTypes", names)
+        self.assertIn("promoCodes", names)
+        self.assertIn("price", names)
+        self.assertEqual(v.fee_like_key_names(p.list_events()[1]), [])
+
+    def test_fee_check_fails_the_run_and_prints_no_values(self):
+        import stub_7c as p
+        cal = p.list_calendar({"from": ["2000-01-01"], "to": ["2100-01-01"]})[1]
+        rep = v.Report()
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rep.fee_check(cal, "calendar rows", rows=cal)
+        out = buf.getvalue()
+        self.assertEqual(rep.fails, 1)
+        self.assertIn("FAIL FEE", out)
+        self.assertIn("finance row(s)", out)
+        for leak in ("Total outstanding", "845000", "Fee Due"):
+            self.assertNotIn(leak, out)
+
+    def test_fee_check_passes_on_clean_payloads(self):
+        rep = v.Report()
+        with redirect_stdout(io.StringIO()):
+            rep.fee_check([{"_id": "a", "title": "Holiday", "type": "holiday", "startDate": "2026-10-12T00:00:00.000Z"}], "calendar rows", rows=[{"type": "holiday"}])
+            rep.fee_check({"_id": "e", "title": "Annual day", "sessions": []}, "event detail")
+        self.assertEqual(rep.fails, 0)
+
+    def test_event_detail_leak_fails_and_only_names_are_printed(self):
+        body = {"_id": SECRET_ID, "title": SECRET_NAME, "ticketTypes": [{"name": "VIP", "price": 123456}], "promoCodes": [{"code": "SECRETCODE"}]}
+        rep = v.Report()
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rep.fee_check(body, "event detail")
+        out = buf.getvalue()
+        self.assertEqual(rep.fails, 1)
+        for secret in (SECRET_ID, SECRET_NAME, "123456", "SECRETCODE"):
+            self.assertNotIn(secret, out)
+        self.assertIn("ticketTypes", out)
+
+    def test_audience_counts_are_counts_only(self):
+        rows = [{"status": "published", "audience": {"roles": ["staff"]}}, {"status": "draft", "audience": {"roles": ["staff"]}}, {"status": "published", "audience": {"roles": ["parent"]}}]
+        self.assertEqual(v.audience_counts(rows), (3, 1, 1))
+
+    def test_schema_drift_is_caught(self):
+        bad = [{"_id": "x", "title": "T", "type": "festival", "startDate": "12/10/2026", "endDate": "2026-10-12T00:00:00.000Z"}]
+        self.assertEqual({pth for pth, st, _ in v.check_expectations(bad, v.EXPECTATIONS["calendar_events"]) if st == "FAIL"}, {"[].type", "[].startDate"})
+        ev = [{"_id": SECRET_ID, "title": "T", "status": "live", "visibility": "public"}]
+        self.assertEqual({pth for pth, st, _ in v.check_expectations(ev, v.EXPECTATIONS["events_list"]) if st == "FAIL"}, {"[].status"})
+
+    def test_values_are_never_printed_for_circulars_or_kb(self):
+        rep = v.Report()
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rep.endpoint("teacher", "GET /school-calendar/circulars", 200, [{"_id": SECRET_ID, "title": SECRET_NAME, "body": "<p>" + SECRET_NAME + "</p>", "status": "published", "audience": {"roles": ["staff"], "scope": "school"}}], "circulars")
+            rep.endpoint("teacher", "GET /kb/articles", 200, [{"module": "hr", "tabKey": "a", "title": SECRET_NAME, "body": SECRET_NAME}], "kb_list")
+        for secret in (SECRET_ID, SECRET_NAME):
+            self.assertNotIn(secret, buf.getvalue())
+
+    def test_only_get_endpoints_are_called_for_7c(self):
+        src = open(v.__file__).read()
+        block = src[src.index("# Phase 7c (all GET"):src.index("    if class_teacher:\n        grade =")]
+        block = "\n".join(l for l in block.splitlines() if not l.strip().startswith("#"))
+        for bad in ('http("POST"', '"PATCH"', '"PUT"', '"DELETE"', "acknowledge", "compliance/safeguarding", "me/avatar", "delete-request"):
+            self.assertNotIn(bad, block)
+        for path in ("/school-calendar/circulars/x/acknowledge", "/compliance/safeguarding", "/auth/me/avatar", "/staff-portal/account/delete-request"):
+            self.assertFalse(v.request_allowed("POST", path), path)
+        self.assertTrue(v.request_allowed("GET", "/kb/search"))
+
+
 if __name__ == "__main__":
     unittest.main()

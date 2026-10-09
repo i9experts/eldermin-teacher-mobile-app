@@ -62,7 +62,7 @@ void main() {
 
     test('day list: all-day first, then timed by time; multi-day shows on every day inclusive', () async {
       repo.events = (f, t) async => [
-            entry('t', 'Training', start: '2026-10-12T14:00:00.000Z', end: '2026-10-12T15:00:00.000Z', allDay: false),
+            entry('t', 'Training', start: DateTime(2026, 10, 12, 14).toUtc().toIso8601String(), end: DateTime(2026, 10, 12, 15).toUtc().toIso8601String(), allDay: false), // local 14:00-15:00 on the 12th, in any zone
             entry('a', 'Break', type: 'holiday', start: '2026-10-12T00:00:00.000Z', end: '2026-10-14T00:00:00.000Z'),
             entry('b', 'Another all day', start: '2026-10-12T00:00:00.000Z'),
           ];

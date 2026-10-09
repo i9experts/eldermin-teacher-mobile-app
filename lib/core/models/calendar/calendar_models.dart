@@ -126,7 +126,7 @@ class CalendarEntry {
     final e = _localDay(end);
     final l = end.toLocal();
     final atMidnight = l.hour == 0 && l.minute == 0 && l.second == 0 && l.millisecond == 0;
-    return atMidnight && end.isAfter(start) && e.isAfter(firstDay) ? e.subtract(const Duration(days: 1)) : e;
+    return atMidnight && end.isAfter(start) && e.isAfter(firstDay) ? DateTime(e.year, e.month, e.day - 1) : e;
   }
 
   bool get isMultiDay => lastDay.isAfter(firstDay);

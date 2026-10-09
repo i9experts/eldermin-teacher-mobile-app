@@ -40,9 +40,8 @@ class CalendarController extends GetxController {
 
   /// First/last day of the request window for the month of [d]: the visible 6-week grid is covered by +-7 days.
   static ({DateTime from, DateTime to}) windowFor(DateTime d) {
-    final first = DateTime(d.year, d.month, 1);
-    final last = DateTime(d.year, d.month + 1, 0);
-    return (from: first.subtract(const Duration(days: 7)), to: last.add(const Duration(days: 7)));
+    // Calendar arithmetic on y/m/d (NOT Duration: 7 x 24 h across a daylight-saving change would land on 23:00 / 01:00 and shift the day).
+    return (from: DateTime(d.year, d.month, 1 - 7), to: DateTime(d.year, d.month + 1, 0 + 7));
   }
 
   bool get _monthLoaded => _loaded.contains(_monthKey(focusedDay.value));
