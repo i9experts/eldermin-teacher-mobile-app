@@ -24,10 +24,10 @@ String htmlToPlainText(String html) {
   s = s.replaceAll(_openNoClose, ''); // an unclosed <script ...> is dropped too (its tail text stays as inert text)
   s = s.replaceAll(_brTag, '\n').replaceAll(_blockClose, '\n').replaceAll(_liClose, '\n').replaceAll(_liOpen, '• ');
   s = s.replaceAll(_anyTag, '');
-  s = decodeEntities(s);
-  // A leftover '<' that started a broken tag ("<img src=x onerror=...") is neutralised: no tag can survive as markup because we never parse
-  // markup at render time, but strip a dangling opener so the text is clean.
+  // A leftover '<' that started a broken tag ("<img src=x onerror=...") is dropped with the rest of its line. Done BEFORE entities are decoded, so a
+  // literal "&lt;b&gt;" in the text stays text. (Nothing is ever parsed as markup at render time either way.)
   s = s.replaceAll(RegExp(r'<[a-zA-Z/!][^\n]*$', multiLine: true), '');
+  s = decodeEntities(s);
   s = s.replaceAll(RegExp(r'[ \t ]+'), ' ').replaceAll(RegExp(r' *\n *'), '\n').replaceAll(RegExp(r'\n{3,}'), '\n\n');
   return s.trim();
 }
@@ -83,7 +83,7 @@ class TextBlock {
   String get plain => runs.map((r) => r.text).join();
 }
 
-final _mdLink = RegExp(r'\[([^\]]+)\]\(([^)\s]+)\)');
+final _mdLink = RegExp(r'\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)');
 
 List<InlineRun> _inline(String line) {
   final runs = <InlineRun>[];
@@ -104,7 +104,7 @@ List<InlineRun> _inline(String line) {
 List<TextBlock> parseRichText(String raw) {
   var s = raw;
   if (looksLikeHtml(s)) s = htmlToPlainText(s);
-  s = s.replaceAll(RegExp(r'!\[([^\]]*)\]\([^)]*\)'), r'$1');
+  s = s.replaceAllMapped(RegExp(r'!\[([^\]]*)\]\([^)]*\)'), (m) => m.group(1) ?? '');
   final blocks = <TextBlock>[];
   final para = <String>[];
   void flush() {
