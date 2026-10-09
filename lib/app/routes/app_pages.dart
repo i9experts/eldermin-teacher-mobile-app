@@ -58,7 +58,6 @@ import '../modules/messages/views/message_thread_screen.dart';
 import '../modules/notifications/bindings/notifications_binding.dart';
 import '../modules/notifications/views/notifications_screen.dart';
 import '../modules/profile/bindings/profile_binding.dart';
-import '../modules/profile/views/profile_edit_screen.dart';
 import '../modules/profile/views/profile_screen.dart';
 import '../modules/ptm/bindings/ptm_binding.dart';
 import '../modules/ptm/views/ptm_detail_screen.dart';
@@ -308,10 +307,6 @@ class AppPages {
     GetPage(
         name: Routes.profile,
         page: () => const ProfileScreen(),
-        binding: ProfileBinding()),
-    GetPage(
-        name: Routes.profileEdit,
-        page: () => const ProfileEditScreen(),
         binding: ProfileBinding()),
     GetPage(
         name: Routes.help,

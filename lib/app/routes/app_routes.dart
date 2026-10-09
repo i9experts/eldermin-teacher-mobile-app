@@ -73,7 +73,6 @@ abstract class Routes {
   static const earlyYears = '/early-years';
   static const safeguarding = '/safeguarding';
   static const profile = '/profile';
-  static const profileEdit = '/profile/edit';
   static const help = '/help';
   static const about = '/about';
   static const deleteAccount = '/delete-account';
@@ -155,7 +154,6 @@ abstract class Routes {
     earlyYears,
     safeguarding,
     profile,
-    profileEdit,
     help,
     about,
     deleteAccount,

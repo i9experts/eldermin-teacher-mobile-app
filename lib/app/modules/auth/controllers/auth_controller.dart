@@ -318,6 +318,25 @@ class AuthController extends GetxController with WidgetsBindingObserver {
     institution.value = me.institution;
   }
 
+  /// A new profile photo was uploaded (`POST /auth/me/avatar` answered `{avatarUrl}`): updates the in-memory session user and staff identity so the
+  /// app bar shows it at once. Nothing is persisted (the user is rebuilt from the server on every launch); the next `/staff-portal/me` carries the same URL.
+  void setAvatarUrl(String url) {
+    final u = user.value;
+    if (u != null) user.value = u.copyWith(avatarUrl: url);
+    final me = staffMe.value;
+    if (me != null) {
+      staffMe.value = StaffMe(
+        user: me.user.copyWith(avatarUrl: url),
+        staffId: me.staffId,
+        teacherProfileId: me.teacherProfileId,
+        teacherProfile: me.teacherProfile,
+        department: me.department,
+        campus: me.campus,
+        institution: me.institution,
+      );
+    }
+  }
+
   void _applyUnsupported(TeacherUser basic, Institution? inst) {
     user.value = basic;
     institution.value = inst;
