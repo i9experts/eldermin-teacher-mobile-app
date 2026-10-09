@@ -284,7 +284,7 @@ class AppPages {
     GetPage(
         name: Routes.eventDetail,
         page: () => const EventDetailScreen(),
-        binding: EventsBinding()),
+        binding: EventDetailBinding()),
     GetPage(
         name: Routes.curriculum,
         page: () => const CurriculumScreen(),

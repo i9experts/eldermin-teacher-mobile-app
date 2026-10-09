@@ -147,6 +147,8 @@ class ApiConstants {
   static const String circulars = '$apiPrefix/school-calendar/circulars'; // pass status=published
   static String circular(String id) => '$apiPrefix/school-calendar/circulars/$id';
   static String circularAcknowledge(String id) => '$apiPrefix/school-calendar/circulars/$id/acknowledge';
+  static const String events = '$apiPrefix/events'; // GET only (read)
+  static String eventById(String id) => '$apiPrefix/events/$id';
 
   // ── Academics (curriculum / library) ─────────────────────────
   static const String curriculum = '$apiPrefix/academics/curriculum';
@@ -166,4 +168,6 @@ class ApiConstants {
   static const String uploadSignedUrl = '$apiPrefix/upload/signed-url';
   static const String kbArticles = '$apiPrefix/kb/articles';
   static const String kbSearch = '$apiPrefix/kb/search';
+  static String kbArticle(String module, String tabKey) => '$apiPrefix/kb/articles/${Uri.encodeComponent(module)}/${Uri.encodeComponent(tabKey)}';
+
 }
