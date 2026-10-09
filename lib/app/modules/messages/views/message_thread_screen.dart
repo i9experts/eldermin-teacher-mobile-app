@@ -70,13 +70,20 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     if (first || mine || _stick) WidgetsBinding.instance.addPostFrameCallback((_) => _toBottom(animate: !first));
   }
 
-  void _toBottom({bool animate = true}) {
+  void _toBottom({bool animate = true, int retries = 8}) {
     if (!_scroll.hasClients) return;
     final end = _scroll.position.maxScrollExtent;
     if (animate) {
       _scroll.animateTo(end, duration: const Duration(milliseconds: 180), curve: Curves.easeOut);
     } else {
       _scroll.jumpTo(end);
+      // A long thread (hundreds of bubbles) is laid out lazily: maxScrollExtent is only an estimate until the last items are built, so one jump can
+      // stop short of the newest message (seen on the simulator with 500 messages). Re-jump on the next frames (bounded) until the end stops moving.
+      if (retries > 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scroll.hasClients && _scroll.position.maxScrollExtent - _scroll.position.pixels > 1) _toBottom(animate: false, retries: retries - 1);
+        });
+      }
     }
     c.clearNewIncoming();
   }

@@ -196,6 +196,12 @@ void main() {
       expect(find.byKey(const Key('chat_closed_banner')), findsNothing);
     });
 
+    testWidgets('a 500-message thread opens at the NEWEST message (lazy layout must not stop the jump short)', (t) async {
+      await boot(t, data: (id) => ThreadMessages(thread: thread(id), messages: [for (var i = 1; i <= 500; i++) serverMsg('m$i', 'Long msg $i', mine: i.isEven, at: DateTime.utc(2026, 10, 5, 8).add(Duration(minutes: i)))]));
+      await t.pump(const Duration(seconds: 1));
+      expect(find.text('Long msg 500'), findsOneWidget);
+    });
+
     testWidgets('typing and tapping send shows the message at once (Sending…), clears the field; a double tap sends once', (t) async {
       final c = await boot(t);
       final gate = Completer<ChatMessage>();
