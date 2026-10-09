@@ -27,6 +27,13 @@ abstract class AvatarPicker {
   Future<PickedAvatar?> pick(AvatarSource source);
 }
 
+/// The picker the app uses by default. A test seam (like `ExternalLinks.launcher`): the simulator walkthrough swaps in a fake that returns a generated
+/// image, because the system photo picker cannot be driven from an integration test. Production code never reassigns it.
+class AvatarPickers {
+  AvatarPickers._();
+  static AvatarPicker current = const DeviceAvatarPicker();
+}
+
 class DeviceAvatarPicker implements AvatarPicker {
   const DeviceAvatarPicker();
 

@@ -14,11 +14,12 @@ enum AvatarOutcome { none, uploaded, rejected, denied, unavailable, failed, forb
 /// backend lets a teacher change: the profile photo (`POST /auth/me/avatar`). No edit endpoint exists for anything else.
 class ProfileController extends GetxController {
   final ProfileRepository? _repo;
-  final AvatarPicker _picker;
+  final AvatarPicker? _pickerOverride;
+  AvatarPicker get _picker => _pickerOverride ?? AvatarPickers.current;
   final AuthController? _auth;
   ProfileController({ProfileRepository? repository, AvatarPicker? picker, AuthController? auth})
       : _repo = repository,
-        _picker = picker ?? const DeviceAvatarPicker(),
+        _pickerOverride = picker,
         _auth = auth;
 
   ProfileRepository get repo => _repo ?? Get.find<ProfileRepository>();
