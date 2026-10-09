@@ -93,8 +93,7 @@ void main() {
     await t.pageBack();
     await settle(t, 1500);
     await shot(t, '7c_43_home_app_bar_shows_new_photo');
-    await t.tap(find.byType(InkWell).first);
-    await waitFor(t, find.byKey(const Key('profile_name')));
+    await openFromMore(t, 'Profile', find.byKey(const Key('profile_name')));
     await mode(t, 'avatar', '503');
     await t.tap(find.byKey(const Key('avatar_gallery')));
     await waitFor(t, find.byKey(const Key('avatar_outcome_unavailable')));
@@ -103,8 +102,7 @@ void main() {
     await mode(t, 'avatar', 'ok');
     await t.pageBack();
     await settle(t, 800);
-    await t.tap(find.byType(InkWell).first);
-    await waitFor(t, find.byKey(const Key('profile_name')));
+    await openFromMore(t, 'Profile', find.byKey(const Key('profile_name')));
     picker.deny = const AvatarPickDenied(AvatarSource.camera);
     await t.tap(find.byKey(const Key('avatar_camera')));
     await waitFor(t, find.byKey(const Key('avatar_outcome_denied')));
