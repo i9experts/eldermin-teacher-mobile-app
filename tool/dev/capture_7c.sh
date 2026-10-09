@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Dev-only: runs the Phase 7c integration_test walkthroughs against the LOCAL stub and takes simulator screenshots on every `SHOT:<name>` marker.
-# Usage: tool/dev/capture_7c.sh <simulator-udid> <out-dir> [port] [which: calendar|safeguarding|help|all]
+# Usage: tool/dev/capture_7c.sh <simulator-udid> <out-dir> [port] [which: calendar|safeguarding|help|leave|all]
 # Process rules: starts only its OWN processes and stops only those PIDs (never pkill / kill-by-pattern); never boots, shuts down or resets the
 # simulator or its keychain (the owner has another Flutter project on it; the app signs out through its own UI instead); watchdog: no SHOT / STEP /
 # STUB marker for 180 s -> the flutter run launched here is stopped and the script ends with a non-zero exit code.
@@ -59,5 +59,6 @@ rc=0
 if [ "$WHICH" = "all" ] || [ "$WHICH" = "calendar" ]; then run_one integration_test/phase7c_calendar_test.dart || rc=$?; fi
 if [ "$WHICH" = "all" ] || [ "$WHICH" = "safeguarding" ]; then run_one integration_test/phase7c_safeguarding_profile_test.dart || rc=$?; fi
 if [ "$WHICH" = "all" ] || [ "$WHICH" = "help" ]; then run_one integration_test/phase7c_help_delete_test.dart || rc=$?; fi
+if [ "$WHICH" = "all" ] || [ "$WHICH" = "leave" ]; then run_one integration_test/phase7c_leave_test.dart || rc=$?; fi
 echo "logs: $LOGDIR"
 exit $rc

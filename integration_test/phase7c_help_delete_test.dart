@@ -87,10 +87,6 @@ void main() {
     await settle(t, 800);
     await leaveToShell(t);
 
-    step('leave apply bar');
-    await openFromMore(t, 'My leave', find.byKey(const Key('leave_apply')));
-    await shot(t, '7c_70_leave_apply_bar_no_overlap');
-    await leaveToShell(t);
     print('DONE:7c_help_delete');
   });
 }
