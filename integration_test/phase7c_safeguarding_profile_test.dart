@@ -1,5 +1,6 @@
 // Phase 7c: safeguarding concern (write only, DUMMY text) and profile + avatar against the LOCAL STUB:
 //   tool/dev/capture_7c.sh <sim> <out-dir> <port> safeguarding
+import 'package:eldermin_teacher_app/app/modules/students/views/widgets/student_widgets.dart';
 import 'package:eldermin_teacher_app/core/services/avatar_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,7 +28,7 @@ void main() {
     await waitFor(t, find.text('Only students of your classes are listed.'));
     await settle(t, 1800);
     await shot(t, '7c_32_safeguarding_student_picker_my_classes');
-    await t.tap(find.byType(ListTile).first);
+    await t.tap(find.byType(StudentTile).first);
     await settle(t, 1000);
     await t.tap(find.byKey(const Key('sg_type_bullying')));
     await t.enterText(find.byKey(const Key('sg_title')), 'DUMMY summary only');

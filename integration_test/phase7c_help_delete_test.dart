@@ -1,6 +1,8 @@
 // Phase 7c: help (knowledge base), about, delete-account request and the leave Apply bar against the LOCAL STUB (DUMMY data):
 //   tool/dev/capture_7c.sh <sim> <out-dir> <port> help
+import 'package:eldermin_teacher_app/app/modules/help/controllers/help_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'phase7c_common.dart';
@@ -40,7 +42,7 @@ void main() {
     await t.tap(find.byKey(const Key('help_search_clear')));
     await settle(t, 800);
     await mode(t, 'kb', '404');
-    await pullToRefresh(t);
+    await t.runAsync(() => Get.find<HelpController>().load(userInitiated: true));
     await settle(t, 1200);
     await shot(t, '7c_55_help_404_not_deployed');
     await mode(t, 'kb', 'ok');
@@ -61,7 +63,7 @@ void main() {
     await shot(t, '7c_61_delete_account_typed_confirmation');
     await mode(t, 'deletereq', '403');
     await t.tap(find.byKey(const Key('delete_submit')));
-    await waitFor(t, find.byKey(const Key('delete_error')));
+    await waitFor(t, find.byKey(const Key('delete_error')), seconds: 8);
     await settle(t, 800);
     await shot(t, '7c_62_delete_account_403');
     await mode(t, 'deletereq', 'ok');

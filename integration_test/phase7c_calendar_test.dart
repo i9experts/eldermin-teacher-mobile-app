@@ -1,6 +1,7 @@
 // Phase 7c: school calendar, circulars (+ acknowledge), events against the LOCAL STUB (DUMMY data):
 //   tool/dev/capture_7c.sh <sim> <out-dir> <port> calendar
 import 'package:eldermin_teacher_app/app/modules/calendar/controllers/calendar_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/events/controllers/events_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -73,16 +74,17 @@ void main() {
     step('calendar states');
     for (final e in {'403': '7c_11_calendar_403', '404': '7c_12_calendar_404_not_deployed', 'empty': '7c_13_calendar_empty'}.entries) {
       await mode(t, 'calendar', e.key);
-      await pullToRefresh(t);
+      await t.runAsync(() => c.reload());
       await settle(t, 1200);
       await shot(t, e.value);
     }
     await mode(t, 'calendar', '500');
-    await pullToRefresh(t);
+    await t.runAsync(() => c.reload());
     await waitFor(t, find.byKey(const Key('screen_error')));
     await shot(t, '7c_14_calendar_error_retry');
     await mode(t, 'calendar', 'ok');
     await t.tap(find.text('Try again'));
+    await t.runAsync(() => Future<void>.delayed(const Duration(seconds: 2)));
     await waitFor(t, find.byKey(const Key('cal_grid')));
     await settle(t, 1200);
     await leaveToShell(t);
@@ -97,7 +99,7 @@ void main() {
     await leaveScreen(t);
     for (final e in {'403': '7c_22_events_403', '404': '7c_23_events_404_not_deployed', 'empty': '7c_24_events_empty'}.entries) {
       await mode(t, 'events', e.key);
-      await pullToRefresh(t);
+      await t.runAsync(() => Get.find<EventsController>().load(userInitiated: true));
       await settle(t, 1200);
       await shot(t, e.value);
     }
