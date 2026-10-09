@@ -89,7 +89,17 @@ Future<void> signInAs(WidgetTester t, String email) async {
     await waitFor(t, find.byKey(const Key('confirm_dialog_confirm')));
     await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
     await t.pump(const Duration(seconds: 3));
-    await waitFor(t, find.text('Sign in'));
+    // after a sign-out on a fresh install (keychain session survived the uninstall) the first-run intro can come first
+    for (var i = 0; i < 125; i++) {
+      guard('after sign-out');
+      if (find.text('Sign in').evaluate().isNotEmpty) break;
+      if (find.text('Skip').evaluate().isNotEmpty) {
+        await t.tap(find.text('Skip'));
+        await t.pump(const Duration(milliseconds: 600));
+      }
+      await t.pump(const Duration(milliseconds: 200));
+    }
+    await waitFor(t, find.text('Sign in'), seconds: 5);
   }
   await settle(t);
   await stub(t, '/__stub/reset-state');

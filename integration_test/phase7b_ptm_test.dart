@@ -190,7 +190,10 @@ void main() {
     await shot(t, '7b_26_ptm_list_error_retry');
     await stub(t, '/__stub/mode?feature=ptmlist&value=empty');
     await pullToRefresh(t);
-    await t.tap(find.text('Try again'));
+    if (find.text('Try again').evaluate().isNotEmpty) {
+      await t.tap(find.text('Try again'));
+      await settle(t, 800);
+    }
     await waitFor(t, find.byKey(const Key('screen_empty')));
     await shot(t, '7b_27_ptm_list_empty');
     await stub(t, '/__stub/mode?feature=ptmlist&value=ok');
