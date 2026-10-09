@@ -71,7 +71,7 @@ abstract class Routes {
   static const curriculumDetail = '/curriculum/:id';
   static const library = '/library';
   static const earlyYears = '/early-years';
-  static const safeguardingNew = '/safeguarding/new';
+  static const safeguarding = '/safeguarding';
   static const profile = '/profile';
   static const profileEdit = '/profile/edit';
   static const help = '/help';
@@ -153,7 +153,7 @@ abstract class Routes {
     curriculumDetail,
     library,
     earlyYears,
-    safeguardingNew,
+    safeguarding,
     profile,
     profileEdit,
     help,

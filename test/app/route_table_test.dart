@@ -39,7 +39,7 @@ void main() {
       '/ptm', '/ptm/new', '/ptm/:id', '/fixtures', '/fixtures/:id', '/leave', '/leave/apply',
       '/student-leaves', '/student-leaves/:id', '/messages', '/messages/new', '/messages/:threadId',
       '/calendar', '/events', '/events/:id', '/curriculum', '/library',
-      '/early-years', '/safeguarding/new',
+      '/early-years', '/safeguarding',
       '/profile', '/profile/edit', '/help', '/about', '/delete-account',
       '/home', '/home/classes', '/home/attendance', '/home/messages', '/home/more',
       '/splash', '/login', '/unsupported-role',

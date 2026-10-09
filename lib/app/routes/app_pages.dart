@@ -67,7 +67,7 @@ import '../modules/ptm/views/ptm_screen.dart';
 import '../modules/reset_password/bindings/reset_password_binding.dart';
 import '../modules/reset_password/views/reset_password_screen.dart';
 import '../modules/safeguarding/bindings/safeguarding_binding.dart';
-import '../modules/safeguarding/views/safeguarding_new_screen.dart';
+import '../modules/safeguarding/views/safeguarding_screen.dart';
 import '../modules/student_leaves/bindings/student_leaves_binding.dart';
 import '../modules/student_leaves/views/student_leave_detail_screen.dart';
 import '../modules/student_leaves/views/student_leaves_screen.dart';
@@ -302,8 +302,8 @@ class AppPages {
         page: () => const EarlyYearsScreen(),
         binding: EarlyYearsBinding()),
     GetPage(
-        name: Routes.safeguardingNew,
-        page: () => const SafeguardingNewScreen(),
+        name: Routes.safeguarding,
+        page: () => const SafeguardingScreen(),
         binding: SafeguardingBinding()),
     GetPage(
         name: Routes.profile,

@@ -79,7 +79,7 @@ class ModuleCatalog {
     // Slot exists; hidden in v1 (owner decision).
     ModuleEntry(id: 'early_years', title: 'Early Years', subtitle: 'Observations and portfolios', icon: Icons.child_care_rounded, route: Routes.earlyYears, placement: ModulePlacement.more, permission: 'early-years:view', enabledInV1: false),
     // No permission gate: a safeguarding route must never be hidden.
-    ModuleEntry(id: 'safeguarding', title: 'Raise a concern', subtitle: 'Safeguarding report', icon: Icons.shield_rounded, route: Routes.safeguardingNew, placement: ModulePlacement.more),
+    ModuleEntry(id: 'safeguarding', title: 'Raise a concern', subtitle: 'Safeguarding report', icon: Icons.shield_rounded, route: Routes.safeguarding, placement: ModulePlacement.more, built: true),
   ];
 
   static List<ModuleEntry> visible(
