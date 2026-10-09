@@ -11,6 +11,7 @@ import '../support/fake_messaging_repository.dart';
 const id = '64e000000000000000000a01';
 
 void main() {
+  threadsCapTests();
   group('models parse the exact stub shapes (which mirror the backend code)', () {
     test('threads fixture -> ThreadsResult', () {
       final r = ThreadsResult.fromJson(fx7('threads'));
@@ -175,6 +176,29 @@ void main() {
       final utc = DateTime.utc(2026, 10, 8, 10, 0);
       expect(absoluteTime(utc), absoluteTime(utc.toLocal()));
       expect(dayKey(utc), dayKey(utc.toLocal()));
+    });
+  });
+}
+
+void threadsCapTests() {
+  group('ThreadsResult unread count with a cut list (backend 265fcfa counts all matching unread threads)', () {
+    MessageThread t(int i, {bool unread = true}) => MessageThread.fromJson({'_id': 'a${i.toString().padLeft(23, '0')}', 'subject': 's', 'guardianName': 'g', 'staffHasUnread': unread, 'status': 'open'});
+    test('a complete list derives the count from the rows', () {
+      final r = ThreadsResult(items: [t(1), t(2, unread: false)], serverUnreadCount: 7);
+      expect(r.unreadCount, 1);
+      expect(r.mayUndercount, isFalse);
+    });
+    test('a cut list takes the larger, accurate server count and follows local mark-read', () {
+      final items = [for (var i = 0; i < 100; i++) t(i, unread: i < 97)]; // 97 unread in the 100 rows, 122 on the server
+      final r = ThreadsResult(items: items, serverUnreadCount: 122);
+      expect(r.mayUndercount, isTrue);
+      expect(r.unreadCount, 122);
+      final next = r.withItems([for (final x in items) x.id == items[0].id ? x.copyWith(staffHasUnread: false) : x]);
+      expect(next.unreadCount, 121);
+    });
+    test('an old server that only counts the returned rows cannot lower the count', () {
+      final r = ThreadsResult(items: [for (var i = 0; i < 100; i++) t(i)], serverUnreadCount: 60);
+      expect(r.unreadCount, 100);
     });
   });
 }

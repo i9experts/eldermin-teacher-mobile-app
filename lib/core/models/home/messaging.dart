@@ -57,9 +57,10 @@ class MessageThread {
       );
 }
 
-/// `{ items, unreadCount }` (staff-portal.service.ts:217-223). The server's
-/// `unreadCount` only covers the returned rows (max 100) so the app derives its
-/// own count from `staffHasUnread` and flags a possible under-count.
+/// `{ items, unreadCount }` (staff-portal.service.ts:217-223). Backend 265fcfa (b069872) counts ALL matching unread threads, not just the
+/// returned rows (max 100): while the list is complete the app derives the count from `staffHasUnread` (it also reacts to local mark-read at once);
+/// when the list was cut at the limit it takes the server's accurate count (verified locally: 122 unread open threads, list 100, server 122) and
+/// moves it by the same delta as the local edits. Older servers (count only over the returned rows) give a value <= the derived one, which is ignored.
 class ThreadsResult {
   /// The server hard-limits the list to 100 rows (SPS:221-222).
   static const int serverLimit = 100;
@@ -68,7 +69,13 @@ class ThreadsResult {
   final int? serverUnreadCount;
   const ThreadsResult({this.items = const [], this.serverUnreadCount});
 
-  ThreadsResult withItems(List<MessageThread> next) => ThreadsResult(items: next, serverUnreadCount: serverUnreadCount);
+  ThreadsResult withItems(List<MessageThread> next) {
+    final r = ThreadsResult(items: next, serverUnreadCount: serverUnreadCount);
+    final s = serverUnreadCount;
+    if (s == null) return r;
+    final shifted = s + (r.unreadThreads.length - unreadThreads.length);
+    return ThreadsResult(items: next, serverUnreadCount: shifted < 0 ? 0 : shifted);
+  }
 
   factory ThreadsResult.fromJson(Map<String, dynamic> j) => ThreadsResult(
         items: asJsonMapList(j['items']).map(MessageThread.fromJson).toList(),
@@ -79,7 +86,11 @@ class ThreadsResult {
   /// and a `closed` row is dropped here too, so a server that ignored the filter cannot inflate it.
   List<MessageThread> get unreadThreads =>
       items.where((t) => t.staffHasUnread && t.status != 'closed').toList();
-  int get unreadCount => unreadThreads.length;
+  int get unreadCount {
+    final derived = unreadThreads.length;
+    final s = serverUnreadCount;
+    return mayUndercount && s != null && s > derived ? s : derived;
+  }
 
   /// True when the list was cut at the server limit, so more unread threads may exist.
   bool get mayUndercount => items.length >= serverLimit;
