@@ -26,7 +26,7 @@ Future<void> openFromMore(WidgetTester t, String title, Finder until) async {
 }
 
 Future<void> pullToRefresh(WidgetTester t) async {
-  await t.drag(find.byType(Scrollable).last, const Offset(0, 500));
+  await t.drag(find.byType(ListView).first, const Offset(0, 500));
   await t.pump(const Duration(milliseconds: 600));
   await t.pump(const Duration(seconds: 2));
 }
