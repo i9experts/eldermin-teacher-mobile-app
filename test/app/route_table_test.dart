@@ -40,7 +40,7 @@ void main() {
       '/student-leaves', '/student-leaves/:id', '/messages', '/messages/new', '/messages/:threadId',
       '/calendar', '/events', '/events/:id', '/curriculum', '/library',
       '/early-years', '/safeguarding',
-      '/profile', '/help', '/about', '/delete-account',
+      '/profile', '/help', '/help/:module/:tabKey', '/about', '/delete-account',
       '/home', '/home/classes', '/home/attendance', '/home/messages', '/home/more',
       '/splash', '/login', '/unsupported-role',
     ];

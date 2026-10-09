@@ -74,6 +74,7 @@ abstract class Routes {
   static const safeguarding = '/safeguarding';
   static const profile = '/profile';
   static const help = '/help';
+  static const helpArticle = '/help/:module/:tabKey';
   static const about = '/about';
   static const deleteAccount = '/delete-account';
 
@@ -155,6 +156,7 @@ abstract class Routes {
     safeguarding,
     profile,
     help,
+    helpArticle,
     about,
     deleteAccount,
   ];

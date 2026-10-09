@@ -33,6 +33,7 @@ import '../modules/fixtures/views/fixtures_screen.dart';
 import '../modules/forgot_password/bindings/forgot_password_binding.dart';
 import '../modules/forgot_password/views/forgot_password_screen.dart';
 import '../modules/help/bindings/help_binding.dart';
+import '../modules/help/views/help_article_screen.dart';
 import '../modules/help/views/help_screen.dart';
 import '../modules/homework/bindings/homework_binding.dart';
 import '../modules/homework/views/homework_detail_screen.dart';
@@ -312,6 +313,10 @@ class AppPages {
         name: Routes.help,
         page: () => const HelpScreen(),
         binding: HelpBinding()),
+    GetPage(
+        name: Routes.helpArticle,
+        page: () => const HelpArticleScreen(),
+        binding: HelpArticleBinding()),
     GetPage(
         name: Routes.about,
         page: () => const AboutScreen(),
