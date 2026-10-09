@@ -492,7 +492,6 @@ class TestPhase7cExpectations(unittest.TestCase):
         kb = p.kb_list({})[1]
         self.assertTrue(self.ok("kb_list", kb))
         self.assertTrue(self.ok("kb_one", p.kb_one("hr", "employees")[1]))
-        self.assertTrue(self.ok("auth_me", s.user_view(T) | {"_id": s.ACCOUNTS["teacher"]["staffId"], "primaryRole": "teacher"}))
 
     def test_fee_leak_in_the_stub_is_detected_by_key_name_and_row_count_only(self):
         import stub_7c as p

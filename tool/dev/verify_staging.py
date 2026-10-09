@@ -719,14 +719,6 @@ EXPECTATIONS = {
         ("body", S, False, None),
         ("steps", L, False, None),
     ],
-    # GET /auth/me (Phase 7c profile). Backend modules/auth/auth.controller.ts:49-52 -> auth.service.ts:316-328: the user document without passwordHash (+ permissions).
-    # App: auth_me.dart AuthMe reads only name / email / primaryRole|role / profile.avatarUrl.
-    "auth_me": [
-        ("_id", S, True, ("fmt", "id")),
-        ("email", S, True, None),
-        ("primaryRole", S, False, None),
-        ("profile", DN, False, None),
-    ],
     # GET /staff-portal/threads?status=open. Backend staff-portal.service.ts:217-223; schema
     # notification-and-message.schema.ts:41-59. App: messaging.dart (ThreadsResult/MessageThread).
     "threads_open": [
@@ -1221,7 +1213,7 @@ def run_user(rep, who, base, slug, email, password, class_teacher):
         if st == 200 and isinstance(b, list):
             populated = sorted({k for r in b[:MAX_ITEMS_CHECKED] if isinstance(r, dict) and isinstance(r.get("approvedBy"), dict) for k in r["approvedBy"] if re.search(r"email|phone", str(k), re.I)})
             rep.line(f"        NOTE approvedBy (populated approver) carries contact key names the app never reads: {', '.join(populated) if populated else 'none'}")
-    # Phase 7c (all GET, read-only): school calendar (this month's grid window), published circulars, events + ONE event, knowledge base (list, search, ONE article), /auth/me.
+    # Phase 7c (all GET, read-only): school calendar (this month's grid window), published circulars, events + ONE event, knowledge base (list, search, ONE article). (/auth/me is already checked above for the session.)
     # Never called: POST circulars/:id/acknowledge, POST compliance/safeguarding, POST auth/me/avatar, POST staff-portal/account/delete-request.
     # The FEE check FAILS when a calendar / event payload exposes fee-like KEY NAMES or finance rows to a teacher (key names and counts only are printed).
     if True:
@@ -1264,8 +1256,6 @@ def run_user(rep, who, base, slug, email, password, class_teacher):
             rep.endpoint(who, "GET /kb/articles/:module/:tabKey", st, b, "kb_one")
         else:
             rep.skip(who, "GET /kb/articles/:module/:tabKey", "no article to check")
-        st, b = get("/auth/me")
-        rep.endpoint(who, "GET /auth/me", st, b, "auth_me")
     if class_teacher:
         grade = class_of.get("gradeName") if isinstance(class_of, dict) else None
         section = class_of.get("sectionName") if isinstance(class_of, dict) else None
