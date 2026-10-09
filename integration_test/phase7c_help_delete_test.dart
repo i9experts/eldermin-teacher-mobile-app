@@ -35,6 +35,9 @@ void main() {
     await t.testTextInput.receiveAction(TextInputAction.search);
     await settle(t, 2000);
     await shot(t, '7c_53_help_search_results');
+    await t.tap(find.byKey(const Key('help_search_clear')));
+    await settle(t, 800);
+    await t.tap(find.byKey(const Key('help_search')));
     await t.enterText(find.byKey(const Key('help_search')), 'zzzzqq');
     await t.testTextInput.receiveAction(TextInputAction.search);
     await settle(t, 2000);
