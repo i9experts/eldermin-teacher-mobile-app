@@ -371,6 +371,24 @@ void main() {
       expect(repo.calls.where((x) => x == 'nreadall'), hasLength(2));
     });
 
+    test('a refresh that was already in flight when "mark all read" ran cannot bring the unread state back', () async {
+      final h = await auth();
+      var first = true;
+      final gate = Completer<NotificationsPage>();
+      repo.notifications = (b, l, u) => first ? Future.value(page([notif('n1'), notif('n2')], unread: 2)) : gate.future;
+      final c = make(h);
+      await c.load();
+      first = false;
+      final refresh = c.load(); // in flight, will answer with the OLD unread state
+      repo.markAll = () async => 2;
+      expect(await c.markAllRead(), isTrue);
+      gate.complete(page([notif('n1'), notif('n2')], unread: 2));
+      await refresh;
+      expect(c.items.every((n) => n.isRead), isTrue);
+      expect(c.unreadCount.value, 0);
+      expect(badges.notificationUnread.value, 0);
+    });
+
     test('tap = mark read + the deep-link target; unknown types and bad ids never throw', () async {
       final h = await auth(classTeacher: true);
       repo.notifications = (b, l, u) async => page([

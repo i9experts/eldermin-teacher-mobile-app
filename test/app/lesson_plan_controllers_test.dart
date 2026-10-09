@@ -42,6 +42,18 @@ void main() {
       expect(r.list.state.value.status, SectionStatus.data);
     });
 
+    test('two callers loading at once (list + a detail opened by a notification link) share ONE request and both see the data', () async {
+      final gate = Completer<List<LessonPlanRecord>>();
+      repo.mine = (_) => gate.future;
+      final c = (await makeList()).list;
+      final a = c.load();
+      final b = c.ensureLoaded();
+      gate.complete([plan('p1')]);
+      await Future.wait([a, b]);
+      expect(repo.calls, ['mine:$myStaff6,$myProfile6']);
+      expect(c.byId('p1'), isNotNull);
+    });
+
     test('filters by status, with counts; an empty filter keeps the data state', () async {
       repo.mine = (_) async => [plan('a', status: 'draft'), plan('b', status: 'submitted'), plan('c', status: 'rejected'), plan('d', status: 'rejected'), plan('e', status: 'approved')];
       final c = (await makeList()).list;

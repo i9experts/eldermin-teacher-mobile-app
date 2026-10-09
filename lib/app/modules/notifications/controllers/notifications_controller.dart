@@ -151,6 +151,7 @@ class NotificationsController extends GetxController {
   Future<void> markRead(String id) async {
     final i = items.indexWhere((n) => n.id == id);
     if (i < 0 || items[i].isRead) return;
+    _token++; // a refresh that started earlier carries the old read state: its answer must not undo this tap
     final before = items;
     final countBefore = unreadCount.value;
     _setItems([...before]..[i] = before[i].asRead());
@@ -176,6 +177,7 @@ class NotificationsController extends GetxController {
     if (markingAll.value || items.every((n) => n.isRead) && (unreadCount.value ?? 0) == 0) return false;
     markingAll.value = true;
     actionFailure.value = null;
+    _token++; // an in-flight refresh/page was requested before this and would bring the unread state back (seen on the device)
     final before = items;
     final countBefore = unreadCount.value;
     if (state.value.hasData) _setItems([for (final n in before) n.asRead()]);

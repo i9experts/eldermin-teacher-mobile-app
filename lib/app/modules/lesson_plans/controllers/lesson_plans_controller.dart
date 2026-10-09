@@ -94,7 +94,18 @@ class LessonPlansController extends GetxController {
 
   void setFilter(LessonPlanFilter f) => filter.value = f;
 
-  Future<void> load({bool force = false}) async {
+  Future<void>? _inFlight;
+
+  Future<void> load({bool force = false}) {
+    if (!force && _inFlight != null) return _inFlight!; // two screens asking at once (a notification link opens the detail while the list loads) share ONE request
+    final f = _load(force: force);
+    _inFlight = f;
+    return f.whenComplete(() {
+      if (identical(_inFlight, f)) _inFlight = null;
+    });
+  }
+
+  Future<void> _load({bool force = false}) async {
     if (!canView) {
       state.value = const SectionState.forbidden();
       return;
