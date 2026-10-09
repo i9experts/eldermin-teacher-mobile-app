@@ -344,6 +344,23 @@ void main() {
       expect(ptm.calls.where((x) => x.startsWith('outcome')), isEmpty);
     });
 
+    testWidgets('outcome sheet: typing a description clears that item\'s error', (t) async {
+      await boot(t, meeting('a', status: 'confirmed'));
+      await t.ensureVisible(find.byKey(const Key('ptm_outcome_btn')));
+      await t.tap(find.byKey(const Key('ptm_outcome_btn')));
+      await settle(t);
+      await t.ensureVisible(find.byKey(const Key('outcome_add_item')));
+      await t.tap(find.byKey(const Key('outcome_add_item')));
+      await settle(t);
+      await t.enterText(find.byKey(const Key('outcome_item_who_0')), 'Parent');
+      await t.tap(find.byKey(const Key('outcome_save')));
+      await settle(t);
+      expect(find.text('Describe this action item'), findsOneWidget);
+      await t.enterText(find.byKey(const Key('outcome_item_desc_0')), 'Read daily');
+      await t.pump();
+      expect(find.text('Describe this action item'), findsNothing);
+    });
+
     testWidgets('reschedule sheet: shows the explanation, a past/empty date is refused in the sheet', (t) async {
       await boot(t, meeting('a', status: 'confirmed', day: '2026-10-01'));
       await t.ensureVisible(find.byKey(const Key('ptm_reschedule')));

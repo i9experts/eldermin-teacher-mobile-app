@@ -415,6 +415,14 @@ void main() {
       expect(c.end.value, '11:15');
     });
 
+    test('the suggested end clears a stale "Choose the end time" error', () async {
+      final c = await make();
+      c.errors['end'] = 'Choose the end time';
+      c.setStart('14:00');
+      expect(c.end.value, '14:30');
+      expect(c.errors.containsKey('end'), isFalse);
+    });
+
     test('double submit: a second tap while saving, and after success, sends nothing more', () async {
       final c = await make();
       fill(c);

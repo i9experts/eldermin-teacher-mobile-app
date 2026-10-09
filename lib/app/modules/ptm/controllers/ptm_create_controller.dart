@@ -106,7 +106,10 @@ class PtmCreateController extends GetxController {
     // A sensible end: 30 minutes later, only when none was chosen yet.
     if (end.value == null) {
       final m = parseHm(hm);
-      if (m != null && m + 30 < 24 * 60) end.value = formatHm(m + 30);
+      if (m != null && m + 30 < 24 * 60) {
+        end.value = formatHm(m + 30);
+        errors.remove('end');
+      }
     }
   }
 

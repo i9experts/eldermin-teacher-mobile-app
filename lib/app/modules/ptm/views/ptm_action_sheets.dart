@@ -338,7 +338,7 @@ class _OutcomeSheetState extends State<_OutcomeSheet> {
           Expanded(child: CustomText(text: 'Item ${i + 1}', fontWeight: FontWeight.w800, fontSize: 12, color: AppColors.primaryColor)),
           IconButton(key: Key('outcome_remove_$i'), visualDensity: VisualDensity.compact, icon: const Icon(Icons.close_rounded, size: 18), onPressed: () => setState(() => items.removeAt(i).dispose())),
         ]),
-        TextField(key: Key('outcome_item_desc_$i'), controller: row.desc, maxLength: kPtmActionDescriptionMax, decoration: const InputDecoration(isDense: true, hintText: 'What needs to happen?', counterText: '', filled: true, fillColor: Colors.white)),
+        TextField(key: Key('outcome_item_desc_$i'), controller: row.desc, maxLength: kPtmActionDescriptionMax, onChanged: (_) { if (errors.containsKey('item$i')) setState(() => errors.remove('item$i')); }, decoration: const InputDecoration(isDense: true, hintText: 'What needs to happen?', counterText: '', filled: true, fillColor: Colors.white)),
         const SizedBox(height: 8),
         TextField(key: Key('outcome_item_who_$i'), controller: row.who, maxLength: kPtmActionAssigneeMax, decoration: const InputDecoration(isDense: true, hintText: 'Who? (Teacher, Parent ...)', counterText: '', filled: true, fillColor: Colors.white)),
         const SizedBox(height: 8),
