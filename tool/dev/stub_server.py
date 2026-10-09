@@ -122,7 +122,7 @@ def account_for_token(token):
 
 
 def user_view(a, with_scope=True):
-    u = {"id": a["id"], "name": a["name"], "email": a["email"], "role": a["role"], "avatarUrl": None}
+    u = {"id": a["id"], "name": a["name"], "email": a["email"], "role": a["role"], "avatarUrl": a.get("avatarUrl")}
     if with_scope:
         u.update({
             "campusId": a["campus"]["id"], "department": a["department"],
@@ -149,7 +149,7 @@ def staff_me(a):
                            "label": "Grade 5 - A"} if a["classTeacher"] else None,
     }
     return {
-        "user": {"id": a["id"], "name": a["name"], "email": a["email"], "role": a["role"], "avatarUrl": None},
+        "user": {"id": a["id"], "name": a["name"], "email": a["email"], "role": a["role"], "avatarUrl": a.get("avatarUrl")},
         "staffId": a["staffId"], "teacherProfileId": a["teacherProfileId"], "teacherProfile": profile,
         "department": a["department"], "campus": a["campus"], "institution": INSTITUTION,
     }
@@ -992,6 +992,8 @@ import stub_7a  # Phase 7a logic (messages with guardians, notifications inbox, 
 stub_7a.bind(_sys.modules[__name__])
 import stub_7b  # Phase 7b logic (parent-teacher meetings, substitutions, My Leave)
 stub_7b.bind(_sys.modules[__name__])
+import stub_7c  # Phase 7c logic (school calendar + circulars, events, safeguarding, avatar, knowledge base, account deletion request)
+stub_7c.bind(_sys.modules[__name__])
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1059,7 +1061,7 @@ class Handler(BaseHTTPRequestHandler):
                     "500": "Internal server error",
                     # upload=503: the backend's answer when storage is not configured (eldermin-backend feat/staff-portal commit 9890ad1, upload.service.ts;
                     # exact text copied from that commit); other features get a plain 503
-                    "503": ("File uploads are not available on this server (storage is not configured)." if feature == "upload" else "Service Unavailable")}
+                    "503": ("File uploads are not available on this server (storage is not configured)." if feature in ("upload", "avatar") else "Service Unavailable")}
             self._err(int(mode), msgs[mode])
             return True
         return mode if mode == "empty" else None
@@ -1192,6 +1194,85 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return None
         return self._send(status, body)
+
+    # -- Phase 7c routes (calendar, circulars, events, safeguarding, avatar, knowledge base, account deletion request). True when handled.
+    def _p7c(self, method, path, q):
+        pre = "/api/v1/"
+        m_ack = re.fullmatch(pre + r"school-calendar/circulars/([^/]+)/acknowledge", path)
+        m_ev = re.fullmatch(pre + r"events/([^/]+)", path)
+        m_kb = re.fullmatch(pre + r"kb/articles/([^/]+)/([^/]+)", path)
+        feature = None
+        if method == "GET":
+            if path == pre + "school-calendar/events":
+                feature = "calendar"
+            elif path == pre + "school-calendar/circulars":
+                feature = "circulars"
+            elif path == pre + "events":
+                feature = "events"
+            elif m_ev:
+                feature = "eventone"
+            elif path == pre + "kb/articles":
+                feature = "kb"
+            elif path == pre + "kb/search":
+                feature = "kbsearch"
+            elif m_kb:
+                feature = "kbone"
+        elif method == "POST":
+            if m_ack:
+                feature = "circularack"
+            elif path == pre + "compliance/safeguarding":
+                feature = "safeguarding"
+            elif path == pre + "auth/me/avatar":
+                feature = "avatar"
+            elif path == pre + "staff-portal/account/delete-request":
+                feature = "deletereq"
+        if not feature:
+            return False
+        a = self._authed()
+        if not a:
+            return True
+        raw = self._raw() if method == "POST" else b""
+        ctype = self.headers.get("Content-Type") or ""
+        gate = self._feature_gate(feature)
+        if gate is True:
+            return True
+        with _lock:
+            special = _modes.get(feature, "ok")
+        empty = gate == "empty"
+
+        def jbody():
+            try:
+                b = json.loads(raw or b"{}")
+                return b if isinstance(b, dict) else {}
+            except Exception:
+                return {}
+        base_url = f"http://{self.headers.get('Host') or 'localhost'}"
+        with _lock:
+            stub_7c._state["calls"].append(f"{method} {path.replace('/api/v1', '')}")
+            if feature == "calendar":
+                r = (200, []) if empty else stub_7c.list_calendar(q, mode=special)
+            elif feature == "circulars":
+                r = (200, []) if empty else stub_7c.list_circulars(a, q, mode=special)
+            elif feature == "circularack":
+                r = stub_7c.acknowledge(a, m_ack.group(1))
+            elif feature == "events":
+                r = (200, []) if empty else stub_7c.list_events(mode=special)
+            elif feature == "eventone":
+                r = stub_7c.get_event(m_ev.group(1))
+            elif feature == "safeguarding":
+                r = stub_7c.create_safeguarding(a, jbody())
+            elif feature == "avatar":
+                r = stub_7c.upload_avatar(a, ctype, raw, base_url)
+            elif feature == "kb":
+                r = (200, []) if empty else stub_7c.kb_list(q, mode=special)
+            elif feature == "kbsearch":
+                r = (200, []) if empty else stub_7c.kb_search(q)
+            elif feature == "kbone":
+                r = stub_7c.kb_one(m_kb.group(1), m_kb.group(2))
+            else:
+                r = stub_7c.delete_request(a, jbody())
+        self._reply(*r)
+        return True
 
     # -- Phase 7b routes (PTM, fixtures, My Leave). True when handled. Registered BEFORE the Phase 4 Home routes, which it replaces for
     # /teaching/ptm, /teaching/ptm/upcoming/mine and /teaching/fixtures so the Home agenda and the new screens read ONE data set.
@@ -1622,6 +1703,15 @@ class Handler(BaseHTTPRequestHandler):
             if a["role"] != "teacher":
                 return self._err(403, "Forbidden resource")
             self._send(200, staff_me(a))
+        elif path.startswith("/__stub/avatar-"):
+            data = stub_7c.AVATAR_PNG
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+        elif path.startswith("/api/v1/") and self._p7c("GET", path, parse_qs(urlparse(self.path).query)):
+            return
         elif path.startswith("/api/v1/staff-portal/") and self._p7a("GET", path, parse_qs(urlparse(self.path).query)):
             return
         elif path.startswith("/api/v1/") and self._p7b("GET", path, parse_qs(urlparse(self.path).query)):
@@ -1637,7 +1727,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/__stub/state":
             with _lock:
                 self._send(200, {"classTeacher": {k: v["classTeacher"] for k, v in ACCOUNTS.items()}, **_state,
-                                 "attendance": {"records": len(ATT), **_att_last}, "phase5b": stub_5b.state_summary(), "phase6a": stub_6a.state_summary(), "phase6b": stub_6b.state_summary(), "phase7a": stub_7a.state_summary(), "phase7b": stub_7b.state_summary()})
+                                 "attendance": {"records": len(ATT), **_att_last}, "phase5b": stub_5b.state_summary(), "phase6a": stub_6a.state_summary(), "phase6b": stub_6b.state_summary(), "phase7a": stub_7a.state_summary(), "phase7b": stub_7b.state_summary(), "phase7c": stub_7c.state_summary()})
         else:
             self._err(404, f"Cannot GET {path}")
 
@@ -1654,7 +1744,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urlparse(self.path)
         path = u.path
-        if self._p7a("POST", path, parse_qs(u.query)) or self._p7b("POST", path, parse_qs(u.query)) or self._p6b("POST", path, parse_qs(u.query)) or self._p6a("POST", path, parse_qs(u.query)) or self._p5b("POST", path, parse_qs(u.query)):
+        if self._p7c("POST", path, parse_qs(u.query)) or self._p7a("POST", path, parse_qs(u.query)) or self._p7b("POST", path, parse_qs(u.query)) or self._p6b("POST", path, parse_qs(u.query)) or self._p6a("POST", path, parse_qs(u.query)) or self._p5b("POST", path, parse_qs(u.query)):
             return
         if path == "/api/v1/auth/login":
             b = self._json()
@@ -1753,6 +1843,7 @@ class Handler(BaseHTTPRequestHandler):
                 stub_6b.reset()
                 stub_7a.reset()
                 stub_7b.reset()
+                stub_7c.reset()
                 ACCOUNTS["teacher"]["classTeacher"] = False
                 ACCOUNTS["classteacher"]["classTeacher"] = True
             return self._send(200, {"ok": True})
