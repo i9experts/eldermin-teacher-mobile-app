@@ -598,17 +598,15 @@ Future<void> hungScenario(WidgetTester t) async {
     expectTrue('old data stays visible (greeting still there)', find.byKey(const Key('greeting')).evaluate().isNotEmpty);
     await pshot(t, 'home_hung_errors_old_data_kept');
     await dbAction(t, 'proxy_forward');
-    await t.drag(find.byType(Scrollable).first, const Offset(0, -500));
-    await settle(t, 600);
+    await dbAction(t, 'mark_before_retry');
     final retry = find.text('Retry');
-    if (retry.evaluate().isNotEmpty) {
-      await t.tap(retry.first);
-      await realWait(t, 4);
-    } else {
-      await t.drag(find.byType(Scrollable).first, const Offset(0, 500));
-      await realWait(t, 5);
-    }
+    result('Retry buttons on screen', retry.evaluate().length);
+    await t.ensureVisible(retry.first);
+    await settle(t, 400);
+    await t.tap(retry.first);
+    await realWait(t, 6);
     await settle(t, 1500);
+    await dbAction(t, 'mark_after_retry');
     result('error sections after the proxy was released + Retry', find.byKey(const Key('section_error')).evaluate().length);
     await pshot(t, 'home_after_release_retry');
   });
