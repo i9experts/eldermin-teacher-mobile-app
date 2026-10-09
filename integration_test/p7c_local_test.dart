@@ -487,12 +487,12 @@ Future<void> calScenario(WidgetTester t) async {
       result('day $d (month-end span 28th..2nd) entries', [for (final x in allTexts()) if (x.startsWith('P7C')) x].join(' | '));
     }
     await pshot(t, 'day_31_month_end_span');
-    await t.tap(find.byIcon(Icons.chevron_right_rounded).first);
+    await t.tap(find.descendant(of: find.byKey(const Key('cal_grid')), matching: find.byIcon(Icons.chevron_right)).first);
     await settle(t, 2500);
     await pickDay(t, 2);
     result('Nov 2 entries (span end)', [for (final x in allTexts()) if (x.startsWith('P7C')) x].join(' | '));
     await pshot(t, 'next_month_nov_2_span_end');
-    await t.tap(find.byIcon(Icons.chevron_left_rounded).first);
+    await t.tap(find.descendant(of: find.byKey(const Key('cal_grid')), matching: find.byIcon(Icons.chevron_left)).first);
     await settle(t, 2000);
   });
   await step(t, 'agenda', () async {
@@ -502,6 +502,7 @@ Future<void> calScenario(WidgetTester t) async {
     await t.drag(find.byType(Scrollable).last, const Offset(0, -900));
     await settle(t, 700);
     await pshot(t, 'agenda_lower');
+    await toTop(t);
     await t.tap(find.text('Month'));
     await settle(t, 800);
   });
