@@ -145,7 +145,7 @@ void main() {
       await settle(t);
       expect(find.byKey(const Key('cal_grid')), findsNothing);
       expect(find.byKey(const ValueKey('agenda_day_2026-10-12')), findsOneWidget);
-      expect(find.byKey(const ValueKey('agenda_day_2026-10-13')), findsOneWidget);
+      expect(find.byKey(const ValueKey('agenda_day_2026-10-13')), findsNothing, reason: 'a multi-day entry is listed once');
       expect(find.byKey(const ValueKey('agenda_day_2026-10-05')), findsOneWidget);
       expect(find.text('October 2026'), findsOneWidget);
       repo.events = (f, to) async => [];

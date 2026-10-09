@@ -60,6 +60,11 @@ class CalendarController extends GetxController {
     try {
       final rows = await repo.fetchEvents(fromDay: w.from, toDay: w.to);
       if (token != _token) return;
+      if (force) {
+        // a refresh replaces what is cached (an entry the school removed must disappear); other months are re-read when visited
+        _all.clear();
+        _loaded.clear();
+      }
       for (final e in rows) {
         _all[e.id] = e;
       }
@@ -129,18 +134,15 @@ class CalendarController extends GetxController {
     return out;
   }
 
-  /// Agenda of a month: day -> entries, only days that have entries, ascending. A multi-day entry is listed on each of its days.
+  /// Agenda of a month: day -> entries, only days that have entries, ascending. A multi-day entry is listed ONCE, on its first day inside the month
+  /// (its card shows the whole span), so a long term / break does not repeat on every line.
   Map<DateTime, List<CalendarEntry>> agendaFor(DateTime m) {
     version.value;
-    final first = DateTime(m.year, m.month, 1), last = DateTime(m.year, m.month + 1, 0);
+    final first = DateTime(m.year, m.month, 1);
     final map = <DateTime, List<CalendarEntry>>{};
     for (final e in entriesInMonth(m)) {
-      var d = e.firstDay.isBefore(first) ? first : e.firstDay;
-      final end = e.lastDay.isAfter(last) ? last : e.lastDay;
-      while (!d.isAfter(end)) {
-        (map[d] ??= []).add(e);
-        d = DateTime(d.year, d.month, d.day + 1);
-      }
+      final d = e.firstDay.isBefore(first) ? first : e.firstDay;
+      (map[d] ??= []).add(e);
     }
     return Map.fromEntries(map.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
   }

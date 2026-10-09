@@ -77,7 +77,7 @@ void main() {
       expect(c.entriesOn(DateTime(2026, 10, 11)), isEmpty);
     });
 
-    test('agenda: only days with entries, ascending, multi-day repeated, clipped to the month', () async {
+    test('agenda: only days with entries, ascending, a multi-day entry once on its first day in the month', () async {
       repo.events = (f, t) async => [
             entry('a', 'Break', type: 'holiday', start: '2026-10-30T00:00:00.000Z', end: '2026-11-02T00:00:00.000Z'),
             entry('b', 'Fair', start: '2026-10-05T00:00:00.000Z'),
@@ -85,8 +85,9 @@ void main() {
       final c = make();
       await c.load();
       final ag = c.agendaFor(DateTime(2026, 10, 9));
-      expect(ag.keys.toList(), [DateTime(2026, 10, 5), DateTime(2026, 10, 30), DateTime(2026, 10, 31)]);
-      expect(ag[DateTime(2026, 10, 31)]!.single.id, 'a');
+      expect(ag.keys.toList(), [DateTime(2026, 10, 5), DateTime(2026, 10, 30)]);
+      expect(ag[DateTime(2026, 10, 30)]!.single.id, 'a');
+      expect(c.agendaFor(DateTime(2026, 11, 9)).keys.toList(), [DateTime(2026, 11, 1)], reason: 'continues into November from its first day there');
     });
 
     test('months are fetched once and cached; going to another month fetches it; Today returns to this month without refetching', () async {
@@ -132,6 +133,17 @@ void main() {
       expect(c.state.value.hasData, isTrue);
       await c.reload();
       expect(c.state.value.status, SectionStatus.error);
+    });
+
+    test('a refresh replaces the cache: an entry the school removed disappears', () async {
+      repo.events = (f, t) async => [entry('a', 'Fair', start: '2026-10-05T00:00:00.000Z')];
+      final c = make();
+      await c.load();
+      expect(c.all.length, 1);
+      repo.events = (f, t) async => [];
+      await c.reload();
+      expect(c.all, isEmpty);
+      expect(c.state.value.status, SectionStatus.empty);
     });
 
     test('a slow answer for a month the teacher already left is ignored', () async {
