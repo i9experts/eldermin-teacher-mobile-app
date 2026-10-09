@@ -6,6 +6,8 @@ import '../../../../core/utils/message_time.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/custom_text.dart';
+import '../../../routes/app_routes.dart';
+import '../../home/controllers/home_shell_controller.dart';
 import '../controllers/notifications_controller.dart';
 
 /// Notifications inbox (`/notifications`): grouped by day, unread dot, tap = mark read + open what it is about. Infinite scroll by cursor.
@@ -112,7 +114,15 @@ class _ListState extends State<_List> {
 
   void _open(AppNotification n) {
     final target = c.tap(n);
-    if (target != null) Get.toNamed(target.route);
+    if (target == null) return;
+    if (target.route == Routes.homeMessages && Get.isRegistered<HomeShellController>()) {
+      // The inbox is a TAB of the shell that is already underneath: go back to it and select the tab (pushing a second HomeShell crashed with
+      // "setState() or markNeedsBuild() called during build" on the device - found by the local end-to-end run).
+      if (Get.key.currentState?.canPop() ?? false) Get.back();
+      Get.find<HomeShellController>().changeTab(HomeShellController.messagesTab);
+      return;
+    }
+    Get.toNamed(target.route);
   }
 }
 

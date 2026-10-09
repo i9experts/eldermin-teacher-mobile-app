@@ -21,6 +21,7 @@ import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/services/messaging_repository.dart';
 import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:eldermin_teacher_app/app/modules/home/controllers/home_shell_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_harness.dart';
@@ -464,6 +465,15 @@ void main() {
       await settle(t);
       expect(Get.currentRoute, Routes.messageThreadOf(oid1));
       expect(repo.calls, containsAll(['nread:n1', 'nread:n2']));
+    });
+
+    testWidgets('a message notification with a malformed id selects the Messages tab of the shell instead of pushing a second shell', (t) async {
+      final shell = Get.put(HomeShellController());
+      await boot(t, items: [notif('n3', type: 'message', entity: 'not-an-id', title: 'Broken id message')]);
+      await t.tap(find.text('Broken id message'));
+      await settle(t);
+      expect(shell.tabIndex.value, HomeShellController.messagesTab);
+      expect(t.takeException(), isNull);
     });
 
     testWidgets('infinite scroll: reaching the end loads the next cursor page; the end marker shows when done', (t) async {

@@ -37,7 +37,8 @@ class _HomeShellState extends State<HomeShell> {
     HomeBinding().dependencies();
     shell = Get.find<HomeShellController>();
     badges = Get.find<HomeBadgesController>();
-    if (widget.initialTab != 0) shell.changeTab(widget.initialTab);
+    // after the first frame: changing the Rx tab during initState marks an Obx dirty while the framework is building
+    if (widget.initialTab != 0) WidgetsBinding.instance.addPostFrameCallback((_) => shell.changeTab(widget.initialTab));
   }
 
   @override
