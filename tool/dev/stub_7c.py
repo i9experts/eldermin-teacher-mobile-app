@@ -322,17 +322,17 @@ def parse_multipart_avatar(content_type, raw):
     boundary = ("--" + m.group(1).strip('"')).encode()
     out = {"fields": [], "filename": None, "size": 0, "contentType": None}
     for part in raw.split(boundary):
-        if b"Content-Disposition" not in part:
+        if b"content-disposition" not in part.lower():
             continue
         head, _, data = part.partition(b"\r\n\r\n")
         h = head.decode("latin-1")
-        name = re.search(r'name="([^"]*)"', h)
+        name = re.search(r'\bname="([^"]*)"', h)
         out["fields"].append(name.group(1) if name else "")
         fn = re.search(r'filename="([^"]*)"', h)
         if fn:
             out["filename"] = fn.group(1)
             out["size"] = max(0, len(data) - 2)
-            ct = re.search(r"Content-Type:\s*([^\r\n]+)", h, re.I)
+            ct = re.search(r"content-type:\s*([^\r\n]+)", h, re.I)
             out["contentType"] = ct.group(1).strip() if ct else None
     return out
 
