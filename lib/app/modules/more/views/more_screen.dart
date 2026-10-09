@@ -44,6 +44,13 @@ class MoreScreen extends GetView<MoreController> {
               subtitle: 'App version',
               onTap: () => Get.toNamed(Routes.about)),
           ModuleTile(
+              key: const Key('more_delete_account'),
+              icon: Icons.person_remove_outlined,
+              iconColor: Colors.red.shade700,
+              title: 'Delete account',
+              subtitle: 'Ask the school to delete your account',
+              onTap: () => Get.toNamed(Routes.deleteAccount)),
+          ModuleTile(
               key: const Key('more_sign_out'),
               icon: Icons.logout_rounded,
               iconColor: Colors.red.shade700,

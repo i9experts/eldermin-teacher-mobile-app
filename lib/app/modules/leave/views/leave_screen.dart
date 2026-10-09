@@ -41,11 +41,18 @@ class LeaveScreen extends GetView<LeaveController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('My leave')),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const Key('leave_apply'),
-        onPressed: () => Get.toNamed(Routes.leaveApply),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Apply for leave'),
+      // A bottom bar instead of a floating button: a floating button covered the right edge (status chip) of the last visible card (7b review).
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.line))),
+          child: ElevatedButton.icon(
+            key: const Key('leave_apply'),
+            onPressed: () => Get.toNamed(Routes.leaveApply),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Apply for leave'),
+          ),
+        ),
       ),
       body: Obx(() {
         final whole = c.wholeScreenStatus;
@@ -57,7 +64,7 @@ class LeaveScreen extends GetView<LeaveController> {
           onRefresh: () => c.reload(userInitiated: true),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
               const SubHeading('Balance'),
               _balance(),

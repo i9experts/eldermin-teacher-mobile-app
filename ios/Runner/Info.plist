@@ -63,5 +63,9 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
-	</dict>
+		<key>NSPhotoLibraryUsageDescription</key>
+	<string>Eldermin Teacher uses a photo from your library only when you choose one as your profile picture.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Eldermin Teacher uses the camera only when you take a new profile picture.</string>
+</dict>
 </plist>
