@@ -191,7 +191,8 @@ void threadsCapTests() {
     test('a cut list takes the larger, accurate server count and follows local mark-read', () {
       final items = [for (var i = 0; i < 100; i++) t(i, unread: i < 97)]; // 97 unread in the 100 rows, 122 on the server
       final r = ThreadsResult(items: items, serverUnreadCount: 122);
-      expect(r.mayUndercount, isTrue);
+      expect(r.listCut, isTrue);
+      expect(r.mayUndercount, isFalse, reason: 'the count is exact, no "+"');
       expect(r.unreadCount, 122);
       final next = r.withItems([for (final x in items) x.id == items[0].id ? x.copyWith(staffHasUnread: false) : x]);
       expect(next.unreadCount, 121);

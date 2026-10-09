@@ -89,9 +89,12 @@ class ThreadsResult {
   int get unreadCount {
     final derived = unreadThreads.length;
     final s = serverUnreadCount;
-    return mayUndercount && s != null && s > derived ? s : derived;
+    return listCut && s != null && s > derived ? s : derived;
   }
 
   /// True when the list was cut at the server limit, so more unread threads may exist.
-  bool get mayUndercount => items.length >= serverLimit;
+  bool get mayUndercount => items.length >= serverLimit && serverUnreadCount == null;
+
+  /// The list was cut at the server limit (older conversations are not shown).
+  bool get listCut => items.length >= serverLimit;
 }
