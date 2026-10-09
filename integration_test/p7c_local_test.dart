@@ -302,6 +302,7 @@ Future<void> safeScenario(WidgetTester t) async {
     await concern(t, withStudent: false, who: 'A');
     await dbAction(t, 'check_sg');
     await dbAction(t, 'check_sg_privacy');
+    await dbAction(t, 'check_app_container');
   });
 }
 

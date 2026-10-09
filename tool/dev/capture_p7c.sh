@@ -39,6 +39,15 @@ db_action() { # name arg
     mark_*) echo "$(date +%T) MARK $1" >> "$PLOG"; echo "proxy log marker $1";;
     proxy_hang) echo blackhole > "$MODEF"; echo "$(date +%T) MARK proxy_hang" >> "$PLOG"; echo "proxy mode -> blackhole";;
     proxy_forward) echo forward > "$MODEF"; echo "$(date +%T) MARK proxy_forward" >> "$PLOG"; echo "proxy mode -> forward";;
+    check_app_container) # read-only: does anything the user typed (marker P7C-SG-DUMMY) exist in the app's data container (shared_preferences, files, caches)?
+      C=$(xcrun simctl get_app_container "$SIM" com.eldermin.elderminTeacherApp data 2>/dev/null)
+      if [ -z "$C" ]; then echo "DB> app container not found"; else
+        echo "DB> app container files: $(find "$C" -type f | wc -l | tr -d ' ')"
+        echo "DB> files containing the typed dummy marker: $(grep -rl 'P7C-SG-DUMMY' "$C" 2>/dev/null | wc -l | tr -d ' ')"
+        echo "DB> files containing the word 'concern' or 'safeguard' in Preferences/Documents/Library(Application Support): $(grep -rIil -e 'safeguard' -e 'raise a concern' "$C/Library" "$C/Documents" 2>/dev/null | wc -l | tr -d ' ')"
+        echo "DB> preference files: $(ls "$C/Library/Preferences" 2>/dev/null | tr '\n' ' ')"
+        for f in "$C"/Library/Preferences/*.plist; do [ -f "$f" ] && echo "DB> keys in $(basename "$f"): $(/usr/bin/plutil -p "$f" 2>/dev/null | grep -o '^  "[^"]*"' | tr -d ' ' | tr '\n' ' ')"; done
+      fi;;
     publish_open|unpublish_open|lower_total|publish_quiz|unpublish_quiz|check_*) ( cd "$LV" && $NODE p7c_ops.js "$1" "${2:-}" 2>&1 | grep -E "^DB>" );;
     *) echo "unknown action $1";;
   esac
