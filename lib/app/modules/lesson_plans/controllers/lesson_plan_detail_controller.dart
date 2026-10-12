@@ -45,6 +45,10 @@ class LessonPlanDetailController extends GetxController {
       state.value = const SectionState.forbidden();
       return;
     }
+    if (ls.status == SectionStatus.unavailable) {
+      state.value = const SectionState.unavailable(); // lesson plans not deployed (404 / 501): not "this plan isn't in your list"
+      return;
+    }
     final p = list.byId(id);
     if (p != null) {
       state.value = SectionState.data(p);

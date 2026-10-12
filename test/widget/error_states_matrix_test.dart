@@ -4,6 +4,30 @@
 // ignore_for_file: invalid_use_of_protected_member
 import 'package:eldermin_teacher_app/app/modules/assessments/controllers/assessments_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/assessments/views/assessments_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/assessments/controllers/quiz_controllers.dart';
+import 'package:eldermin_teacher_app/app/modules/assessments/views/assessment_detail_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/assessments/views/quiz_attempts_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/curriculum/views/curriculum_detail_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/events/views/event_detail_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/homework/controllers/submissions_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/homework/views/homework_submissions_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/lesson_plans/controllers/lesson_plan_detail_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/lesson_plans/views/lesson_plan_detail_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/ptm/controllers/ptm_detail_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/ptm/views/ptm_detail_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/syllabus/controllers/syllabus_detail_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/syllabus/controllers/weekly_planner_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/syllabus/views/syllabus_detail_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/syllabus/views/syllabus_weekly_planner_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/assessments/controllers/report_remarks_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/assessments/views/assessment_report_remarks_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/attendance/controllers/attendance_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/attendance/views/attendance_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/behaviour/controllers/behaviour_student_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/behaviour/views/behaviour_student_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/messages/controllers/chat_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/messages/views/message_thread_screen.dart';
+import 'package:eldermin_teacher_app/core/services/attendance_repository.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/calendar/controllers/calendar_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/calendar/controllers/circulars_controller.dart';
@@ -167,6 +191,67 @@ final cases = <Case>[
     final x = Get.put(LeaveController(repository: LeaveRepository(c.net)));
     return _m(const LeaveScreen(), () => x.reload(userInitiated: true));
   }),
+  // ── detail / secondary read screens ──
+  Case('Homework submissions', (c) {
+    final hw = HomeworkRepository(c.net);
+    final x = Get.put(SubmissionsController(assignmentId: 'a1', repository: hw, list: HomeworkController(repository: hw, auth: c.auth, permissions: c.perms)));
+    return _m(const HomeworkSubmissionsScreen(), () => x.load(force: true));
+  }),
+  Case('Parent meeting detail', (c) {
+    final x = Get.put(PtmDetailController(id: 'p1', repository: PtmRepository(c.net), auth: c.auth), tag: 'p1');
+    return _m(const PtmDetailScreen(meetingId: 'p1'), () => x.reload());
+  }, on404: 'Meeting not found'),
+  Case('Event detail', (c) {
+    final x = Get.put(EventDetailController(repository: EventsRepository(c.net), eventId: 'e1'));
+    return _m(const EventDetailScreen(), () => x.load(userInitiated: true));
+  }),
+  Case('Curriculum detail', (c) {
+    final ref = ReferenceRepository(c.net);
+    final x = Get.put(CurriculumDetailController(id: 'k1', repository: ref, list: CurriculumController(repository: ref, auth: c.auth, permissions: c.perms)));
+    return _m(const CurriculumDetailScreen(), () => x.load(force: true));
+  }),
+  Case('Syllabus detail', (c) {
+    final rp = SyllabusRepository(c.net);
+    final x = Get.put(SyllabusDetailController(id: 'y1', repository: rp, list: SyllabusController(repository: rp, auth: c.auth, permissions: c.perms)));
+    return _m(const SyllabusDetailScreen(), () => x.load(force: true));
+  }),
+  Case('Syllabus weekly planner', (c) {
+    final rp = SyllabusRepository(c.net);
+    final x = Get.put(WeeklyPlannerController(repository: rp, syllabi: SyllabusController(repository: rp, auth: c.auth, permissions: c.perms), auth: c.auth));
+    return _m(const SyllabusWeeklyPlannerScreen(), () => x.load(force: true));
+  }),
+  Case('Lesson plan detail', (c) {
+    final rp = LessonPlanRepository(c.net);
+    final x = Get.put(LessonPlanDetailController(id: 'l1', repository: rp, list: LessonPlansController(repository: rp, auth: c.auth, permissions: c.perms)));
+    return _m(const LessonPlanDetailScreen(), () => x.load(force: true));
+  }),
+  Case('Assessment detail', (c) {
+    final ar = AssessmentRepository(c.net);
+    final x = Get.put(AssessmentDetailController(id: 'm1', repository: ar, list: AssessmentsController(repository: ar, auth: c.auth, permissions: c.perms)));
+    return _m(const AssessmentDetailScreen(), () => x.load(force: true));
+  }),
+  Case('Quiz attempts to review', (c) {
+    final x = Get.put(QuizAttemptsController(repository: AssessmentRepository(c.net), auth: c.auth, permissions: c.perms));
+    return _m(const QuizAttemptsScreen(), () => x.load(force: true));
+  }),
+  Case('Attendance (class teacher hub)', (c) {
+    final x = Get.put(AttendanceController(students: StudentsRepository(c.net), attendance: AttendanceRepository(c.net), auth: c.auth, permissions: c.perms));
+    return _m(const AttendanceScreen(embedded: true), () => x.load(refreshProfile: false));
+  }),
+  Case('Report-card remarks', (c) {
+    final ar = AssessmentRepository(c.net);
+    final x = Get.put(ReportRemarksController(repository: ar, list: AssessmentsController(repository: ar, auth: c.auth, permissions: c.perms)));
+    return _m(const AssessmentReportRemarksScreen(), () => x.load());
+  }),
+  Case('Student behaviour history', (c) {
+    final x = Get.put(BehaviourStudentController(studentId: 's1', repository: BehaviourRepository(c.net), students: StudentsRepository(c.net), auth: c.auth, permissions: c.perms));
+    return _m(const BehaviourStudentScreen(), () => x.load());
+  }),
+  Case('Chat thread', (c) {
+    final badges = HomeBadgesController(repository: HomeRepository(c.net), auth: c.auth, autoPoll: false);
+    final x = Get.put(ChatController(threadId: 't1', repository: MessagingRepository(c.net), badges: badges, observeLifecycle: false), tag: 't1');
+    return _m(const MessageThreadScreen(threadId: 't1'), () => x.loadThread());
+  }, on404: 'Conversation not found'),
 ];
 
 const _offline = 'No internet connection. Check your network and try again.';

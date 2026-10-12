@@ -96,6 +96,10 @@ class ReportRemarksController extends GetxController {
       state.value = const SectionState.forbidden();
       return;
     }
+    if (ls.status == SectionStatus.unavailable) {
+      state.value = const SectionState.unavailable(); // assessments not deployed (404 / 501): not "no report cards"
+      return;
+    }
     if (ls.status == SectionStatus.error) {
       state.value = SectionState.error(ls.message ?? "Couldn't load your assessments.");
       return;
