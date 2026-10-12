@@ -82,6 +82,29 @@ class ModuleCatalog {
     ModuleEntry(id: 'safeguarding', title: 'Raise a concern', subtitle: 'Safeguarding report', icon: Icons.shield_rounded, route: Routes.safeguarding, placement: ModulePlacement.more, built: true),
   ];
 
+  /// The entry that owns [location] (a concrete path such as `/homework/abc/submissions`, a route pattern, optionally with a query), or null when
+  /// the location belongs to no module (messages, notifications, profile, help, ...). Matches on the first path segment, which is how every
+  /// module's list, detail and form routes share a prefix; the Home tab `/home/attendance` belongs to Attendance.
+  static ModuleEntry? entryForRoute(String location) {
+    final segments = Uri.tryParse(location)?.pathSegments.where((s) => s.isNotEmpty).toList() ?? const <String>[];
+    if (segments.isEmpty) return null;
+    if (segments.first == 'home') {
+      return segments.length > 1 && segments[1] == 'attendance' ? byId('attendance') : null;
+    }
+    for (final e in all) {
+      final first = e.route.split('/').where((s) => s.isNotEmpty).first;
+      if (first == segments.first) return e;
+    }
+    return null;
+  }
+
+  static ModuleEntry? byId(String id) {
+    for (final e in all) {
+      if (e.id == id) return e;
+    }
+    return null;
+  }
+
   static List<ModuleEntry> visible(
     ModulePlacement placement,
     PermissionService permissions, {

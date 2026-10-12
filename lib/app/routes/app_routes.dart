@@ -13,6 +13,7 @@ abstract class Routes {
   static const splash = '/splash';
   static const login = '/login';
   static const unsupportedRole = '/unsupported-role';
+  static const notAvailable = '/not-available';
 
   // Home shell + its tabs
   static const home = '/home';

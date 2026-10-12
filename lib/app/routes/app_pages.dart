@@ -84,7 +84,9 @@ import '../modules/auth/views/login_screen.dart';
 import '../modules/auth/views/unsupported_role_screen.dart';
 import '../modules/home/views/home_shell.dart';
 import '../modules/splash/views/splash_screen.dart';
+import '../common/views/not_available_screen.dart';
 import 'app_routes.dart';
+import 'route_guard.dart';
 
 /// Every screen the app can push on top of the auth-gated root (login or
 /// home shell). The root screens themselves are swapped by `_AuthGate`
@@ -94,7 +96,14 @@ import 'app_routes.dart';
 class AppPages {
   AppPages._();
 
+  /// Every page, each wrapped with [RouteGuard] unless it is public (login, splash, intro, forgot / reset password, the not-available screen).
   static final pages = <GetPage>[
+    for (final p in _routes)
+      RouteGuardRules.isPublic(p.name) ? p : p.copy(middlewares: [RouteGuard()]),
+  ];
+
+  static final _routes = <GetPage>[
+    GetPage(name: Routes.notAvailable, page: () => const NotAvailableScreen()),
     GetPage(name: Routes.splash, page: () => const SplashScreen()),
     GetPage(name: Routes.login, page: () => const LoginScreen()),
     GetPage(name: Routes.unsupportedRole, page: () => const UnsupportedRoleScreen()),

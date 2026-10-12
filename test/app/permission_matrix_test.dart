@@ -6,8 +6,9 @@
 // Facts this test pins (see eldermin-teacher-app-docs/phase8/ERROR_HANDLING_AUDIT.md for the server-side caveat):
 //  * UI gating only; the server stays the authority.
 //  * `institution.activeModules` never hides anything (owner decision A, web does not gate on it either).
-//  * There is no route-level guard middleware: reachability = the entries / quick actions that are shown (+ notification / deep-link targets,
-//    covered in notification_target / deep_link tests). Controller gates are the second line.
+//  * Route level: every GetPage carries RouteGuard (lib/app/routes/route_guard.dart), which applies the SAME ModuleEntry.isVisibleTo rule as the
+//    entry lists, so a hidden entry is also unreachable by notification target / deep link (test/app/route_guard_test.dart). Controller gates are
+//    the second line.
 // ignore_for_file: invalid_use_of_protected_member
 import 'package:eldermin_teacher_app/app/common/module_catalog.dart';
 import 'package:eldermin_teacher_app/app/modules/assessments/controllers/assessments_controller.dart';
