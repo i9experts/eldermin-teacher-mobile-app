@@ -20,6 +20,7 @@ class EventsScreen extends GetView<EventsController> {
       appBar: AppBar(title: const Text('Events')),
       body: Obx(() => ScreenStateView<List<SchoolEvent>>(
             state: c.state.value,
+            showServerForbidden: true,
             onRefresh: () => c.load(userInitiated: true),
             onRetry: () => c.load(userInitiated: true),
             emptyIcon: Icons.celebration_outlined,

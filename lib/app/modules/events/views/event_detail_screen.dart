@@ -20,6 +20,7 @@ class EventDetailScreen extends GetView<EventDetailController> {
       appBar: AppBar(title: const Text('Event')),
       body: Obx(() => ScreenStateView<SchoolEvent>(
             state: c.state.value,
+            showServerForbidden: true,
             onRefresh: () => c.load(userInitiated: true),
             onRetry: () => c.load(userInitiated: true),
             builder: (e) => [

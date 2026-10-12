@@ -25,6 +25,10 @@ class ScreenStateView<T> extends StatelessWidget {
   final EdgeInsets padding;
   final ScrollController? scrollController;
 
+  /// True on the screens whose backend answers a 403 with a specific, user-readable reason (events, circulars: "No campus assigned ..."): that text
+  /// replaces the generic "You don't have access". Elsewhere the generic wording stays (a 403 text there is not guaranteed to be readable).
+  final bool showServerForbidden;
+
   const ScreenStateView({
     super.key,
     required this.state,
@@ -38,6 +42,7 @@ class ScreenStateView<T> extends StatelessWidget {
     this.skeletonRows = 5,
     this.padding = const EdgeInsets.fromLTRB(16, 16, 16, 24),
     this.scrollController,
+    this.showServerForbidden = false,
   });
 
   @override
@@ -69,13 +74,14 @@ class ScreenStateView<T> extends StatelessWidget {
       case SectionStatus.empty:
         return [_centered(AppEmptyView(key: const Key('screen_empty'), icon: emptyIcon, title: emptyTitle, subtitle: emptySubtitle))];
       case SectionStatus.forbidden:
+        final detail = showServerForbidden ? state.forbiddenDetail : null;
         return [
           _centered(AppEmptyView(
             key: const Key('screen_forbidden'),
             icon: Icons.lock_outline_rounded,
             // the server's own explanation (e.g. "No campus assigned - contact your administrator") replaces the generic text
-            title: state.forbiddenDetail ?? "You don't have access",
-            subtitle: state.forbiddenDetail != null ? null : "Your account isn't allowed to view this. Ask your school admin if you think this is a mistake.",
+            title: detail ?? "You don't have access",
+            subtitle: detail != null ? null : "Your account isn't allowed to view this. Ask your school admin if you think this is a mistake.",
           ))
         ];
       case SectionStatus.unavailable:

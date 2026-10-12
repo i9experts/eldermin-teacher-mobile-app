@@ -239,6 +239,7 @@ class _CircularsTab extends GetView<CircularsController> {
       c.opened.length;
       return ScreenStateView<List<Circular>>(
         state: c.state.value,
+        showServerForbidden: true,
         onRefresh: () => c.load(userInitiated: true),
         onRetry: () => c.load(userInitiated: true),
         emptyIcon: Icons.campaign_outlined,

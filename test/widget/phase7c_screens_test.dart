@@ -188,7 +188,7 @@ void main() {
       await t.runAsync(() => pumpEventQueue());
       await settle(t);
       expect(find.text('Back again'), findsOneWidget);
-      repo.events = (f, to) async => fail7c(403);
+      repo.events = (f, to) async => fail7c(403, 'Forbidden resource');
       await t.runAsync(() => c.reload());
       await settle(t);
       expect(find.text("You don't have access"), findsOneWidget);
@@ -294,7 +294,7 @@ void main() {
       await t.runAsync(() => c.load(userInitiated: true));
       await settle(t);
       expect(find.byKey(const Key('screen_error')), findsOneWidget);
-      repo.circulars = () async => fail7c(403);
+      repo.circulars = () async => fail7c(403, 'Forbidden resource');
       await t.runAsync(() => c.load(userInitiated: true));
       await settle(t);
       expect(find.text("You don't have access"), findsOneWidget);
