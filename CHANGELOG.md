@@ -2,6 +2,12 @@
 
 Eldermin Teacher (`version: 0.1.0+1`, nothing released yet). One branch per phase; reports in `../eldermin-teacher-app-docs/phase*/`.
 
+## Phase 8 follow-up batch (branch `phase-8-release`)
+- Route guards: every route (except splash, login, intro, forgot / reset password) runs `RouteGuard`, which applies the same permission + class-teacher rule as the Classes / More lists; a blocked route (tap, notification target, deep link) shows "Not available for your account" with a way back home.
+- Help: 8 bundled teacher FAQs at the top; knowledge-base articles below only when teacher-appropriate ones exist.
+- Calendar, circulars and events show the server's specific 403 message (for example "No campus assigned — contact your administrator") instead of "You don't have access".
+- iOS: `ITSAppUsesNonExemptEncryption = false`.
+
 ## Phase 8 (branch `phase-8-release`): hardening and release readiness
 - Tests: permission matrix (7 personas + non-teacher role gate), error-state matrix (every list / read screen x offline, timeouts, 403, 404, 501, 500; writes; sign-in; 401 -> sign-out).
 - Fixed: 403 on profile load now says "You don't have access"; lesson-plan detail and report-card remarks no longer misreport a server without the endpoint (404 / 501).
