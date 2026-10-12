@@ -63,6 +63,8 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 		<key>NSPhotoLibraryUsageDescription</key>
 	<string>Eldermin Teacher uses a photo from your library only when you choose one as your profile picture.</string>
 	<key>NSCameraUsageDescription</key>
