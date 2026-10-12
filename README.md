@@ -1,16 +1,67 @@
 # Eldermin Teacher
 
-Flutter + GetX app for school teachers (Phase 3: onboarding & auth). Same architecture and
-design system as the Eldermin Parent app; talks to the staff routes of the Eldermin
-backend (`/api/v1/auth/*`, `/api/v1/staff-portal/*`, teaching/academic endpoints).
+Flutter + GetX app for school teachers: timetable, attendance, students, homework, lesson plans, syllabus, assessments and marks, behaviour,
+parent meetings, substitutions, leave, messaging, calendar, events, safeguarding concerns, profile and help. Same architecture and design system
+as the Eldermin Parent app; it talks only to the staff routes of the Eldermin backend (`/api/v1/auth/*`, `/api/v1/staff-portal/*`, teaching /
+academic endpoints). Accounts are created by the school (no self-registration). Role `teacher` only; any other role sees "use the web portal".
+UI gating is a convenience: the server is the authority. There is no push (FCM): messages and notifications poll while the app is open.
+
+Version history: `CHANGELOG.md`. Release steps and the pending owner items: `RELEASE_CHECKLIST.md`.
+
+## Requirements
+Flutter 3.35.x (stable), Dart >= 3.3, Xcode (iOS), Android SDK + JDK 17+ (Android), python3 (stdlib only) for the dev tools.
 
 ## Run
 ```
 flutter pub get
-flutter run                                              # production API
+flutter run                                                    # default API https://api.eldermin.com
 flutter run --dart-define=API_BASE_URL=http://localhost:3000   # local backend
 ```
-`API_BASE_URL` defaults to `https://api.eldermin.com` (the `/api/v1` prefix is added in code).
+
+## Configuration (`--dart-define`, all optional)
+| Define | Default | Meaning |
+|---|---|---|
+| `API_BASE_URL` | `https://api.eldermin.com` | Backend host (the `/api/v1` prefix is added in code). Never point a test build at production. |
+| `SUPPORT_EMAIL` | unset | Address shown under Help > Contact support. |
+| `SUPPORT_URL` | unset | https support page shown under Help > Contact support. |
+
+The Contact support card is shown only when at least one of `SUPPORT_EMAIL` / `SUPPORT_URL` is set (nothing is hard-coded). Example:
+`flutter build apk --release --dart-define=SUPPORT_EMAIL=help@school.example --dart-define=SUPPORT_URL=https://school.example/help`.
+No secrets belong in dart-defines (they are readable in the binary); `dart_defines*.json`, `.env*`, `key.properties`, keystores and Firebase files are git-ignored.
+
+## Tests and checks
+```
+flutter analyze
+flutter test                                   # whole suite, device timezone
+for tz in UTC Pacific/Auckland America/Los_Angeles Asia/Karachi; do TZ=$tz flutter test; done   # date logic must not depend on the zone
+python3 -m unittest discover -s tool/dev -p 'test_*.py'    # local stub / staging-verifier tests
+```
+The suite includes the permission matrix (`test/app/permission_matrix_test.dart`) and the error-state matrix
+(`test/widget/error_states_matrix_test.dart`, `test/app/error_handling_writes_auth_test.dart`). Integration walkthroughs live in `integration_test/`
+(simulator, against the local stub only).
+
+## Build
+```
+flutter build apk --debug
+flutter build ios --no-codesign --debug
+flutter build appbundle --release      # needs android/key.properties, see RELEASE_CHECKLIST.md
+```
+Android release signing reads `android/key.properties` (copy `android/key.properties.example`; git-ignored). Without it the release build is signed
+with the DEBUG key and Gradle prints a warning: never upload that build. iOS signing: set the team in Xcode (Signing & Capabilities); `DEVELOPMENT_TEAM`
+is intentionally unset. Bundle ids: Android `com.eldermin.eldermin_teacher_app`, iOS `com.eldermin.elderminTeacherApp`.
+
+## Firebase / push
+None. No Firebase packages, no `google-services.json`, no `GoogleService-Info.plist`, no entitlements. If push is added later, put
+`android/app/google-services.json` and `ios/Runner/GoogleService-Info.plist` in place locally (both are git-ignored) and never commit them.
+
+## Verification without staging
+* Local stub server (below) for the simulator walkthroughs.
+* Real backend on a LOCAL database only (`eldermin_teacher_verify`): `../eldermin-teacher-app-docs/LOCAL_VERIFICATION.md`, `local-verification/`.
+* Staging (read-only verifier `tool/dev/verify_staging.py`, credentials in git-ignored `tool/dev/.env.staging`): `../eldermin-teacher-app-docs/phase4/STAGING_VERIFICATION.md`.
+  Staging verification is a MANDATORY gate before any store submission or merge to main (see `RELEASE_CHECKLIST.md`).
+* Reports per phase: `../eldermin-teacher-app-docs/phase*/`.
+
+# Development notes (stub server and per-phase tooling)
 
 ## Run against the local stub server (no real backend / no production)
 `tool/dev/stub_server.py` is a DUMMY Eldermin API (python3, stdlib only) that lives outside `lib/` and
@@ -87,25 +138,10 @@ keys/types Home parses against a staging server and prints only statuses/types/c
 only sends the login POSTs. Unit tests: `python3 -m unittest discover -s tool/dev -p 'test_*.py'`. Steps and checklist:
 `../eldermin-teacher-app-docs/phase4/STAGING_VERIFICATION.md`.
 
-## Checks
-```
-flutter analyze
-flutter test
-```
-
-## Build
-```
-flutter build apk --debug
-flutter build ios --no-codesign --debug
-```
-
-## Identity / placeholders (owner must supply before Phase 8)
-- Android applicationId `com.eldermin.eldermin_teacher_app`, iOS bundle id `com.eldermin.elderminTeacherApp`.
-- **Apple team ID: PLACEHOLDER** - `DEVELOPMENT_TEAM` is intentionally unset in `ios/Runner.xcodeproj`; set it in Xcode (Signing & Capabilities).
-- **Firebase: none.** v1 has no push/FCM in the client; no Firebase config or dependencies are present.
-- Android release signing: debug-signed placeholder in `android/app/build.gradle.kts` (replace before release).
-- Launcher icon / splash are placeholder variants of the Eldermin logomark (`assets/launcher_icon`); regenerate with
-  `dart run flutter_launcher_icons` and `dart run flutter_native_splash:create`.
+## Placeholders still owned by the owner
+Apple team ID, Android upload keystore, support contact, store listing assets, App Privacy answers: see `RELEASE_CHECKLIST.md`.
+Launcher icon / splash are placeholder variants of the logomark (`assets/launcher_icon`); regenerate with `dart run flutter_launcher_icons` and
+`dart run flutter_native_splash:create`.
 
 ## Structure
 `lib/app/{modules,components,config,common,routes,utils}` and `lib/core/{constants,network,services,theme,models,widgets}`.
