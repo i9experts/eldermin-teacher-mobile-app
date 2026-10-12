@@ -118,6 +118,11 @@ class AuthController extends GetxController with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) refreshProfile();
   }
 
+  /// What the profile-load / sign-in screens say for a failed `/auth/me` or `/staff-portal/me`: a 403 is "you don't have access" (never the raw
+  /// "Forbidden resource"); everything else keeps the network layer's message (offline, timeout, server text).
+  static String profileMessageFor(ApiException e) =>
+      e.statusCode == 403 ? "You don't have access to Eldermin Teacher with this account. Ask your school administrator if you think this is a mistake." : e.message;
+
   bool roleAllowed(String? role) => role != null && _allowedRoles.contains(role);
 
   bool get isClassTeacher => staffMe.value?.isClassTeacher ?? false;
@@ -170,7 +175,7 @@ class AuthController extends GetxController with WidgetsBindingObserver {
     } on ApiException catch (e) {
       profileLoading.value = false;
       if (e.statusCode == 401) return false; // global handler logs out
-      profileError.value = e.message;
+      profileError.value = profileMessageFor(e);
       return false;
     } catch (_) {
       profileLoading.value = false;
@@ -273,7 +278,7 @@ class AuthController extends GetxController with WidgetsBindingObserver {
       return true;
     } on ApiException catch (e) {
       if (e.statusCode == 401) return false; // logout already triggered
-      profileError.value = e.message;
+      profileError.value = profileMessageFor(e);
       return false;
     } catch (_) {
       profileError.value = 'Something went wrong. Please try again.';
