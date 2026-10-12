@@ -70,11 +70,12 @@ class ScreenStateView<T> extends StatelessWidget {
         return [_centered(AppEmptyView(key: const Key('screen_empty'), icon: emptyIcon, title: emptyTitle, subtitle: emptySubtitle))];
       case SectionStatus.forbidden:
         return [
-          _centered(const AppEmptyView(
-            key: Key('screen_forbidden'),
+          _centered(AppEmptyView(
+            key: const Key('screen_forbidden'),
             icon: Icons.lock_outline_rounded,
-            title: "You don't have access",
-            subtitle: "Your account isn't allowed to view this. Ask your school admin if you think this is a mistake.",
+            // the server's own explanation (e.g. "No campus assigned - contact your administrator") replaces the generic text
+            title: state.forbiddenDetail ?? "You don't have access",
+            subtitle: state.forbiddenDetail != null ? null : "Your account isn't allowed to view this. Ask your school admin if you think this is a mistake.",
           ))
         ];
       case SectionStatus.unavailable:

@@ -1,5 +1,16 @@
 import '../../../../core/network/api_exception.dart';
 
+const String kForbiddenDefault = "You don't have access";
+
+/// The server's own 403 text when it says something specific (for example "No campus assigned — contact your administrator"), else null so the
+/// screen keeps the generic "You don't have access". Nest's stock texts ("Forbidden resource", "Forbidden") and anything blank or very long are not shown.
+String? forbiddenDetailOf(String? serverMessage) {
+  final m = (serverMessage ?? '').trim();
+  if (m.isEmpty || m.length > 200) return null;
+  const generic = {'forbidden', 'forbidden resource', 'access denied', 'unauthorized', 'something went wrong. please try again.'};
+  return generic.contains(m.toLowerCase()) ? null : m;
+}
+
 enum SectionStatus { loading, data, empty, error, unavailable, forbidden }
 
 /// State of ONE independent Home section. A failure in one section never
@@ -19,7 +30,7 @@ class SectionState<T> {
   const SectionState.empty() : this._(SectionStatus.empty);
   const SectionState.error(String message, {T? stale}) : this._(SectionStatus.error, data: stale, message: message);
   const SectionState.unavailable() : this._(SectionStatus.unavailable, message: 'Not available yet');
-  const SectionState.forbidden() : this._(SectionStatus.forbidden, message: "You don't have access");
+  const SectionState.forbidden({String? detail}) : this._(SectionStatus.forbidden, message: detail ?? kForbiddenDefault);
 
   /// 403 -> forbidden; 404/501 -> "feature not available yet"; 5xx -> a calm
   /// server message; offline / timeout messages come from the network layer.
@@ -37,7 +48,7 @@ class SectionState<T> {
   static SectionState<T> _classify<T>(Object e) {
     if (e is ApiException) {
       final code = e.statusCode;
-      if (code == 403) return const SectionState.forbidden();
+      if (code == 403) return SectionState.forbidden(detail: forbiddenDetailOf(e.message));
       if (code == 404 || code == 501) return const SectionState.unavailable();
       if (code != null && code >= 500) {
         return const SectionState.error('The server had a problem. Please try again.');
@@ -46,6 +57,9 @@ class SectionState<T> {
     }
     return const SectionState.error("Couldn't load this section. Please try again.");
   }
+
+  /// For [SectionStatus.forbidden]: the specific server message, or null for the generic wording.
+  String? get forbiddenDetail => status == SectionStatus.forbidden && message != kForbiddenDefault ? message : null;
 
   bool get isLoading => status == SectionStatus.loading;
   /// Data to show: fresh, or the last good data under a failed refresh.

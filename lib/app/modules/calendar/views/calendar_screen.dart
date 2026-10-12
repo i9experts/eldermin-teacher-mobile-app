@@ -92,7 +92,7 @@ class _CalendarTab extends GetView<CalendarController> {
         Padding(
           padding: const EdgeInsets.only(top: 24),
           child: st.status == SectionStatus.forbidden
-              ? const AppEmptyView(key: Key('screen_forbidden'), icon: Icons.lock_outline_rounded, title: "You don't have access", subtitle: "Your account isn't allowed to view the calendar. Ask your school admin if you think this is a mistake.")
+              ? AppEmptyView(key: const Key('screen_forbidden'), icon: Icons.lock_outline_rounded, title: st.forbiddenDetail ?? "You don't have access", subtitle: st.forbiddenDetail != null ? null : "Your account isn't allowed to view the calendar. Ask your school admin if you think this is a mistake.")
               : const AppEmptyView(key: Key('screen_unavailable'), icon: Icons.cloud_off_rounded, title: 'Not available on this server yet', subtitle: 'The school calendar has not been deployed to your school’s server.'),
         )
       ];

@@ -10,6 +10,9 @@ enum NetFail { offline, connectTimeout, receiveTimeout, http403, http404, http50
 class FailingClient extends BaseClient {
   NetFail mode;
   int calls = 0;
+
+  /// The `message` a 403 carries (Nest's standard `{statusCode, message, error}` shape); default is Nest's stock text.
+  String message403 = 'Forbidden resource';
   final urls = <String>[];
   FailingClient([this.mode = NetFail.http500]);
 
@@ -39,7 +42,7 @@ class FailingClient extends BaseClient {
     throw DioException(
       requestOptions: ro,
       type: DioExceptionType.badResponse,
-      response: Response(requestOptions: ro, statusCode: code, data: {'statusCode': code, 'message': code == 403 ? 'Forbidden resource' : (code == 404 ? 'Not Found' : 'Internal server error')}),
+      response: Response(requestOptions: ro, statusCode: code, data: {'statusCode': code, if (code == 403) 'error': 'Forbidden', 'message': code == 403 ? message403 : (code == 404 ? 'Not Found' : 'Internal server error')}),
     );
   }
 
