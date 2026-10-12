@@ -150,6 +150,7 @@ class _CalendarTab extends GetView<CalendarController> {
       case SectionStatus.loading:
         return [AppShimmer(key: const Key('screen_loading'), child: Column(children: List.generate(3, (_) => const ShimmerListRowSkeleton())))];
       case SectionStatus.error:
+        if (st.isStale) return [RefreshFailedBanner(message: st.message, onRetry: c.reload), ...(c.agenda.value ? _agenda() : [CalendarLegend(types: st.data!.map((e) => e.type)), ..._dayList()])];
         return [Padding(padding: const EdgeInsets.only(top: 16), child: AppErrorView(key: const Key('screen_error'), message: st.message ?? 'Something went wrong', onRetry: c.reload))];
       case SectionStatus.empty:
         return [

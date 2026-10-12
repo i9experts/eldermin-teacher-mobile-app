@@ -210,7 +210,7 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
     _inflight[rx] = () {
       if (_tokens[rx] != token) return;
       _tokens[rx] = token + 1; // whatever the request still answers later is ignored
-      rx.value = SectionState<T>.error(_timeoutMessage);
+      rx.value = SectionState<T>.error(_timeoutMessage, stale: prev.data);
     };
     try {
       final r = await fetch();
@@ -218,7 +218,7 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
       rx.value = (isEmpty != null && isEmpty(r)) ? const SectionState.empty() : SectionState.data(r);
     } catch (e) {
       if (_tokens[rx] != token) return;
-      rx.value = SectionState<T>.fromError(e);
+      rx.value = SectionState<T>.fromError(e, previous: prev);
     } finally {
       if (_tokens[rx] == token) _inflight.remove(rx);
     }

@@ -84,7 +84,7 @@ class HomeworkDetailController extends GetxController {
       }
       fallback.value = SectionState.data(res.assignment);
     } catch (e) {
-      fallback.value = SectionState<Assignment>.fromError(e);
+      fallback.value = SectionState<Assignment>.fromError(e, previous: fallback.value);
     }
   }
 

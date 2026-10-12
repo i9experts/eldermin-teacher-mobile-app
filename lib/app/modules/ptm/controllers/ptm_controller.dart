@@ -73,7 +73,7 @@ class PtmController extends GetxController {
       _rebuild(now, firstLoad: !previous.hasData);
     } catch (e) {
       if (token != _token) return;
-      final failed = SectionState<PtmTabs>.fromError(e);
+      final failed = SectionState<PtmTabs>.fromError(e, previous: previous);
       load.value = previous.hasData && failed.status == SectionStatus.error && !userInitiated ? previous : failed;
     }
   }

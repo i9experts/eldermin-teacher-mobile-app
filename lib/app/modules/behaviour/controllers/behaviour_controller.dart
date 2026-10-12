@@ -118,7 +118,7 @@ class BehaviourController extends GetxController {
       state.value = out.isEmpty ? const SectionState.empty() : SectionState.data(out);
     } catch (e) {
       if (token != _token) return;
-      state.value = SectionState<List<BehaviourRecord>>.fromError(e);
+      state.value = SectionState<List<BehaviourRecord>>.fromError(e, previous: state.value);
     }
   }
 

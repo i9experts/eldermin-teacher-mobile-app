@@ -366,6 +366,35 @@ class AppErrorView extends StatelessWidget {
   }
 }
 
+/// Shown ABOVE the last good data when a refresh failed ("Refresh failed - Retry"); the data stays on screen.
+/// A failed first load uses [AppErrorView] / the section error card instead.
+class RefreshFailedBanner extends StatelessWidget {
+  final String? message;
+  final VoidCallback onRetry;
+  const RefreshFailedBanner({super.key, this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('refresh_failed_banner'),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(left: 12, top: 4, bottom: 4, right: 4),
+      decoration: BoxDecoration(color: AppColors.redBg, borderRadius: BorderRadius.circular(AppRadius.md)),
+      child: Row(children: [
+        const Icon(Icons.error_outline_rounded, color: AppColors.red, size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const CustomText(text: 'Refresh failed', color: AppColors.red, fontSize: 12, fontWeight: FontWeight.w800),
+            if (message != null) CustomText(text: message!, color: AppColors.muted, fontSize: 11, maxLines: 2),
+          ]),
+        ),
+        TextButton(onPressed: onRetry, child: const CustomText(text: 'Retry', color: AppColors.blue, fontWeight: FontWeight.w700)),
+      ]),
+    );
+  }
+}
+
 class AppEmptyView extends StatelessWidget {
   final IconData icon;
   final String title;

@@ -91,7 +91,7 @@ class StudentLeavesController extends GetxController {
       lists[s] = rows.isEmpty ? const SectionState.empty() : SectionState.data(rows);
     } catch (e) {
       if (_tokens[s] != token) return;
-      final failed = SectionState<List<StudentLeaveRequest>>.fromError(e);
+      final failed = SectionState<List<StudentLeaveRequest>>.fromError(e, previous: previous);
       lists[s] = (previous?.hasData ?? false) && failed.status == SectionStatus.error && !userInitiated ? previous! : failed;
     }
   }

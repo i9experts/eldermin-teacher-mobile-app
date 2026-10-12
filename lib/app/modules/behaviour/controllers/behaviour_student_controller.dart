@@ -86,7 +86,7 @@ class BehaviourStudentController extends GetxController {
       student.value = SectionState.data(s);
     } catch (e) {
       if (token != _token) return;
-      student.value = SectionState<StudentSummary>.fromError(e);
+      student.value = SectionState<StudentSummary>.fromError(e, previous: student.value);
       return;
     }
     await Future.wait([_loadRecords(token), _loadTarbiyah(token)]);
@@ -120,7 +120,7 @@ class BehaviourStudentController extends GetxController {
       records.value = list.isEmpty ? const SectionState.empty() : SectionState.data(list);
     } catch (e) {
       if (token != _token) return;
-      records.value = SectionState<List<BehaviourRecord>>.fromError(e);
+      records.value = SectionState<List<BehaviourRecord>>.fromError(e, previous: records.value);
     }
   }
 
@@ -131,7 +131,7 @@ class BehaviourStudentController extends GetxController {
       tarbiyah.value = list.isEmpty ? const SectionState.empty() : SectionState.data(list);
     } catch (e) {
       if (token != _token) return;
-      tarbiyah.value = SectionState<List<TarbiyahAssessment>>.fromError(e);
+      tarbiyah.value = SectionState<List<TarbiyahAssessment>>.fromError(e, previous: tarbiyah.value);
     }
   }
 

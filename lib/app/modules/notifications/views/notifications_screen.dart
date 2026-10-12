@@ -87,7 +87,7 @@ class _ListState extends State<_List> {
         header: [
           SegmentedControl(key: const Key('notif_filter'), options: const ['All', 'Unread'], selectedIndex: unreadOnly ? 1 : 0, onChanged: (i) => c.setUnreadOnly(i == 1)),
           const SizedBox(height: 12),
-          if (refreshError != null) Padding(padding: const EdgeInsets.only(bottom: 10), child: CustomText(key: const Key('notif_refresh_error'), text: "Couldn't refresh: $refreshError", color: AppColors.redText, fontSize: 11, fontWeight: FontWeight.w700)),
+          if (refreshError != null) RefreshFailedBanner(key: const Key('notif_refresh_error'), message: refreshError, onRetry: c.reload),
         ],
         builder: (_) => [
           for (final g in c.groups) ...[

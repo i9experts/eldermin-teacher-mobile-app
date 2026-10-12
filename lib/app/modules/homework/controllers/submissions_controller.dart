@@ -118,7 +118,7 @@ class SubmissionsController extends GetxController {
       state.value = res.submissions.isEmpty && res.assignment.isDraft ? const SectionState.empty() : SectionState.data(res);
     } catch (e) {
       if (token != _token) return;
-      state.value = SectionState<SubmissionsResult>.fromError(e);
+      state.value = SectionState<SubmissionsResult>.fromError(e, previous: state.value);
     }
   }
 

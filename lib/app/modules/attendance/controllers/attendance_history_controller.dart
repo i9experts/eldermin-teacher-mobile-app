@@ -86,7 +86,7 @@ class AttendanceHistoryController extends GetxController {
       month.value = SectionState.data(built);
     } catch (e) {
       if (token != _token) return;
-      month.value = SectionState<MonthAttendance>.fromError(e);
+      month.value = SectionState<MonthAttendance>.fromError(e, previous: month.value);
     }
   }
 

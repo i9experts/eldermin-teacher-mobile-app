@@ -131,7 +131,7 @@ class ReportRemarksController extends GetxController {
       state.value = mine.isEmpty ? const SectionState.empty() : SectionState.data(mine);
     } catch (e) {
       if (token != _token) return;
-      state.value = SectionState<List<ReportCard>>.fromError(e);
+      state.value = SectionState<List<ReportCard>>.fromError(e, previous: state.value);
     }
   }
 

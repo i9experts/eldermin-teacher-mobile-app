@@ -66,7 +66,7 @@ class LibraryController extends GetxController {
       state.value = p.items.isEmpty ? const SectionState.empty() : SectionState.data(p.items);
     } catch (e) {
       if (token != _token) return;
-      state.value = SectionState<List<Book>>.fromError(e);
+      state.value = SectionState<List<Book>>.fromError(e, previous: state.value);
     }
   }
 

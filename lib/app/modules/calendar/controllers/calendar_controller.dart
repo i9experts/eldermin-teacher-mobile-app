@@ -73,7 +73,7 @@ class CalendarController extends GetxController {
       state.value = _stateForMonth(focusedDay.value);
     } catch (e) {
       if (token != _token) return;
-      final failed = SectionState<List<CalendarEntry>>.fromError(e);
+      final failed = SectionState<List<CalendarEntry>>.fromError(e, previous: state.value);
       state.value = keep && failed.status == SectionStatus.error && !userInitiated ? state.value : failed;
     }
   }

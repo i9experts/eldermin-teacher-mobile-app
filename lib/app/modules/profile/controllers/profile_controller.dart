@@ -51,7 +51,7 @@ class ProfileController extends GetxController {
       final me = await repo.fetchAccount();
       account.value = SectionState.data(me);
     } catch (e) {
-      final failed = SectionState<AuthMe>.fromError(e);
+      final failed = SectionState<AuthMe>.fromError(e, previous: previous);
       account.value = previous.hasData && failed.status == SectionStatus.error && !userInitiated ? previous : failed;
     }
     await staff;

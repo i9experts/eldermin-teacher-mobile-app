@@ -87,6 +87,7 @@ class ScreenStateView<T> extends StatelessWidget {
           ))
         ];
       case SectionStatus.error:
+        if (state.isStale) return [RefreshFailedBanner(message: state.message, onRetry: onRetry), ...builder(state.data as T)];
         return [
           _centered(AppErrorView(key: const Key('screen_error'), message: state.message ?? 'Something went wrong', onRetry: onRetry)),
         ];

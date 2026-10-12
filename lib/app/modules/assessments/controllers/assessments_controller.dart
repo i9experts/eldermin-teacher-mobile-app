@@ -140,7 +140,7 @@ class AssessmentsController extends GetxController {
       state.value = mine.isEmpty ? const SectionState.empty() : SectionState.data(mine);
     } catch (e) {
       if (token != _token) return;
-      state.value = SectionState<List<Assessment>>.fromError(e);
+      state.value = SectionState<List<Assessment>>.fromError(e, previous: state.value);
     }
   }
 
@@ -216,7 +216,7 @@ class AssessmentDetailController extends GetxController {
       }
       state.value = SectionState.data(one);
     } catch (e) {
-      state.value = SectionState<Assessment>.fromError(e);
+      state.value = SectionState<Assessment>.fromError(e, previous: state.value);
     }
   }
 }

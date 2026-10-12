@@ -98,7 +98,7 @@ class PtmDetailController extends GetxController {
         notFound.value = true;
         state.value = const SectionState.empty();
       } else {
-        final failed = SectionState<ParentMeeting>.fromError(e);
+        final failed = SectionState<ParentMeeting>.fromError(e, previous: previous);
         state.value = previous.hasData && failed.status == SectionStatus.error ? previous : failed;
       }
     }
@@ -115,7 +115,7 @@ class PtmDetailController extends GetxController {
       final rows = (await repo.fetchStudentHistory(m.studentId)).where((x) => x.id != m.id).toList();
       history.value = rows.isEmpty ? const SectionState.empty() : SectionState.data(rows);
     } catch (e) {
-      history.value = SectionState<List<ParentMeeting>>.fromError(e);
+      history.value = SectionState<List<ParentMeeting>>.fromError(e, previous: history.value);
     }
   }
 

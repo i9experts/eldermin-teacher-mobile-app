@@ -87,6 +87,12 @@ class SectionView<T> extends StatelessWidget {
           child: CustomText(text: 'Not available on this server yet', color: AppColors.muted, fontSize: 12),
         );
       case SectionStatus.error:
+        if (state.isStale) {
+          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            RefreshFailedBanner(message: state.message, onRetry: onRetry),
+            builder(state.data as T),
+          ]);
+        }
         return AppCard(
           key: const Key('section_error'),
           child: Row(children: [

@@ -32,7 +32,7 @@ class HelpController extends GetxController {
       list.value = rows.isEmpty ? const SectionState.empty() : SectionState.data(rows);
     } catch (e) {
       if (token != _lt) return;
-      final failed = SectionState<List<KbArticle>>.fromError(e);
+      final failed = SectionState<List<KbArticle>>.fromError(e, previous: previous);
       list.value = previous.hasData && failed.status == SectionStatus.error && !userInitiated ? previous : failed;
     }
     if (searching && userInitiated) await search(query.value);
@@ -65,7 +65,7 @@ class HelpController extends GetxController {
       results.value = rows.isEmpty ? const SectionState.empty() : SectionState.data(rows);
     } catch (e) {
       if (token != _st) return;
-      results.value = SectionState<List<KbArticle>>.fromError(e);
+      results.value = SectionState<List<KbArticle>>.fromError(e, previous: results.value);
     }
   }
 
@@ -103,7 +103,7 @@ class HelpArticleController extends GetxController {
       state.value = SectionState.data(a);
     } catch (e) {
       if (token != _t) return;
-      final failed = SectionState<KbArticle>.fromError(e);
+      final failed = SectionState<KbArticle>.fromError(e, previous: previous);
       state.value = previous.hasData && failed.status == SectionStatus.error && !userInitiated ? previous : failed;
     }
   }

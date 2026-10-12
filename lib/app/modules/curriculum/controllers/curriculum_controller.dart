@@ -81,7 +81,7 @@ class CurriculumController extends GetxController {
       }
     } catch (e) {
       if (token != _token) return;
-      state.value = SectionState<List<Curriculum>>.fromError(e);
+      state.value = SectionState<List<Curriculum>>.fromError(e, previous: state.value);
     }
   }
 
@@ -156,7 +156,7 @@ class CurriculumDetailController extends GetxController {
       }
       state.value = SectionState.data(one);
     } catch (e) {
-      state.value = SectionState<Curriculum>.fromError(e);
+      state.value = SectionState<Curriculum>.fromError(e, previous: state.value);
     }
   }
 }

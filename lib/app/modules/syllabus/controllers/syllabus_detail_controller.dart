@@ -72,7 +72,7 @@ class SyllabusDetailController extends GetxController {
       list.upsert(one);
       state.value = SectionState.data(one);
     } catch (e) {
-      state.value = SectionState<Syllabus>.fromError(e);
+      state.value = SectionState<Syllabus>.fromError(e, previous: state.value);
     }
   }
 

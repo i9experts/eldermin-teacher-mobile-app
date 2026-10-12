@@ -34,7 +34,7 @@ class EventsController extends GetxController {
       state.value = list.isEmpty ? const SectionState.empty() : SectionState.data(list);
     } catch (e) {
       if (token != _token) return;
-      final failed = SectionState<List<SchoolEvent>>.fromError(e);
+      final failed = SectionState<List<SchoolEvent>>.fromError(e, previous: previous);
       state.value = previous.hasData && failed.status == SectionStatus.error && !userInitiated ? previous : failed;
     }
   }
@@ -88,7 +88,7 @@ class EventDetailController extends GetxController {
       state.value = e.isListedForStaff ? SectionState.data(e) : const SectionState.error('This event is not available.');
     } catch (err) {
       if (token != _token) return;
-      final failed = SectionState<SchoolEvent>.fromError(err);
+      final failed = SectionState<SchoolEvent>.fromError(err, previous: previous);
       // a vanished event (404) replaces the stale copy; a transient failure keeps what is on screen
       state.value = previous.hasData && failed.status == SectionStatus.error && !userInitiated ? previous : failed;
     }

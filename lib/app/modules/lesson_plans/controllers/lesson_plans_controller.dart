@@ -123,7 +123,7 @@ class LessonPlansController extends GetxController {
       state.value = list.isEmpty ? const SectionState.empty() : SectionState.data(list);
     } catch (e) {
       if (token != _token) return;
-      state.value = SectionState<List<LessonPlanRecord>>.fromError(e);
+      state.value = SectionState<List<LessonPlanRecord>>.fromError(e, previous: state.value);
     }
   }
 

@@ -57,7 +57,7 @@ class CircularsController extends GetxController {
       state.value = mine.isEmpty ? const SectionState.empty() : SectionState.data(mine);
     } catch (e) {
       if (token != _token) return;
-      final failed = SectionState<List<Circular>>.fromError(e);
+      final failed = SectionState<List<Circular>>.fromError(e, previous: previous);
       state.value = previous.hasData && failed.status == SectionStatus.error && !userInitiated ? previous : failed;
     }
   }

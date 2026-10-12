@@ -91,7 +91,7 @@ class StudentDetailController extends GetxController {
       month.value = SectionState.data(c);
     } catch (e) {
       if (token != _token) return;
-      month.value = SectionState<StatusCounts>.fromError(e);
+      month.value = SectionState<StatusCounts>.fromError(e, previous: month.value);
     }
   }
 

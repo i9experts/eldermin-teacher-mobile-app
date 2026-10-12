@@ -86,7 +86,7 @@ class FixturesController extends GetxController {
       if (!_tabChosen && list.isNotEmpty && rows(FixtureTab.covering).isEmpty && rows(FixtureTab.covered).isNotEmpty) tab.value = FixtureTab.covered;
     } catch (e) {
       if (token != _token) return;
-      final failed = SectionState<List<Substitution>>.fromError(e);
+      final failed = SectionState<List<Substitution>>.fromError(e, previous: previous);
       load.value = previous.hasData && failed.status == SectionStatus.error && !userInitiated ? previous : failed;
     }
   }

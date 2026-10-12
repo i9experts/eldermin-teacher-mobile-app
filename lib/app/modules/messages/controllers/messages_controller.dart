@@ -63,7 +63,7 @@ class MessagesController extends GetxController {
       closed.value = SectionState.data(r);
     } catch (e) {
       if (token != _closedToken) return;
-      final failed = SectionState<ThreadsResult>.fromError(e);
+      final failed = SectionState<ThreadsResult>.fromError(e, previous: previous);
       closed.value = previous.hasData && !userInitiated ? previous : failed;
     }
   }

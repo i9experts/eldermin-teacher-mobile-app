@@ -176,7 +176,7 @@ class HomeBadgesController extends GetxController with WidgetsBindingObserver {
     }
     if (t.status != SectionStatus.loading && !_threadsPending) return;
     _threadsToken++;
-    threads.value = SectionState<ThreadsResult>.error(message);
+    threads.value = SectionState<ThreadsResult>.error(message, stale: t.data);
   }
 
   bool _threadsPending = false;
@@ -194,7 +194,7 @@ class HomeBadgesController extends GetxController with WidgetsBindingObserver {
     } catch (e) {
       if (token != _threadsToken) return;
       _threadsPending = false;
-      final failed = SectionState<ThreadsResult>.fromError(e);
+      final failed = SectionState<ThreadsResult>.fromError(e, previous: previous);
       final transient = failed.status == SectionStatus.error;
       if (previous.hasData && transient && !userInitiated) {
         threads.value = previous;

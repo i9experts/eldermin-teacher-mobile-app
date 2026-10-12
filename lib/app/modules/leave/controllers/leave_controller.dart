@@ -40,7 +40,7 @@ class LeaveController extends GetxController {
       balance.value = SectionState.data(b);
     } catch (e) {
       if (token != _bToken) return;
-      final failed = SectionState<LeaveBalanceSummary>.fromError(e);
+      final failed = SectionState<LeaveBalanceSummary>.fromError(e, previous: previous);
       balance.value = previous.hasData && failed.status == SectionStatus.error && !userInitiated ? previous : failed;
     }
   }
@@ -55,7 +55,7 @@ class LeaveController extends GetxController {
       history.value = rows.isEmpty ? const SectionState.empty() : SectionState.data(rows);
     } catch (e) {
       if (token != _hToken) return;
-      final failed = SectionState<List<StaffLeaveRequest>>.fromError(e);
+      final failed = SectionState<List<StaffLeaveRequest>>.fromError(e, previous: previous);
       history.value = previous.hasData && failed.status == SectionStatus.error && !userInitiated ? previous : failed;
     }
   }

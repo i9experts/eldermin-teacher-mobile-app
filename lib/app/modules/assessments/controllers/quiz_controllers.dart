@@ -84,7 +84,7 @@ class QuizAttemptsController extends GetxController {
       _fixFilter();
     } catch (e) {
       if (token != _token) return;
-      state.value = SectionState<List<QuizAttempt>>.fromError(e);
+      state.value = SectionState<List<QuizAttempt>>.fromError(e, previous: state.value);
     }
   }
 
@@ -183,7 +183,7 @@ class QuizAttemptDetailController extends GetxController {
       lockMessage.value = await _assessmentLock(a);
       state.value = SectionState.data(a);
     } catch (e) {
-      state.value = SectionState<QuizAttempt>.fromError(e);
+      state.value = SectionState<QuizAttempt>.fromError(e, previous: state.value);
     }
   }
 

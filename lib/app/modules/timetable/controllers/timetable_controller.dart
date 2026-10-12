@@ -150,7 +150,7 @@ class TimetableController extends GetxController with WidgetsBindingObserver {
     } catch (e) {
       if (token != _token) return;
       _loadedWeekKey = ''; // retry must reload
-      week.value = SectionState<List<TeacherPeriod>>.fromError(e);
+      week.value = SectionState<List<TeacherPeriod>>.fromError(e, previous: week.value);
     }
   }
 

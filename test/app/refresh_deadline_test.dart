@@ -92,6 +92,8 @@ void main() {
     expect(m.c.homework.value.hasData, isTrue, reason: 'the old data stays visible while the request is pending');
     await t.pump(const Duration(seconds: 16));
     expect(m.c.homework.value.status, SectionStatus.error);
+    expect(m.c.homework.value.isStale, isTrue, reason: '5e: the old data stays under a "Refresh failed" banner');
+    expect(m.c.homework.value.data!.totalUngraded, 3);
   });
 
   testWidgets('/me hung while the sections answer: sections are shown immediately (not behind /me); the pull ends at the deadline', (t) async {

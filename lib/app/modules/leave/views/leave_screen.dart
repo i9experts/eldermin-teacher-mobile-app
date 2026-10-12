@@ -84,6 +84,7 @@ class LeaveScreen extends GetView<LeaveController> {
       case SectionStatus.loading:
         return const AppShimmer(key: Key('leave_balance_loading'), child: ShimmerListRowSkeleton());
       case SectionStatus.error:
+        if (st.isStale) return Column(children: [RefreshFailedBanner(message: st.message, onRetry: () => c.loadBalance(userInitiated: true)), _balanceCards(st.data!)]);
         return AppErrorView(key: const Key('leave_balance_error'), message: st.message ?? 'Something went wrong', onRetry: () => c.loadBalance(userInitiated: true));
       case SectionStatus.forbidden:
         return const AppEmptyView(key: Key('leave_balance_forbidden'), icon: Icons.lock_outline_rounded, title: "You don't have access");
@@ -92,14 +93,17 @@ class LeaveScreen extends GetView<LeaveController> {
       case SectionStatus.empty:
         return const SizedBox.shrink();
       case SectionStatus.data:
-        final b = st.data!;
-        if (!b.hasPolicy) {
-          return const AppCard(key: Key('leave_no_policy'), child: CustomText(text: 'No leave allowance has been set up for you yet, so there is no balance to show. You can still apply: the school decides. Ask HR if this looks wrong.', fontSize: 12.5, color: AppColors.muted, height: 1.4));
-        }
-        final shown = b.shown;
-        if (shown.isEmpty) return const AppCard(key: Key('leave_no_balance'), child: CustomText(text: 'Your leave allowance shows no days yet.', fontSize: 12.5, color: AppColors.muted));
-        return Wrap(spacing: 10, runSpacing: 10, children: [for (final k in shown) _BalanceCard(bucket: k)]);
+        return _balanceCards(st.data!);
     }
+  }
+
+  Widget _balanceCards(LeaveBalanceSummary b) {
+    if (!b.hasPolicy) {
+      return const AppCard(key: Key('leave_no_policy'), child: CustomText(text: 'No leave allowance has been set up for you yet, so there is no balance to show. You can still apply: the school decides. Ask HR if this looks wrong.', fontSize: 12.5, color: AppColors.muted, height: 1.4));
+    }
+    final shown = b.shown;
+    if (shown.isEmpty) return const AppCard(key: Key('leave_no_balance'), child: CustomText(text: 'Your leave allowance shows no days yet.', fontSize: 12.5, color: AppColors.muted));
+    return Wrap(spacing: 10, runSpacing: 10, children: [for (final k in shown) _BalanceCard(bucket: k)]);
   }
 
   Widget _history() {
@@ -108,6 +112,7 @@ class LeaveScreen extends GetView<LeaveController> {
       case SectionStatus.loading:
         return AppShimmer(key: const Key('leave_history_loading'), child: Column(children: List.generate(3, (_) => const ShimmerListRowSkeleton())));
       case SectionStatus.error:
+        if (st.isStale) return Column(children: [RefreshFailedBanner(message: st.message, onRetry: () => c.loadHistory(userInitiated: true)), for (final l in st.data!) _RequestCard(request: l)]);
         return AppErrorView(key: const Key('leave_history_error'), message: st.message ?? 'Something went wrong', onRetry: () => c.loadHistory(userInitiated: true));
       case SectionStatus.forbidden:
         return const AppEmptyView(key: Key('leave_history_forbidden'), icon: Icons.lock_outline_rounded, title: "You don't have access");
