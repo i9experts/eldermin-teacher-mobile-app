@@ -2,6 +2,8 @@
 
 Nothing has been submitted anywhere. Work happens on `phase-8-release`; `main` is untouched until the owner approves.
 
+One-page summary for the owner meeting: `../eldermin-teacher-app-docs/RELEASE_BLOCKERS.md`.
+
 ## 0. MANDATORY gate: staging verification (not done yet)
 Before ANY store submission or merge to `main`:
 1. `python3 tool/dev/verify_staging.py` (read-only; needs git-ignored `tool/dev/.env.staging`) - see `../eldermin-teacher-app-docs/phase4/STAGING_VERIFICATION.md` and the staging checklist in `phase7/PHASE7_SUMMARY.md` section 8.
