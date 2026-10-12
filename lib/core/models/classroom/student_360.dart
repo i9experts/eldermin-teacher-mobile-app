@@ -131,14 +131,14 @@ class ResultItem {
 /// (students.service.ts:1483-1575) through an explicit WHITELIST.
 ///
 /// Parsed: profile basics ([StudentSummary] keys), guardian name/relation,
-/// `student.medical.allergies` (safety flag), attendance (summary, totals, recent
+/// `student.medical.allergies` + `student.medical.bloodGroup` (medical alert block, each only when present), attendance (summary, totals, recent
 /// days), behaviour (points, recent), assessments (recent).
 ///
 /// NOT parsed, ever (payload keys the teacher app drops): the whole top-level
 /// `fees` block (summary + recent fee records), `student.guardians[].cnic/phone/
 /// email/occupation/employer/monthlyIncome`, `student.personalPhone/whatsApp/altPhone/
 /// personalEmail/address/town/city/...`, `student.nationalId/bForm/passportNumber/visaNo`,
-/// `student.emergencyContact*`, `student.tutor*`, `student.medical.*` except allergies
+/// `student.emergencyContact*`, `student.tutor*`, `student.medical.*` except allergies and bloodGroup
 /// (doctor, insurance, medications, conditions), `student.specialNeeds/scholarship*`,
 /// `student.transport*/hostel*`, `student.documents`, `student.academicHistory`, `customFields`.
 ///
@@ -149,6 +149,10 @@ class Student360 {
   final StudentSummary student;
   final List<GuardianInfo> guardians;
   final List<String> allergies;
+
+  /// `medical.bloodGroup` as sent ('' when absent, blank or the schema's 'unknown' placeholder). The backend teacher projection currently
+  /// REMOVES it (B5 round 2, `-medical.bloodGroup`; owner question pending), so for teachers this is normally empty and nothing is shown.
+  final String bloodGroup;
   final Attendance360 attendance;
   final Behaviour360 behaviour;
   final List<ResultItem> results;
@@ -161,6 +165,7 @@ class Student360 {
     required this.student,
     this.guardians = const [],
     this.allergies = const [],
+    this.bloodGroup = '',
     this.attendance = const Attendance360(),
     this.behaviour = const Behaviour360(),
     this.results = const [],
@@ -183,10 +188,16 @@ class Student360 {
       guardians: guardians,
       guardiansKnown: raw.containsKey('guardians') && raw['guardians'] is List,
       allergies: readStringList(medical['allergies']).where((e) => e.trim().isNotEmpty).toList(),
+      bloodGroup: _bloodGroupOf(medical['bloodGroup']),
       attendance: Attendance360.fromJson(asJsonMap(j['attendance'])),
       behaviour: Behaviour360.fromJson(asJsonMap(j['behaviour'])),
       results: asJsonMapList(asJsonMap(j['assessments'])['recent']).map(ResultItem.fromJson).toList(),
     );
+  }
+
+  static String _bloodGroupOf(Object? v) {
+    final t = readText(v).trim();
+    return t.isEmpty || t.toLowerCase() == 'unknown' ? '' : t;
   }
 
   /// Every value held by the model, flattened to text (tests assert no sensitive value is in it).
@@ -194,6 +205,7 @@ class Student360 {
         student.toDebugMap(),
         [for (final g in guardians) '${g.name}|${g.relation}|${g.isPrimary}'],
         allergies,
+        bloodGroup,
         '${attendance.totalDays}|${attendance.presentDays}|${attendance.percentage}|${attendance.recent.length}',
         '${behaviour.totalPoints}|${[for (final b in behaviour.recent) '${b.type}|${b.category}|${b.description}|${b.severity}']}',
         [for (final r in results) '${r.title}|${r.type}|${r.percentage}|${r.overallGrade}'],

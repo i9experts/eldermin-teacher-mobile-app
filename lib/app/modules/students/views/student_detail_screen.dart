@@ -78,7 +78,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
       skeletonRows: 4,
       builder: (d) => [
         _ProfileCard(d: d),
-        if (d.allergies.isNotEmpty) _AllergyCard(allergies: d.allergies),
+        if (d.allergies.isNotEmpty || d.bloodGroup.isNotEmpty) _MedicalAlertCard(allergies: d.allergies, bloodGroup: d.bloodGroup),
         const SubHeading('Attendance'),
         _AttendanceCard(d: d.attendance, month: month, monthLabel: _monthLabel(c.monthStart)),
         const SubHeading('Recent behaviour'),
@@ -152,13 +152,15 @@ class _ProfileCard extends StatelessWidget {
   }
 }
 
-class _AllergyCard extends StatelessWidget {
+/// Critical medical alerts the backend sends to teachers: allergies, and the blood group when the payload carries it (never invented).
+class _MedicalAlertCard extends StatelessWidget {
   final List<String> allergies;
-  const _AllergyCard({required this.allergies});
+  final String bloodGroup;
+  const _MedicalAlertCard({required this.allergies, required this.bloodGroup});
 
   @override
   Widget build(BuildContext context) => Container(
-        key: const Key('student_allergies'),
+        key: const Key('student_medical_alert'),
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: AppColors.amberBg, borderRadius: BorderRadius.circular(AppRadius.lg), border: Border.all(color: AppColors.amber)),
@@ -167,8 +169,15 @@ class _AllergyCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const CustomText(text: 'Allergies', color: AppColors.amberText, fontWeight: FontWeight.w800, fontSize: 12),
-              CustomText(text: allergies.join(', '), color: AppColors.ink, fontSize: 13),
+              if (allergies.isNotEmpty) ...[
+                const CustomText(text: 'Allergies', color: AppColors.amberText, fontWeight: FontWeight.w800, fontSize: 12),
+                CustomText(key: const Key('student_allergies'), text: allergies.join(', '), color: AppColors.ink, fontSize: 13),
+              ],
+              if (bloodGroup.isNotEmpty) ...[
+                if (allergies.isNotEmpty) const SizedBox(height: 6),
+                const CustomText(text: 'Blood group', color: AppColors.amberText, fontWeight: FontWeight.w800, fontSize: 12),
+                CustomText(key: const Key('student_blood_group'), text: bloodGroup, color: AppColors.ink, fontSize: 13),
+              ],
             ]),
           ),
         ]),

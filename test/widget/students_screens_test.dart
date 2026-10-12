@@ -233,6 +233,25 @@ void main() {
       expect(allText(t).contains('0300-555'), isFalse);
     });
 
+    testWidgets('medical alert block: blood group shown together with allergies; alone when there are none; no block when neither is sent', (t) async {
+      await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A', 'medical': {'allergies': ['Peanuts (DUMMY)'], 'bloodGroup': 'B+'}}));
+      expect(find.byKey(const Key('student_medical_alert')), findsOneWidget);
+      expect(find.byKey(const Key('student_allergies')), findsOneWidget);
+      expect(find.byKey(const Key('student_blood_group')), findsOneWidget);
+      expect(find.text('Blood group'), findsOneWidget);
+      expect(find.text('B+'), findsOneWidget);
+      expect(find.descendant(of: find.byKey(const Key('student_medical_alert')), matching: find.byKey(const Key('student_blood_group'))), findsOneWidget, reason: 'same block as the allergies');
+      await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A', 'medical': {'allergies': [], 'bloodGroup': 'O-'}}));
+      expect(find.byKey(const Key('student_medical_alert')), findsOneWidget);
+      expect(find.byKey(const Key('student_allergies')), findsNothing);
+      expect(find.text('O-'), findsOneWidget);
+      await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A', 'medical': {'allergies': [], 'bloodGroup': 'unknown'}}));
+      expect(find.byKey(const Key('student_medical_alert')), findsNothing);
+      await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A', 'medical': {'allergies': ['Peanuts (DUMMY)']}})); // teacher projection: no bloodGroup
+      expect(find.byKey(const Key('student_blood_group')), findsNothing);
+      expect(find.byKey(const Key('student_allergies')), findsOneWidget);
+    });
+
     testWidgets('a student outside my classes shows nothing but an explanation', (t) async {
       await bootDetail(t, data: fx360({'currentGrade': 'Grade 9', 'currentSection': 'Z'}));
       expect(find.byKey(const Key('student_out_of_scope')), findsOneWidget);

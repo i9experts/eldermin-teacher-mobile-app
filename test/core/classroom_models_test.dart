@@ -113,6 +113,18 @@ void main() {
       expect(d.debugDump(), isNot(contains('Dr DUMMY')));
     });
 
+    test('blood group: parsed only when the payload carries a real value; absent / blank / "unknown" -> empty (never invented)', () {
+      Student360 of(Object? medical) => Student360.fromJson({
+            'student': {'_id': 's1', 'firstName': 'A', 'lastName': 'B', if (medical != null) 'medical': medical}
+          });
+      expect(of({'bloodGroup': 'B+', 'allergies': ['Peanuts (DUMMY)']}).bloodGroup, 'B+');
+      expect(of({'bloodGroup': ' AB- '}).bloodGroup, 'AB-');
+      for (final none in [{'allergies': []}, {'bloodGroup': ''}, {'bloodGroup': '  '}, {'bloodGroup': 'unknown'}, {'bloodGroup': 'Unknown'}, {'bloodGroup': null}, null]) {
+        expect(of(none).bloodGroup, '', reason: '$none');
+      }
+      expect(of({'bloodGroup': 'O+'}).debugDump(), contains('O+'));
+    });
+
     test('REDUCED payload (backend field hiding 2026-10-08): no guardian email, address, documents, hostel, full medical, transport detail still parses', () {
       final reduced = jsonDecode(jsonEncode(raw)) as Map<String, dynamic>;
       final st = reduced['student'] as Map<String, dynamic>;
