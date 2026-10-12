@@ -22,6 +22,7 @@ class HarnessApi extends AuthApiService {
   bool classTeacher = false;
   String role = 'teacher';
   List<String>? permissions;
+  List<String> activeModules = const [];
   List<Map<String, Object?>> assignments = const [];
   List<String> subjects = const [];
 
@@ -60,7 +61,7 @@ class HarnessApi extends AuthApiService {
               ? {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionName': 'A', 'label': 'Grade 5 - A'}
               : null,
         },
-        'institution': {'slug': 's'},
+        'institution': {'slug': 's', 'activeModules': activeModules},
       });
 
   @override
@@ -72,11 +73,15 @@ class HarnessApi extends AuthApiService {
 Future<({AuthController auth, HarnessApi api, PermissionService perms})> signedIn({
   bool classTeacher = false,
   List<String>? permissions,
+  String role = 'teacher',
+  List<String> activeModules = const [],
 }) async {
   SharedPreferences.setMockInitialValues({});
   final api = HarnessApi()
     ..classTeacher = classTeacher
-    ..permissions = permissions;
+    ..permissions = permissions
+    ..role = role
+    ..activeModules = activeModules;
   final perms = PermissionService();
   final auth = AuthController(
     api: api,
