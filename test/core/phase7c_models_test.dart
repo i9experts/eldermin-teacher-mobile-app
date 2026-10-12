@@ -10,6 +10,17 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/fake_phase7c_repositories.dart';
 
 void main() {
+  group('calendar entries: text fixes', () {
+    test('"Grade Grade 5 A" from the exam template shows one "Grade" (title and description); real Grade names are kept', () {
+      final e = CalendarEntry.tryParse(calRow('e', 'Unit test Grade Grade 5', type: 'exam', source: 'assessments', description: 'unit test — Grade Grade 5 A'))!;
+      expect(e.title, 'Unit test Grade 5');
+      expect(e.description, 'unit test — Grade 5 A');
+      final ok = CalendarEntry.tryParse(calRow('f', 'Grade 5 parents evening', description: 'Grade 5 A and B'))!;
+      expect(ok.title, 'Grade 5 parents evening');
+      expect(ok.description, 'Grade 5 A and B');
+    });
+  });
+
   group('calendar entries: whitelist', () {
     test('a fee row is dropped, whatever shape it has, and its description is never read', () {
       expect(CalendarEntry.tryParse(feeRow()), isNull);

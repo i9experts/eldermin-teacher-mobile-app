@@ -51,4 +51,18 @@ void main() {
     expect(sameSection('Girls', 'Boys'), isFalse);
     expect(sameSection('Section 1', '1'), isTrue);
   });
+
+  group('collapseDoubledGrade (server text "Grade Grade 5 A")', () {
+    test('only the exact repetition is collapsed', () {
+      expect(collapseDoubledGrade('unit test — Grade Grade 5 A'), 'unit test — Grade 5 A');
+      expect(collapseDoubledGrade('grade GRADE 7'), 'grade 7');
+      expect(collapseDoubledGrade('Grade   Grade 5'), 'Grade 5');
+      expect(collapseDoubledGrade('Mid-term: Grade Grade 5 A and Grade Grade 6 B'), 'Mid-term: Grade 5 A and Grade 6 B');
+    });
+    test('names that legitimately start with Grade are untouched', () {
+      for (final v in ['Grade 5 A', 'Grade point average review', 'Upgrade Grade 5', 'Gradebook closes', 'Grade-5 exam', 'Class 5', '']) {
+        expect(collapseDoubledGrade(v), v);
+      }
+    });
+  });
 }

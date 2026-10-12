@@ -28,3 +28,10 @@ String normalizeSectionName(Object? v) => _collapse(v).replaceFirst(_sectionPref
 bool sameGrade(Object? a, Object? b) => normalizeGradeName(a) == normalizeGradeName(b);
 
 bool sameSection(Object? a, Object? b) => normalizeSectionName(a) == normalizeSectionName(b);
+
+final RegExp _doubledGrade = RegExp(r'\b(grade)\s+grade\b', caseSensitive: false);
+
+/// Server text such as "unit test — Grade Grade 5 A" (the calendar's exam-row template prefixes "Grade" to a grade level that already
+/// starts with it): the doubled word becomes one. ONLY the exact repetition "Grade Grade" is touched, so a name that legitimately starts
+/// with "Grade" ("Grade 5", "Grade point average") is left alone.
+String collapseDoubledGrade(String s) => s.replaceAllMapped(_doubledGrade, (m) => m.group(1)!);

@@ -1,4 +1,5 @@
 import 'dart:ui' show Color;
+import '../../utils/class_match.dart' show collapseDoubledGrade;
 import '../../utils/safe_text.dart';
 import '../json_helpers.dart';
 
@@ -106,8 +107,8 @@ class CalendarEntry {
     final c = readString(j['color']);
     return CalendarEntry(
       id: id,
-      title: title,
-      description: readText(j['description']),
+      title: collapseDoubledGrade(title),
+      description: collapseDoubledGrade(readText(j['description'])),
       type: type,
       color: c != null && _hex6.hasMatch(c) ? Color(0xFF000000 | int.parse(c.substring(1), radix: 16)) : type.color,
       start: start,
