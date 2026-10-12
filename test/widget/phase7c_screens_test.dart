@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:eldermin_teacher_app/app/components/external_link.dart';
 import 'package:eldermin_teacher_app/app/modules/about/controllers/about_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/about/views/about_screen.dart';
+import 'package:eldermin_teacher_app/app/modules/attendance/controllers/attendance_controller.dart' show kAttendanceEditWindowDays;
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/calendar/controllers/calendar_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/calendar/controllers/circulars_controller.dart';
@@ -28,6 +29,7 @@ import 'package:eldermin_teacher_app/core/models/calendar/calendar_models.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/student_models.dart';
 import 'package:eldermin_teacher_app/core/constants/support_config.dart';
 import 'package:eldermin_teacher_app/core/models/help/kb_models.dart';
+import 'package:eldermin_teacher_app/core/models/help/teacher_faqs.dart';
 import 'package:eldermin_teacher_app/core/models/safeguarding/safeguarding_models.dart';
 import 'package:eldermin_teacher_app/core/services/account_repository.dart';
 import 'package:eldermin_teacher_app/core/services/avatar_picker.dart';
@@ -685,6 +687,51 @@ void main() {
       await settle(t);
       expect(find.text('Payroll'), findsNothing);
       expect(find.text('No articles match'), findsOneWidget);
+    });
+
+    testWidgets('bundled FAQs are at the top in every state (empty KB, HR-only KB, KB error); they expand; no network; hidden while searching', (t) async {
+      repo.listRows = () async => [hr1]; // only an HR article: hidden, so the KB part is empty
+      final c = Get.put(HelpController(repository: repo));
+      await open(t, const HelpScreen());
+      await t.runAsync(() => c.load());
+      await settle(t);
+      expect(find.byKey(const Key('help_faqs')), findsOneWidget);
+      expect(find.text('Payroll'), findsNothing);
+      expect(find.text('No further guides yet'), findsOneWidget);
+      expect(find.text('How do I mark attendance?'), findsOneWidget);
+      // FAQs come before the KB state body
+      expect(t.getTopLeft(find.byKey(const Key('help_faqs'))).dy, lessThan(t.getTopLeft(find.text('No further guides yet')).dy));
+      expect(find.textContaining('last 7 days'), findsNothing, reason: 'collapsed until tapped');
+      await t.tap(find.text('How do I mark attendance?'));
+      await settle(t);
+      expect(find.textContaining('last 7 days'), findsOneWidget);
+      // a failing KB does not take the FAQs away
+      repo.listRows = () async => fail7c(500);
+      await t.runAsync(() => c.load(userInitiated: true));
+      await settle(t);
+      expect(find.byKey(const Key('screen_error')), findsOneWidget);
+      expect(find.byKey(const Key('help_faqs')), findsOneWidget);
+      // searching shows the search results only
+      repo.search0 = (q) async => [];
+      await t.enterText(find.byKey(const Key('help_search')), 'x');
+      await t.testTextInput.receiveAction(TextInputAction.search);
+      await t.runAsync(() => pumpEventQueue());
+      await settle(t);
+      expect(find.text('No articles match'), findsOneWidget);
+      expect(find.byKey(const Key('help_faqs')), findsNothing, reason: 'search shows results only');
+      await t.tap(find.byKey(const Key('help_search_clear')));
+      await settle(t);
+      expect(find.byKey(const Key('help_faqs')), findsOneWidget);
+    });
+
+    test('FAQ content: 6-8 entries, unique ids, no invented numbers / deadlines / contact details', () {
+      expect(kTeacherFaqs.length, inInclusiveRange(6, 8));
+      expect(kTeacherFaqs.map((f) => f.id).toSet().length, kTeacherFaqs.length);
+      final all = kTeacherFaqs.map((f) => '${f.question} ${f.answer}').join(' ');
+      expect(RegExp(r'@|https?://|www\.|\+\d|\b\d{5,}\b').hasMatch(all), isFalse, reason: 'no phone numbers, emails or links');
+      expect(RegExp(r'\b(within|by)\s+\d+\s+(hours?|days?)', caseSensitive: false).hasMatch(all), isFalse, reason: 'no promised deadlines');
+      expect(all, contains('school administration'));
+      expect(all, contains('$kAttendanceEditWindowDays days'), reason: 'matches the attendance edit window in the app');
     });
 
     testWidgets('Contact support card: shown when configured (email + https page), in every list state; Email opens mailto, web asks first', (t) async {
