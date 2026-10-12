@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/safe_text.dart';
@@ -26,6 +27,15 @@ class ExternalLinks {
     } catch (_) {
       _snack("Couldn't open the link.");
     }
+  }
+
+  /// "Email support": opens the mail app for an address WE configured (never server text). If no mail app answers, the address is copied.
+  static Future<void> openMail(String email) async {
+    try {
+      if (await launcher(Uri(scheme: 'mailto', path: email))) return;
+    } catch (_) {}
+    await Clipboard.setData(ClipboardData(text: email));
+    _snack('No mail app found. The address was copied.');
   }
 
   static void _snack(String m) {

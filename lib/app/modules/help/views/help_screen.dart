@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/constants/support_config.dart';
 import '../../../../core/models/help/kb_models.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/custom_text.dart';
+import '../../../components/external_link.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/help_controller.dart';
 
-/// Help (`/help`): knowledge-base articles by module, with search.
+/// Help (`/help`): teacher-appropriate knowledge-base articles by module (HR / admin guides are hidden, see [isTeacherHelpArticle]), search, and a
+/// Contact support card when the build configures one.
 class HelpScreen extends StatefulWidget {
   const HelpScreen({super.key});
   @override
@@ -47,6 +50,20 @@ class _HelpScreenState extends State<HelpScreen> {
         ),
       );
 
+  /// "Contact support": only when the app was built with a support address / page (SupportConfig); never invented.
+  Widget _support() {
+    final email = SupportConfig.email, url = SupportConfig.url;
+    if (email == null && url == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(key: const Key('help_support'), crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const SubHeading('Contact support'),
+          if (email != null) ListCardRow(key: const Key('help_support_email'), icon: Icons.mail_outline_rounded, title: 'Email support', subtitle: email, trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.faint), onTap: () => ExternalLinks.openMail(email)),
+          if (url != null) ListCardRow(key: const Key('help_support_web'), icon: Icons.language_rounded, title: 'Support website', subtitle: url.host, trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.faint), onTap: () => ExternalLinks.openWithConfirm(url.toString())),
+        ]),
+    );
+  }
+
   Widget _row(KbArticle a) => ListCardRow(
         key: ValueKey('help_${a.key}'),
         icon: Icons.article_outlined,
@@ -65,7 +82,7 @@ class _HelpScreenState extends State<HelpScreen> {
         if (res != null) {
           return ScreenStateView<List<KbArticle>>(
             state: res,
-            header: [_search()],
+            header: [_search(), _support()],
             onRefresh: () => c.search(c.query.value),
             onRetry: () => c.search(c.query.value),
             emptyIcon: Icons.search_off_rounded,
@@ -76,7 +93,7 @@ class _HelpScreenState extends State<HelpScreen> {
         }
         return ScreenStateView<List<KbArticle>>(
           state: c.list.value,
-          header: [_search()],
+          header: [_search(), _support()],
           onRefresh: () => c.load(userInitiated: true),
           onRetry: () => c.load(userInitiated: true),
           emptyIcon: Icons.menu_book_outlined,

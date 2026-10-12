@@ -26,6 +26,7 @@ import 'package:eldermin_teacher_app/app/modules/safeguarding/views/safeguarding
 import 'package:eldermin_teacher_app/app/routes/app_routes.dart';
 import 'package:eldermin_teacher_app/core/models/calendar/calendar_models.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/student_models.dart';
+import 'package:eldermin_teacher_app/core/constants/support_config.dart';
 import 'package:eldermin_teacher_app/core/models/help/kb_models.dart';
 import 'package:eldermin_teacher_app/core/models/safeguarding/safeguarding_models.dart';
 import 'package:eldermin_teacher_app/core/services/account_repository.dart';
@@ -643,8 +644,13 @@ void main() {
   group('Help screens', () {
     late FakeKbRepository repo;
     setUp(() => repo = FakeKbRepository());
-    const a1 = KbArticle(module: 'hr', tabKey: 'dashboard', title: 'Dashboard', tagline: 'Your morning read', order: 1);
+    const a1 = KbArticle(module: 'faq', tabKey: 'dashboard', title: 'Dashboard', tagline: 'Your morning read', order: 1);
     const g1 = KbArticle(module: 'general', tabKey: 'start', title: 'Getting started', order: 1);
+    const hr1 = KbArticle(module: 'hr', tabKey: 'payroll', title: 'Payroll', tagline: 'Run salaries', order: 8);
+    tearDown(() {
+      SupportConfig.emailOverride = null;
+      SupportConfig.urlOverride = null;
+    });
 
     testWidgets('list by module, contact card; tap opens the article route', (t) async {
       repo.listRows = () async => [a1, g1];
@@ -652,13 +658,63 @@ void main() {
       await open(t, const HelpScreen());
       await t.runAsync(() => c.load());
       await settle(t);
-      expect(find.text('Staff & HR'), findsOneWidget);
+      expect(find.text('Faq'), findsOneWidget);
       expect(find.text('General'), findsWidgets);
       expect(find.text('Dashboard'), findsOneWidget);
       expect(find.byKey(const Key('help_contact')), findsOneWidget);
-      await t.tap(find.byKey(const ValueKey('help_hr/dashboard')));
+      await t.tap(find.byKey(const ValueKey('help_faq/dashboard')));
       await settle(t);
       expect(find.text('went:/help/:module/:tabKey'), findsOneWidget);
+    });
+
+    testWidgets('HR / payroll articles never appear in the list or in search results; no support card when nothing is configured', (t) async {
+      repo.listRows = () async => [hr1, a1, g1];
+      final c = Get.put(HelpController(repository: repo));
+      await open(t, const HelpScreen());
+      await t.runAsync(() => c.load());
+      await settle(t);
+      expect(find.text('Payroll'), findsNothing);
+      expect(find.text('Staff & HR'), findsNothing);
+      expect(find.text('Dashboard'), findsOneWidget);
+      expect(find.byKey(const Key('help_support')), findsNothing);
+      expect(find.byKey(const Key('help_contact')), findsOneWidget, reason: 'the generic "ask your school administration" card stays');
+      repo.search0 = (q) async => [hr1];
+      await t.enterText(find.byKey(const Key('help_search')), 'pay');
+      await t.testTextInput.receiveAction(TextInputAction.search);
+      await t.runAsync(() => pumpEventQueue());
+      await settle(t);
+      expect(find.text('Payroll'), findsNothing);
+      expect(find.text('No articles match'), findsOneWidget);
+    });
+
+    testWidgets('Contact support card: shown when configured (email + https page), in every list state; Email opens mailto, web asks first', (t) async {
+      SupportConfig.emailOverride = 'help@school.example';
+      SupportConfig.urlOverride = 'https://school.example/help';
+      final launched = <Uri>[];
+      final old = ExternalLinks.launcher;
+      ExternalLinks.launcher = (u) async {
+        launched.add(u);
+        return true;
+      };
+      addTearDown(() => ExternalLinks.launcher = old);
+      final c = Get.put(HelpController(repository: repo));
+      await open(t, const HelpScreen());
+      await t.runAsync(() => c.load()); // empty list
+      await settle(t);
+      expect(find.byKey(const Key('help_support')), findsOneWidget);
+      expect(find.text('help@school.example'), findsOneWidget);
+      await t.tap(find.byKey(const Key('help_support_email')));
+      await settle(t);
+      expect(launched.single.toString(), 'mailto:help@school.example');
+      repo.listRows = () async => fail7c(500);
+      await t.runAsync(() => c.load(userInitiated: true));
+      await settle(t);
+      expect(find.byKey(const Key('screen_error')), findsOneWidget);
+      expect(find.byKey(const Key('help_support')), findsOneWidget, reason: 'support stays reachable when the list fails');
+      await t.tap(find.byKey(const Key('help_support_web')));
+      await settle(t);
+      expect(find.text('Open this link?'), findsOneWidget);
+      expect(launched.length, 1, reason: 'the website is not opened before the user confirms');
     });
 
     testWidgets('search: submit shows results; no match message; clear returns to the list; states', (t) async {
@@ -719,12 +775,21 @@ void main() {
     });
 
     testWidgets('article 404 and error', (t) async {
-      repo.one = (m, tk) async => fail7c(404, 'No KB article found for hr/x');
-      final c = Get.put(HelpArticleController(repository: repo, module: 'hr', tabKey: 'x'));
+      repo.one = (m, tk) async => fail7c(404, 'No KB article found for general/x');
+      final c = Get.put(HelpArticleController(repository: repo, module: 'general', tabKey: 'x'));
       await open(t, const HelpArticleScreen());
       await t.runAsync(() => c.load());
       await settle(t);
       expect(find.byKey(const Key('screen_unavailable')), findsOneWidget);
+    });
+
+    testWidgets('an HR article opened by a stale link shows "You don\'t have access" and makes no request', (t) async {
+      final c = Get.put(HelpArticleController(repository: repo, module: 'hr', tabKey: 'payroll'));
+      await open(t, const HelpArticleScreen());
+      await t.runAsync(() => c.load());
+      await settle(t);
+      expect(find.byKey(const Key('screen_forbidden')), findsOneWidget);
+      expect(repo.calls, isEmpty);
     });
   });
 

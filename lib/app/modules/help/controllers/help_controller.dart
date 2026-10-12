@@ -3,7 +3,7 @@ import '../../../../core/models/help/kb_models.dart';
 import '../../../../core/services/kb_repository.dart';
 import '../../home/models/section_state.dart';
 
-/// Help (`/help`): the knowledge base list grouped by module, and search (`GET /kb/search?q=`, submitted, not per keystroke).
+/// Help (`/help`): the knowledge base list (teacher-appropriate articles only, see [isTeacherHelpArticle]) grouped by module, and search (`GET /kb/search?q=`, submitted, not per keystroke).
 class HelpController extends GetxController {
   final KbRepository? _repo;
   HelpController({KbRepository? repository}) : _repo = repository;
@@ -27,7 +27,7 @@ class HelpController extends GetxController {
     final previous = list.value;
     if (!previous.hasData) list.value = const SectionState.loading();
     try {
-      final rows = await repo.list();
+      final rows = teacherHelpArticles(await repo.list());
       if (token != _lt) return;
       list.value = rows.isEmpty ? const SectionState.empty() : SectionState.data(rows);
     } catch (e) {
@@ -60,7 +60,7 @@ class HelpController extends GetxController {
     final token = ++_st;
     results.value = const SectionState.loading();
     try {
-      final rows = await repo.search(text);
+      final rows = teacherHelpArticles(await repo.search(text));
       if (token != _st) return;
       results.value = rows.isEmpty ? const SectionState.empty() : SectionState.data(rows);
     } catch (e) {
@@ -84,7 +84,7 @@ class HelpArticleController extends GetxController {
   HelpArticleController({KbRepository? repository, required this.module, required this.tabKey, this.initial}) : _repo = repository;
   KbRepository get repo => _repo ?? Get.find<KbRepository>();
 
-  late final state = Rx<SectionState<KbArticle>>(initial == null ? const SectionState.loading() : SectionState.data(initial!));
+  late final state = Rx<SectionState<KbArticle>>(initial == null || !isTeacherHelpArticle(initial!.module, initial!.tabKey) ? const SectionState.loading() : SectionState.data(initial!));
   int _t = 0;
 
   @override
@@ -98,6 +98,11 @@ class HelpArticleController extends GetxController {
     final previous = state.value;
     if (!previous.hasData) state.value = const SectionState.loading();
     try {
+      if (!isTeacherHelpArticle(module, tabKey)) {
+        // a stale link / deep link to an HR administration article: never fetched, never shown
+        state.value = const SectionState.forbidden();
+        return;
+      }
       final a = await repo.article(module, tabKey);
       if (token != _t) return;
       state.value = SectionState.data(a);

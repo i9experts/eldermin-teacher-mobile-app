@@ -295,4 +295,24 @@ void main() {
       expect((b.alreadyRequested, b.message), (true, null));
     });
   });
+
+  group('teacher help allow / deny rule', () {
+    test('HR / payroll / admin content is hidden; general teacher content is shown', () {
+      for (final hidden in [('hr', 'dashboard'), ('hr', 'payroll'), ('HR', 'settings'), ('payroll', 'x'), ('finance', 'fees'), ('admin', 'users'), ('unknown_module', 'x'), ('', 'x')]) {
+        expect(isTeacherHelpArticle(hidden.$1, hidden.$2), isFalse, reason: '${hidden.$1}/${hidden.$2}');
+      }
+      for (final shown in [('general', 'start'), ('faq', 'login'), ('Getting-Started', 'tour'), ('teaching', 'attendance'), ('classroom', 'homework')]) {
+        expect(isTeacherHelpArticle(shown.$1, shown.$2), isTrue, reason: '${shown.$1}/${shown.$2}');
+      }
+    });
+    test('deny wins over allow (an allowed module with an HR / payroll tab)', () {
+      expect(isTeacherHelpArticle('general', 'payroll'), isFalse);
+      expect(isTeacherHelpArticle('faq', 'hr-settings'), isFalse);
+      expect(isTeacherHelpArticle('faq', 'hours'), isTrue, reason: 'whole words only: "hours" is not "hr"');
+    });
+    test('teacherHelpArticles keeps order and drops the rest', () {
+      final all = [const KbArticle(module: 'hr', tabKey: 'a', title: 'A'), const KbArticle(module: 'faq', tabKey: 'b', title: 'B'), const KbArticle(module: 'general', tabKey: 'c', title: 'C')];
+      expect(teacherHelpArticles(all).map((a) => a.tabKey), ['b', 'c']);
+    });
+  });
 }

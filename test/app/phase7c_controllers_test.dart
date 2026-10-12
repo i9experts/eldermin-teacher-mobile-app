@@ -650,16 +650,16 @@ void main() {
   group('Help controllers', () {
     late FakeKbRepository repo;
     setUp(() => repo = FakeKbRepository());
-    const a1 = KbArticle(module: 'hr', tabKey: 'a', title: 'A', order: 2);
-    const a2 = KbArticle(module: 'hr', tabKey: 'b', title: 'B', order: 1);
-    const g1 = KbArticle(module: 'general', tabKey: 'g', title: 'G', order: 1);
+    const a1 = KbArticle(module: 'general', tabKey: 'a', title: 'A', order: 2);
+    const a2 = KbArticle(module: 'general', tabKey: 'b', title: 'B', order: 1);
+    const g1 = KbArticle(module: 'faq', tabKey: 'g', title: 'G', order: 1);
 
     test('list grouped by module, articles by order; states', () async {
       repo.listRows = () async => [a1, a2, g1];
       final c = HelpController(repository: repo);
       await c.load();
-      expect(c.grouped.keys.toList(), ['hr', 'general']);
-      expect(c.grouped['hr']!.map((a) => a.tabKey), ['b', 'a']);
+      expect(c.grouped.keys.toList(), ['general', 'faq']);
+      expect(c.grouped['general']!.map((a) => a.tabKey), ['b', 'a']);
       repo.listRows = () async => [];
       await c.load(userInitiated: true);
       expect(c.list.value.status, SectionStatus.empty);
@@ -677,7 +677,7 @@ void main() {
       repo.search0 = (q) async => [a1];
       await c.search('  leave  ');
       expect(repo.calls.last, 'search:leave');
-      expect(c.results.value!.data!.single.key, 'hr/a');
+      expect(c.results.value!.data!.single.key, 'general/a');
       await c.search('   ');
       expect(c.results.value, isNull);
       expect(c.searching, isFalse);
@@ -693,21 +693,55 @@ void main() {
       await c.search('fast');
       slow.complete([a1]);
       await f;
-      expect(c.results.value!.data!.single.key, 'general/g');
+      expect(c.results.value!.data!.single.key, 'faq/g');
     });
 
     test('article: shown at once, refreshed by key, 404 shown', () async {
-      repo.one = (m, t) async => const KbArticle(module: 'hr', tabKey: 'a', title: 'Fresh');
-      final c = HelpArticleController(repository: repo, module: 'hr', tabKey: 'a', initial: a1);
+      repo.one = (m, t) async => const KbArticle(module: 'general', tabKey: 'a', title: 'Fresh');
+      final c = HelpArticleController(repository: repo, module: 'general', tabKey: 'a', initial: a1);
       expect(c.state.value.data!.title, 'A');
       await c.load();
       expect(c.state.value.data!.title, 'Fresh');
-      expect(repo.calls, ['article:hr/a']);
-      repo.one = (m, t) async => fail7c(404, 'No KB article found for hr/a');
+      expect(repo.calls, ['article:general/a']);
+      repo.one = (m, t) async => fail7c(404, 'No KB article found for general/a');
       await c.load(userInitiated: true);
       expect(c.state.value.status, SectionStatus.unavailable);
     });
+  
+    // Staff & HR administration guides are not teacher help (the KB seed is HR admin content): hidden everywhere, never fetched by key.
+    const hrDash = KbArticle(module: 'hr', tabKey: 'dashboard', title: 'Dashboard', order: 1);
+    const hrPay = KbArticle(module: 'hr', tabKey: 'payroll', title: 'Payroll', order: 8);
+
+    test('HR / admin articles are dropped from the list; only HR content -> empty state (no error)', () async {
+      repo.listRows = () async => [hrDash, a1, hrPay, g1];
+      final c = HelpController(repository: repo);
+      await c.load();
+      expect(c.list.value.data!.map((a) => a.key), ['general/a', 'faq/g']);
+      expect(c.grouped.keys, isNot(contains('hr')));
+      repo.listRows = () async => [hrDash, hrPay];
+      await c.load(userInitiated: true);
+      expect(c.list.value.status, SectionStatus.empty);
+    });
+
+    test('search results are filtered the same way', () async {
+      final c = HelpController(repository: repo);
+      repo.search0 = (q) async => [hrPay, g1];
+      await c.search('pay');
+      expect(c.results.value!.data!.map((a) => a.key), ['faq/g']);
+      repo.search0 = (q) async => [hrPay];
+      await c.search('pay');
+      expect(c.results.value!.status, SectionStatus.empty);
+    });
+
+    test('an HR article opened by key / link is refused without a request, even when the list row is passed in', () async {
+      final c = HelpArticleController(repository: repo, module: 'hr', tabKey: 'payroll', initial: hrPay);
+      expect(c.state.value.status, SectionStatus.loading, reason: 'the HR row is not shown at once');
+      await c.load();
+      expect(c.state.value.status, SectionStatus.forbidden);
+      expect(repo.calls, isEmpty, reason: 'no request for the article');
+    });
   });
+
 
   group('AboutController', () {
     test('version and build from the loader; a failing loader shows Unavailable, never throws; the host never includes the path or secrets', () async {
