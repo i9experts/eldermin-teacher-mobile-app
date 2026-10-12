@@ -18,20 +18,35 @@ void main() {
 
     step('help');
     await openFromMore(t, 'Help', find.byKey(const Key('help_search')));
-    await waitFor(t, find.text('Dashboard'));
+    // Bundled FAQs on top; the stub KB holds 3 HR articles (Dashboard / Employees / Leave) which must NOT be listed, and 2 general DUMMY ones which are.
+    await waitFor(t, find.byKey(const ValueKey('help_general/getting-started')));
     await settle(t, 800);
-    await shot(t, '7c_50_help_list_by_module');
+    expect(find.byKey(const Key('help_faqs')), findsOneWidget);
+    expect(find.text('How do I mark attendance?'), findsOneWidget);
+    expect(find.text('Dashboard'), findsNothing, reason: 'HR article hidden');
+    expect(find.text('Employees'), findsNothing, reason: 'HR article hidden');
+    expect(find.text('Staff & HR'), findsNothing);
+    await t.tap(find.text('How do I mark attendance?'));
+    await settle(t, 600);
+    expect(find.textContaining('last 7 days'), findsOneWidget);
+    await shot(t, '7c_50_help_faqs_and_teacher_articles');
+    await t.tap(find.text('How do I mark attendance?')); // collapse again
+    await settle(t, 600);
+    await t.ensureVisible(find.byKey(const ValueKey('help_general/getting-started')));
     await t.tap(find.byKey(const ValueKey('help_general/getting-started')));
     await waitFor(t, find.byKey(const Key('help_article_title')));
     await settle(t, 1200);
     await shot(t, '7c_51_help_article_markdown');
     await leaveScreen(t);
+    await t.ensureVisible(find.byKey(const ValueKey('help_general/adversarial')));
     await t.tap(find.byKey(const ValueKey('help_general/adversarial')));
     await waitFor(t, find.byKey(const Key('help_article_title')));
     await settle(t, 1200);
     await shot(t, '7c_52_help_article_unsafe_markup_rendered_inert');
     await leaveScreen(t);
-    await t.enterText(find.byKey(const Key('help_search')), 'leave');
+    await t.drag(find.byType(ListView).first, const Offset(0, 2000)); // back to the top (the search field scrolled away)
+    await settle(t, 600);
+    await t.enterText(find.byKey(const Key('help_search')), 'attendance');
     await t.testTextInput.receiveAction(TextInputAction.search);
     await settle(t, 2000);
     await shot(t, '7c_53_help_search_results');
@@ -48,6 +63,7 @@ void main() {
     await t.runAsync(() => Get.find<HelpController>().load(userInitiated: true));
     await settle(t, 1200);
     await shot(t, '7c_55_help_404_not_deployed');
+    expect(find.byKey(const Key('help_faqs')), findsOneWidget, reason: 'bundled FAQs survive a KB failure');
     await mode(t, 'kb', 'ok');
     await leaveToShell(t);
 
