@@ -25,6 +25,20 @@ enum AttendanceStatus {
   }
 }
 
+/// The school-wide attendance policy (`GET /teaching/attendance-settings` -> `{ mode }`, set by an admin on the web's
+/// Teaching > Attendance Settings tab). `daily` = one status per student per day (the original behaviour);
+/// `subjectWise` = one status per student per day PER SUBJECT (the web's class-teacher screen shows a subject picker and
+/// sends `subject: <subject name>` on every record). Anything unknown is treated as `daily`, as the web does.
+enum AttendanceMode {
+  daily('daily'),
+  subjectWise('subject_wise');
+
+  final String wire;
+  const AttendanceMode(this.wire);
+
+  static AttendanceMode fromWire(Object? v) => v?.toString() == 'subject_wise' ? AttendanceMode.subjectWise : AttendanceMode.daily;
+}
+
 /// One `StudentAttendance` document (student-supporting.schema.ts:14-40).
 /// Only the fields the app needs are kept.
 class AttendanceRecord {
@@ -39,6 +53,8 @@ class AttendanceRecord {
   final AttendanceStatus? status;
   final String? rawStatus;
   final String? remarks;
+  /// Set only for records written in subject-wise mode (null for daily records).
+  final String? subject;
 
   const AttendanceRecord({
     this.id = '',
@@ -50,6 +66,7 @@ class AttendanceRecord {
     this.status,
     this.rawStatus,
     this.remarks,
+    this.subject,
   });
 
   factory AttendanceRecord.fromJson(Map<String, dynamic> j) => AttendanceRecord(
@@ -62,6 +79,7 @@ class AttendanceRecord {
         status: AttendanceStatus.fromWire(j['status']),
         rawStatus: readString(j['status']),
         remarks: readString(j['remarks']),
+        subject: readString(j['subject']),
       );
 
   /// `YYYY-MM-DD` calendar day of this record (timezone-agnostic, see [attendanceDayKey]).

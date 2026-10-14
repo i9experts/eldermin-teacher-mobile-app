@@ -60,7 +60,12 @@ class FakeAttendanceRepository extends AttendanceRepository {
   Future<List<AttendanceRecord>> Function(String grade, String? section, DateTime first, DateTime last) range =
       (_, __, ___, ____) async => [];
   Future<void> Function(List<AttendanceWrite> records, String? year) onSubmit = (_, __) async {};
-  final rangeCalls = <({String grade, String? section, DateTime first, DateTime last})>[];
+  final rangeCalls = <({String grade, String? section, DateTime first, DateTime last, String? subject})>[];
+  /// Phase 9 hotfix: the school's attendance mode and subject list (daily school by default = unchanged behaviour).
+  Future<AttendanceMode> Function() mode = () async => AttendanceMode.daily;
+  Future<List<String>> Function() subjectNames = () async => [];
+  int modeCalls = 0;
+  int subjectCalls = 0;
   final submitted = <List<AttendanceWrite>>[];
   final years = <String?>[];
 
@@ -70,9 +75,22 @@ class FakeAttendanceRepository extends AttendanceRepository {
     String? section,
     required DateTime firstDay,
     required DateTime lastDay,
+    String? subject,
   }) {
-    rangeCalls.add((grade: grade, section: section, first: firstDay, last: lastDay));
+    rangeCalls.add((grade: grade, section: section, first: firstDay, last: lastDay, subject: subject));
     return range(grade, section, firstDay, lastDay);
+  }
+
+  @override
+  Future<AttendanceMode> fetchMode() {
+    modeCalls++;
+    return mode();
+  }
+
+  @override
+  Future<List<String>> fetchSubjectNames() {
+    subjectCalls++;
+    return subjectNames();
   }
 
   @override

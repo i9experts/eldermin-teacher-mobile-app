@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
+import '../models/json_helpers.dart';
 import '../models/classroom/attendance_models.dart';
+import '../network/api_exception.dart';
 import '../network/base_client.dart';
 import '../network/response_shape.dart';
 import '../network/dio_exception_handler.dart';
@@ -14,6 +16,10 @@ class AttendanceWrite {
   final DateTime day;
   final AttendanceStatus status;
 
+  /// Subject name, ONLY in a subject-wise school (what the web sends as `subject`, AttendanceTab.tsx:`...(isSubjectWise ? { subject: selectedSubject } : {})`).
+  /// Null in a daily school: the key is then not sent at all, so the request is byte-for-byte what it was before.
+  final String? subject;
+
   const AttendanceWrite({
     required this.studentId,
     required this.studentName,
@@ -21,9 +27,10 @@ class AttendanceWrite {
     this.section = '',
     required this.day,
     required this.status,
+    this.subject,
   });
 
-  /// MarkAttendanceDto (student.dto.ts:261-275): studentId(MongoId) studentName grade section? date status.
+  /// MarkAttendanceDto (student.dto.ts:261-275): studentId(MongoId) studentName grade section? date status subject? (subject: subject-wise schools only).
   /// schoolSlug / academicYear / markedBy are NOT sent: the server ignores them (stripped by the whitelist,
   /// main.ts:70-74; set from the token/headers in students.controller.ts:30-31).
   Map<String, Object?> toJson() => {
@@ -33,6 +40,7 @@ class AttendanceWrite {
         if (section.isNotEmpty) 'section': section,
         'date': attendanceWireDate(day),
         'status': status.wire,
+        if (subject != null && subject!.isNotEmpty) 'subject': subject,
       };
 }
 
@@ -57,12 +65,14 @@ class AttendanceRepository {
   /// students.service.ts:1825-1852). Uses `from`/`to`, NEVER `date` (stripped by the DTO whitelist: the web's
   /// `date=` returns the latest 20 records of any day). `grade`/`section` are the class-teacher class strings:
   /// for a class teacher the server forces them to the token's own strings anyway (scope.util.ts:163-180).
+  /// [subject] narrows the list to one subject (subject-wise schools; without it every subject's record of the day is returned).
   /// Pages through `meta.pages` (up to [maxPages] x 1000 rows).
   Future<List<AttendanceRecord>> fetchRange({
     required String grade,
     String? section,
     required DateTime firstDay,
     required DateTime lastDay,
+    String? subject,
   }) =>
       _guard(() async {
         final w = attendanceWindow(firstDay, lastDay);
@@ -71,6 +81,7 @@ class AttendanceRepository {
           final res = await _client.get(ApiConstants.attendanceList, queryParameters: {
             'grade': grade,
             if (section != null && section.isNotEmpty) 'section': section,
+            if (subject != null && subject.isNotEmpty) 'subject': subject, // AttendanceQueryDto.subject (subject-wise schools only)
             'from': w.from,
             'to': w.to,
             'limit': pageSize,
@@ -96,5 +107,30 @@ class AttendanceRepository {
           data: {'records': [for (final r in records) r.toJson()]},
           headers: {if (academicYear != null && academicYear.isNotEmpty) 'x-academic-year': academicYear},
         );
+      });
+
+  /// `GET /teaching/attendance-settings` -> `{ mode }`. A 404/501 (a server that does not have the feature yet) means
+  /// `daily`; every other failure is rethrown so the screen never GUESSES the mode (a wrong guess would save a
+  /// whole-day mark in a subject-wise school).
+  Future<AttendanceMode> fetchMode() async {
+    try {
+      final res = await _guard(() => _client.get(ApiConstants.attendanceSettings));
+      return AttendanceMode.fromWire(expectMap(res.data, what: 'the attendance mode')['mode']);
+    } on ApiException catch (e) {
+      if (e.statusCode == 404 || e.statusCode == 501) return AttendanceMode.daily;
+      rethrow;
+    }
+  }
+
+  /// `GET /academics/subjects` (the same call the web's subject picker makes: active subjects of the school, no
+  /// `assignedOnly`) -> subject NAMES, in server order (name ascending). Tolerates a bare array or `{data:[...]}`.
+  Future<List<String>> fetchSubjectNames() => _guard(() async {
+        final res = await _client.get(ApiConstants.subjects);
+        final out = <String>[];
+        for (final m in expectRows(res.data, what: 'subjects')) {
+          final n = readString(m['name'])?.trim();
+          if (n != null && n.isNotEmpty && !out.contains(n)) out.add(n);
+        }
+        return out;
       });
 }

@@ -224,6 +224,74 @@ void main() {
     });
   });
 
+  group('mark screen: subject-wise school (hotfix D13)', () {
+    testWidgets('a DAILY school shows no subject picker and saves without a subject', (t) async {
+      await boot(t, const AttendanceMarkScreen());
+      expect(find.byKey(const Key('subject_bar')), findsNothing);
+      await t.tap(find.byKey(const Key('mark_remaining_present')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('submit_button')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('attendance_confirm_submit')));
+      await t.pump();
+      await t.pump();
+      expect(attendance.submitted.single.every((w) => w.subject == null), isTrue);
+    });
+
+    testWidgets('a SUBJECT-WISE school shows the subject chips (first selected); choosing one reads it; the save carries it', (t) async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => ['English', 'Maths'];
+      await boot(t, const AttendanceMarkScreen());
+      await t.pump();
+      expect(find.byKey(const Key('subject_bar')), findsOneWidget);
+      expect(tester(t).widget<ChoiceChip>(find.byKey(const ValueKey('subject_chip_English'))).selected, isTrue);
+      expect(tester(t).widget<ChoiceChip>(find.byKey(const ValueKey('subject_chip_Maths'))).selected, isFalse);
+      await t.tap(find.byKey(const ValueKey('subject_chip_Maths')));
+      await t.pump();
+      await t.pump();
+      expect(c.selectedSubject.value, 'Maths');
+      expect(attendance.rangeCalls.last.subject, 'Maths');
+      await t.tap(find.byKey(const Key('mark_remaining_present')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('submit_button')));
+      await t.pump();
+      expect(find.textContaining('Maths'), findsWidgets); // the confirmation names the subject
+      await t.tap(find.byKey(const Key('attendance_confirm_submit')));
+      await t.pump();
+      await t.pump();
+      expect(attendance.submitted.single.every((w) => w.subject == 'Maths'), isTrue);
+    });
+
+    testWidgets('changing subject with unsaved marks asks first; Keep editing leaves everything as it was', (t) async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => ['English', 'Maths'];
+      await boot(t, const AttendanceMarkScreen());
+      await t.pump();
+      await t.tap(chip(0, AttendanceStatus.absent));
+      await t.pump();
+      await t.tap(find.byKey(const ValueKey('subject_chip_Maths')));
+      await t.pump();
+      expect(find.byKey(const Key('discard_dialog')), findsOneWidget);
+      await t.tap(find.byKey(const Key('discard_keep')));
+      await t.pump();
+      expect(c.selectedSubject.value, 'English');
+      expect(c.marks[roster[0].id], AttendanceStatus.absent);
+    });
+
+    testWidgets('subject-wise with no subjects set up: explanatory banner, nothing can be saved', (t) async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => [];
+      await boot(t, const AttendanceMarkScreen());
+      await t.pump();
+      expect(find.byKey(const Key('no_subjects_banner')), findsOneWidget);
+      expect(find.byKey(const Key('subject_bar')), findsNothing);
+      await t.tap(find.byKey(const Key('mark_remaining_present')));
+      await t.pump();
+      expect(c.canSubmit, isFalse);
+      expect(attendance.submitted, isEmpty);
+    });
+  });
+
   group('hub', () {
     testWidgets('class teacher: today status, mark + history buttons', (t) async {
       attendance.range = (_, __, ___, ____) async => [record(roster[0], DateTime.utc(2026, 10, 5), 'present'), record(roster[1], DateTime.utc(2026, 10, 5), 'absent')];

@@ -121,6 +121,15 @@ class AttendanceController extends GetxController {
   /// Raw status of a server record outside the enum (kept for a hint; such a student counts as NOT marked).
   final legacyStatus = <String, String>{}.obs;
 
+  /// The school-wide mode (daily by default; read from `GET /teaching/attendance-settings` on every [load]).
+  final mode = Rx<AttendanceMode>(AttendanceMode.daily);
+
+  /// Subject names of the school (subject-wise mode only; the same list the web's subject picker shows).
+  final subjects = <String>[].obs;
+
+  /// The subject being marked (subject-wise mode only; defaults to the first subject, like the web). Null in a daily school.
+  final selectedSubject = Rxn<String>();
+
   final submitting = false.obs;
   final submitFailure = Rxn<SubmitFailure>();
   final lastSaved = Rxn<DateTime>();
@@ -170,7 +179,12 @@ class AttendanceController extends GetxController {
   bool get hasServerRecords => savedMarks.isNotEmpty;
   bool get dirty => !mapEquals(marks, savedMarks);
 
-  bool get canSubmit => editable && !submitting.value && roster.value.hasData && allMarked && dirty;
+  bool get isSubjectWise => mode.value == AttendanceMode.subjectWise;
+
+  /// Subject-wise school with no subject chosen (none exist yet): nothing can be saved, as on the web.
+  bool get needsSubject => isSubjectWise && selectedSubject.value == null;
+
+  bool get canSubmit => editable && !submitting.value && roster.value.hasData && allMarked && dirty && !needsSubject;
 
   String? get academicYear => academicYearOf(students_);
 
@@ -190,6 +204,11 @@ class AttendanceController extends GetxController {
     final token = ++_token;
     roster.value = const SectionState.loading();
     try {
+      // The mode decides what is sent and read: a failure here is an error state with Retry (never a guess).
+      final m = await attendance.fetchMode();
+      if (token != _token) return;
+      await _applyMode(m);
+      if (token != _token) return;
       GradesSections? known;
       try {
         known = await students.fetchGradesSections();
@@ -214,8 +233,29 @@ class AttendanceController extends GetxController {
   /// asks the teacher first when there are unsaved marks, because this replaces them.
   Future<void> reload() => load(refreshProfile: true);
 
+  /// Stores the mode; in subject-wise mode loads the subject list and keeps (or defaults to the first) subject.
+  Future<void> _applyMode(AttendanceMode m) async {
+    mode.value = m;
+    if (m == AttendanceMode.subjectWise) {
+      final names = await attendance.fetchSubjectNames();
+      subjects.assignAll(names);
+      final cur = selectedSubject.value;
+      selectedSubject.value = (cur != null && names.contains(cur)) ? cur : (names.isEmpty ? null : names.first);
+    } else {
+      subjects.clear();
+      selectedSubject.value = null;
+    }
+  }
+
   Future<Map<String, AttendanceRecord>> _fetchDay(ClassRef cls, DateTime d, List<StudentSummary> list) async {
-    final records = await attendance.fetchRange(grade: cls.grade, section: cls.section, firstDay: d, lastDay: d);
+    if (needsSubject) return {}; // subject-wise with no subject yet: there is no record to read
+    final records = await attendance.fetchRange(
+      grade: cls.grade,
+      section: cls.section,
+      firstDay: d,
+      lastDay: d,
+      subject: isSubjectWise ? selectedSubject.value : null,
+    );
     final ids = {for (final s in list) s.id};
     final key = ymdOf(d);
     final out = <String, AttendanceRecord>{};
@@ -271,6 +311,32 @@ class AttendanceController extends GetxController {
     return true;
   }
 
+  /// Subject-wise mode: switches the subject being marked and reads that subject's records of the day. Returns false (and does
+  /// nothing) when there are unsaved marks and [discard] is false: the view asks the teacher first.
+  Future<bool> selectSubject(String name, {bool discard = false}) async {
+    if (!isSubjectWise || !subjects.contains(name)) return false;
+    if (name == selectedSubject.value && !discard) return true;
+    if (dirty && !discard) return false;
+    selectedSubject.value = name;
+    final cls = _cls ?? myClass;
+    if (cls == null || !roster.value.hasData) {
+      await load();
+      return true;
+    }
+    final token = ++_token;
+    marks.clear();
+    savedMarks.clear();
+    try {
+      final existing = await _fetchDay(cls, day.value, students_);
+      if (token != _token) return true;
+      _applyServer(existing);
+    } catch (e) {
+      if (token != _token) return true;
+      roster.value = SectionState<List<StudentSummary>>.fromError(e);
+    }
+    return true;
+  }
+
   // ── marking ──────────────────────────────────────────────────
   void setStatus(String studentId, AttendanceStatus status) {
     if (!editable || submitting.value) return;
@@ -303,6 +369,8 @@ class AttendanceController extends GetxController {
             section: cls.section,
             day: day.value,
             status: marks[s.id]!,
+            // exactly what the web sends in a subject-wise school; nothing at all in a daily school
+            subject: isSubjectWise ? selectedSubject.value : null,
           ),
     ];
   }
@@ -310,7 +378,7 @@ class AttendanceController extends GetxController {
   /// Submits the whole day. Guarded against double taps; refuses while any student is unmarked.
   Future<SubmitResult> submit() async {
     if (submitting.value) return const SubmitIgnored();
-    if (!editable || !roster.value.hasData) return const SubmitIgnored();
+    if (!editable || !roster.value.hasData || needsSubject) return const SubmitIgnored();
     final missing = unmarked.length;
     if (missing > 0) {
       showUnmarked.value = true;

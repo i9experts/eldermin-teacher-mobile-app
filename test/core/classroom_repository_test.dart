@@ -168,5 +168,50 @@ void main() {
         expect(c.calls.single.headers, isEmpty);
       }
     });
+
+    test('subject-wise: fetchRange sends `subject` only when given; the write body carries `subject` only when given', () async {
+      final c = _Client((m, p, q, b) => {'data': [], 'meta': {'total': 0, 'page': 1, 'limit': 1000, 'pages': 0}});
+      await AttendanceRepository(c).fetchRange(grade: 'g', firstDay: DateTime(2026, 10, 1), lastDay: DateTime(2026, 10, 1), subject: 'Maths');
+      await AttendanceRepository(c).fetchRange(grade: 'g', firstDay: DateTime(2026, 10, 1), lastDay: DateTime(2026, 10, 1));
+      await AttendanceRepository(c).fetchRange(grade: 'g', firstDay: DateTime(2026, 10, 1), lastDay: DateTime(2026, 10, 1), subject: '');
+      expect(c.calls[0].q!['subject'], 'Maths');
+      expect(c.calls[1].q!.containsKey('subject'), isFalse);
+      expect(c.calls[2].q!.containsKey('subject'), isFalse);
+      final w = AttendanceWrite(studentId: 'a' * 24, studentName: 'A', grade: 'G', day: DateTime(2026, 10, 5), status: AttendanceStatus.present, subject: 'Maths');
+      final daily = AttendanceWrite(studentId: 'a' * 24, studentName: 'A', grade: 'G', day: DateTime(2026, 10, 5), status: AttendanceStatus.present);
+      expect(w.toJson(), {'studentId': 'a' * 24, 'studentName': 'A', 'grade': 'G', 'date': '2026-10-05T12:00:00.000Z', 'status': 'present', 'subject': 'Maths'});
+      expect(daily.toJson().containsKey('subject'), isFalse);
+    });
+
+    test('fetchMode: GET /teaching/attendance-settings; subject_wise / daily / unknown -> daily; 404/501 -> daily; other errors rethrown', () async {
+      Future<AttendanceMode> mode(Object? r) => AttendanceRepository(_Client((m, p, q, b) => r)).fetchMode();
+      expect(await mode({'mode': 'subject_wise'}), AttendanceMode.subjectWise);
+      expect(await mode({'mode': 'daily'}), AttendanceMode.daily);
+      expect(await mode({'mode': 'period_wise'}), AttendanceMode.daily);
+      expect(await mode({}), AttendanceMode.daily);
+      expect(await mode(404), AttendanceMode.daily);
+      expect(await mode(501), AttendanceMode.daily);
+      for (final code in [401, 403, 500]) {
+        await expectLater(mode(code), throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', code)));
+      }
+      await expectLater(mode('not json'), throwsA(isA<ApiException>()));
+      final c = _Client((m, p, q, b) => {'mode': 'daily'});
+      await AttendanceRepository(c).fetchMode();
+      expect(c.calls.single.path, '/teaching/attendance-settings');
+    });
+
+    test('fetchSubjectNames: GET /academics/subjects, names only, de-duplicated, bare array or {data}; wrong shape is an error not an empty list', () async {
+      final rows = [
+        {'_id': '1', 'name': 'English'}, {'_id': '2', 'name': ' Maths '}, {'_id': '3', 'name': 'English'}, {'_id': '4'}, {'_id': '5', 'name': ''}
+      ];
+      var c = _Client((m, p, q, b) => rows);
+      expect(await AttendanceRepository(c).fetchSubjectNames(), ['English', 'Maths']);
+      expect(c.calls.single.path, '/academics/subjects');
+      expect(c.calls.single.q, isNull); // same call as the web picker: no assignedOnly
+      expect(await AttendanceRepository(_Client((m, p, q, b) => {'data': rows})).fetchSubjectNames(), ['English', 'Maths']);
+      expect(await AttendanceRepository(_Client((m, p, q, b) => [])).fetchSubjectNames(), isEmpty);
+      await expectLater(AttendanceRepository(_Client((m, p, q, b) => 'oops')).fetchSubjectNames(), throwsA(isA<ApiException>()));
+      await expectLater(AttendanceRepository(_Client((m, p, q, b) => 403)).fetchSubjectNames(), throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 403)));
+    });
   });
 }

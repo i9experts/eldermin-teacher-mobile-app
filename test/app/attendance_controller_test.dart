@@ -352,4 +352,170 @@ void main() {
     await c.load();
     expect(c.academicYear, isNull);
   });
+
+  // ── Phase 9 hotfix D13: the school's attendance mode ─────────────────────────────────────────────
+  // The web (AttendanceTab.tsx) reads GET /teaching/attendance-settings; in a subject-wise school it shows a subject
+  // picker (first subject selected), reads the day with `subject`, and sends `subject: <name>` on every record.
+  group('attendance mode (daily vs subject-wise)', () {
+    DateTime d5() => stored(DateTime(2026, 10, 5));
+
+    test('DAILY school (the default): no subject list is fetched, nothing is filtered, no `subject` is sent: unchanged behaviour', () async {
+      final c = await make();
+      await c.load();
+      expect(attendance.modeCalls, 1);
+      expect(attendance.subjectCalls, 0);
+      expect(c.isSubjectWise, isFalse);
+      expect(c.selectedSubject.value, isNull);
+      expect(attendance.rangeCalls.single.subject, isNull);
+      c.markRemainingPresent();
+      expect((await c.submit()), isA<SubmitSaved>());
+      final sent = attendance.submitted.single;
+      expect(sent, hasLength(4));
+      for (final w in sent) {
+        expect(w.subject, isNull);
+        expect(w.toJson().containsKey('subject'), isFalse);
+      }
+    });
+
+    test('the mode cannot be read (server error): error state, roster not requested, nothing can be saved, never a guess (404/501 -> daily is the repository\'s job, tested there)', () async {
+      attendance.mode = () async => throw ApiException('boom', statusCode: 500);
+      final c = await make();
+      await c.load();
+      expect(c.roster.value.status, SectionStatus.error);
+      expect(attendance.submitted, isEmpty);
+      expect(students.calls, isEmpty);
+    });
+
+    test('mode failure: Retry works once the server answers', () async {
+      var fail = true;
+      attendance.mode = () async => fail ? throw ApiException('offline') : AttendanceMode.daily;
+      final c = await make();
+      await c.load();
+      expect(c.roster.value.status, SectionStatus.error);
+      fail = false;
+      await c.retry();
+      expect(c.roster.value.status, SectionStatus.data);
+    });
+
+    test('SUBJECT-WISE: subjects load, the FIRST is selected (as on the web), the day is read for that subject', () async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => ['English', 'Maths', 'Science'];
+      final c = await make();
+      await c.load();
+      expect(c.isSubjectWise, isTrue);
+      expect(c.subjects, ['English', 'Maths', 'Science']);
+      expect(c.selectedSubject.value, 'English');
+      expect(attendance.rangeCalls.single.subject, 'English');
+    });
+
+    test('SUBJECT-WISE submit: every record carries the selected subject (exactly the web body); marks are per subject', () async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => ['English', 'Maths'];
+      final c = await make();
+      await c.load();
+      c.markRemainingPresent();
+      expect(await c.submit(), isA<SubmitSaved>());
+      for (final w in attendance.submitted.single) {
+        expect(w.subject, 'English');
+        expect(w.toJson()['subject'], 'English');
+      }
+      // switching subject reads THAT subject's records, and the next save carries it
+      attendance.range = (_, __, ___, ____) async => [];
+      expect(await c.selectSubject('Maths'), isTrue);
+      expect(attendance.rangeCalls.last.subject, 'Maths');
+      expect(c.marks, isEmpty);
+      c.markRemainingPresent();
+      await c.submit();
+      expect(attendance.submitted.last.every((w) => w.subject == 'Maths'), isTrue);
+    });
+
+    test('SUBJECT-WISE: the existing marks of the selected subject prefill; another subject starts empty', () async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => ['English', 'Maths'];
+      attendance.range = (_, __, ___, ____) async => attendance.rangeCalls.last.subject == 'English' ? [record(roster[0], d5(), 'late')] : [];
+      final c = await make();
+      await c.load();
+      expect(c.marks[roster[0].id], AttendanceStatus.late);
+      await c.selectSubject('Maths');
+      expect(c.marks, isEmpty);
+      expect(c.hasServerRecords, isFalse);
+    });
+
+    test('changing subject with unsaved marks is refused until the teacher agrees (discard)', () async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => ['English', 'Maths'];
+      final c = await make();
+      await c.load();
+      c.setStatus(roster[0].id, AttendanceStatus.absent);
+      expect(c.dirty, isTrue);
+      expect(await c.selectSubject('Maths'), isFalse);
+      expect(c.selectedSubject.value, 'English');
+      expect(c.marks[roster[0].id], AttendanceStatus.absent);
+      expect(await c.selectSubject('Maths', discard: true), isTrue);
+      expect(c.selectedSubject.value, 'Maths');
+      expect(c.marks, isEmpty);
+    });
+
+    test('changing the DAY keeps the subject and reads that day for it', () async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => ['English', 'Maths'];
+      final c = await make();
+      await c.load();
+      await c.selectSubject('Maths');
+      await c.openDay(DateTime(2026, 10, 3));
+      expect(attendance.rangeCalls.last.subject, 'Maths');
+      expect(attendance.rangeCalls.last.first, DateTime(2026, 10, 3));
+    });
+
+    test('SUBJECT-WISE with NO subjects set up: nothing is read or saved (like the web, Save needs a subject)', () async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => [];
+      final c = await make();
+      await c.load();
+      expect(c.needsSubject, isTrue);
+      expect(attendance.rangeCalls, isEmpty);
+      c.markRemainingPresent();
+      expect(c.canSubmit, isFalse);
+      expect(await c.submit(), isA<SubmitIgnored>());
+      expect(attendance.submitted, isEmpty);
+    });
+
+    test('an unknown subject name is ignored; a daily school ignores selectSubject', () async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => ['English'];
+      var c = await make();
+      await c.load();
+      expect(await c.selectSubject('Chemistry'), isFalse);
+      expect(c.selectedSubject.value, 'English');
+      attendance.mode = () async => AttendanceMode.daily;
+      c = await make();
+      await c.load();
+      expect(await c.selectSubject('English'), isFalse);
+    });
+
+    test('the school switching from subject-wise back to daily on the next load clears the subject (no stale `subject` is sent)', () async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => ['English'];
+      final c = await make();
+      await c.load();
+      expect(c.selectedSubject.value, 'English');
+      attendance.mode = () async => AttendanceMode.daily;
+      await c.load();
+      expect(c.selectedSubject.value, isNull);
+      expect(c.subjects, isEmpty);
+      expect(attendance.rangeCalls.last.subject, isNull);
+      c.markRemainingPresent();
+      await c.submit();
+      expect(attendance.submitted.last.every((w) => w.subject == null && !w.toJson().containsKey('subject')), isTrue);
+    });
+
+    test('a failed subject list is an error state with Retry (not a silent daily save)', () async {
+      attendance.mode = () async => AttendanceMode.subjectWise;
+      attendance.subjectNames = () async => throw ApiException('boom', statusCode: 500);
+      final c = await make();
+      await c.load();
+      expect(c.roster.value.status, SectionStatus.error);
+      expect(attendance.submitted, isEmpty);
+    });
+  });
 }

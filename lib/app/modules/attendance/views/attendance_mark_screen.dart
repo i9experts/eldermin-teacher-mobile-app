@@ -70,6 +70,12 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     }
   }
 
+  Future<void> _changeSubject(String name) async {
+    if (!await c.selectSubject(name)) {
+      if (await _confirmDiscard()) await c.selectSubject(name, discard: true);
+    }
+  }
+
   Future<void> _pickDay() async {
     final picked = await showDatePicker(
       context: context,
@@ -182,6 +188,14 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
           onForward: () => _changeDay(addDays(day, 1)),
           onPick: _pickDay,
         ),
+        if (c.isSubjectWise) _SubjectBar(controller: c, onSelect: _changeSubject),
+        if (c.needsSubject)
+          const _Banner(
+            key: Key('no_subjects_banner'),
+            icon: Icons.menu_book_outlined,
+            text: 'Your school marks attendance subject by subject, but no subjects are set up yet. Ask your admin to add subjects.',
+            color: AppColors.amberText,
+          ),
         if (!c.editable)
           _Banner(
             key: const Key('read_only_banner'),
@@ -258,6 +272,38 @@ class _DayBar extends StatelessWidget {
           IconButton(key: const Key('day_forward'), onPressed: canForward ? onForward : null, icon: const Icon(Icons.chevron_right_rounded)),
         ]),
       );
+}
+
+/// Subject-wise schools: which subject's attendance is being marked (the web shows the same picker, first subject selected).
+class _SubjectBar extends StatelessWidget {
+  final AttendanceController controller;
+  final ValueChanged<String> onSelect;
+  const _SubjectBar({required this.controller, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    if (c.subjects.isEmpty) return const SizedBox.shrink();
+    return Container(
+      key: const Key('subject_bar'),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: AppColors.line)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const CustomText(text: 'Subject', color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w700),
+        const SizedBox(height: 6),
+        Wrap(spacing: 8, runSpacing: 0, children: [
+          for (final name in c.subjects)
+            ChoiceChip(
+              key: ValueKey('subject_chip_$name'),
+              label: Text(name),
+              selected: c.selectedSubject.value == name,
+              onSelected: c.submitting.value ? null : (_) => onSelect(name),
+            ),
+        ]),
+      ]),
+    );
+  }
 }
 
 class _Banner extends StatelessWidget {
@@ -383,7 +429,7 @@ class _SummaryDialog extends StatelessWidget {
       title: const Text('Submit attendance?'),
       content: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText(text: '${cls.label} · ${longDateOf(c.day.value)}', color: AppColors.muted, fontSize: 12),
+          CustomText(text: '${cls.label} · ${longDateOf(c.day.value)}${c.isSubjectWise && c.selectedSubject.value != null ? ' · ${c.selectedSubject.value}' : ''}', color: AppColors.muted, fontSize: 12),
           const SizedBox(height: 4),
           CustomText(text: '${c.students_.length} students', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 14),
           const SizedBox(height: 10),
@@ -394,7 +440,7 @@ class _SummaryDialog extends StatelessWidget {
           ],
           if (c.hasServerRecords) ...[
             const SizedBox(height: 10),
-            const CustomText(text: 'This replaces the attendance already saved for this day.', color: AppColors.muted, fontSize: 11),
+            CustomText(text: c.isSubjectWise ? 'This replaces the ${c.selectedSubject.value} attendance already saved for this day.' : 'This replaces the attendance already saved for this day.', color: AppColors.muted, fontSize: 11),
           ],
         ]),
       ),

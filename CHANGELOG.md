@@ -2,6 +2,10 @@
 
 Eldermin Teacher (`version: 0.1.0+1`, nothing released yet). One branch per phase; reports in `../eldermin-teacher-app-docs/phase*/`.
 
+## Hotfix: subject-wise attendance (branch `hotfix/attendance-subject`)
+- Attendance now follows the school's mode (`GET /teaching/attendance-settings`, set by an admin on the web). **Daily schools: unchanged** (no subject is requested, read or sent). **Subject-wise schools:** a subject picker (first subject selected, as on the web), the day is read for the chosen subject, and every saved record carries `subject: <name>`, exactly what the web sends. A school with no subjects set up cannot save; a mode or subject-list failure is an error with Retry (the app never guesses the mode). 404/501 on the settings call = daily.
+- Known server limits found while verifying (backend, not in this branch): the mode does not persist on the server yet (model-name clash), the `{studentId,date}` unique index blocks a second subject on the same day, and saving the same student+day twice returns 500. See `../eldermin-teacher-app-docs/phase9/ATTENDANCE_SUBJECT_HOTFIX.md`.
+
 ## Phase 8 follow-up batch (branch `phase-8-release`)
 - Route guards: every route (except splash, login, intro, forgot / reset password) runs `RouteGuard`, which applies the same permission + class-teacher rule as the Classes / More lists; a blocked route (tap, notification target, deep link) shows "Not available for your account" with a way back home.
 - Help: 8 bundled teacher FAQs at the top; knowledge-base articles below only when teacher-appropriate ones exist.
