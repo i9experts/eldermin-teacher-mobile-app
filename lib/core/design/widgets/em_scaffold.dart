@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../tokens/em_colors.dart';
 
 /// Brand-tint screen with the soft decorative wash in the top-end corner
@@ -13,6 +14,7 @@ class EmScaffold extends StatelessWidget {
     this.wash = true,
     this.extendBody = true,
     this.resizeToAvoidBottomInset = true,
+    this.systemOverlay = SystemUiOverlayStyle.dark,
   });
 
   final Widget body;
@@ -26,37 +28,49 @@ class EmScaffold extends StatelessWidget {
   final bool extendBody;
   final bool resizeToAvoidBottomInset;
 
+  /// Status-bar icon style. Default dark (this scaffold is a light tint); a
+  /// screen that sets another style (the splash) does not leak it to the next.
+  final SystemUiOverlayStyle systemOverlay;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: EmColors.background,
-      extendBody: extendBody,
-      resizeToAvoidBottomInset: resizeToAvoidBottomInset,
-      appBar: appBar,
-      bottomNavigationBar: bottomNavigationBar,
-      floatingActionButton: floatingActionButton,
-      body: Stack(
-        children: [
-          if (wash)
-            PositionedDirectional(
-              top: -110,
-              end: -90,
-              child: IgnorePointer(
-                child: ExcludeSemantics(
-                  child: Container(
-                    key: const Key('em_wash'),
-                    width: 300,
-                    height: 300,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: EmColors.primaryContainer.withOpacity(0.55),
+    // The app bar lives inside the same stack as the wash, so the decorative
+    // circle runs behind it instead of being cut off at the app bar's bottom edge.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: systemOverlay,
+      child: Scaffold(
+        backgroundColor: EmColors.background,
+        extendBody: extendBody,
+        resizeToAvoidBottomInset: resizeToAvoidBottomInset,
+        bottomNavigationBar: bottomNavigationBar,
+        floatingActionButton: floatingActionButton,
+        body: Stack(
+          children: [
+            if (wash)
+              PositionedDirectional(
+                top: -110,
+                end: -90,
+                child: IgnorePointer(
+                  child: ExcludeSemantics(
+                    child: Container(
+                      key: const Key('em_wash'),
+                      width: 300,
+                      height: 300,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: EmColors.primaryContainer.withOpacity(0.55),
+                      ),
                     ),
                   ),
                 ),
               ),
+            Positioned.fill(
+              child: appBar == null
+                  ? body
+                  : Column(children: [appBar!, Expanded(child: body)]),
             ),
-          Positioned.fill(child: body),
-        ],
+          ],
+        ),
       ),
     );
   }

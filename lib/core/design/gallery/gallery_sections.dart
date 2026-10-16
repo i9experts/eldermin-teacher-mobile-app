@@ -334,8 +334,8 @@ class _GalleryControlsSectionState extends State<GalleryControlsSection> {
       const EmTextField(label: 'Password', obscureText: true, errorText: 'Password is required'),
       const _Sub('EmEmptyState · EmErrorState · EmLoading'),
       const SizedBox(height: 4),
-      const SizedBox(height: 240, child: EmEmptyState(icon: Icons.menu_book_outlined, title: 'No homework yet', message: 'Assignments you create show up here.', actionLabel: 'New homework', onAction: _noop)),
-      const SizedBox(height: 240, child: EmErrorState(message: 'We could not load this. Check your connection.', onRetry: _noop)),
+      const SizedBox(height: 280, child: EmEmptyState(icon: Icons.menu_book_outlined, title: 'No homework yet', message: 'Assignments you create show up here.', actionLabel: 'New homework', onAction: _noop)),
+      const SizedBox(height: 300, child: EmErrorState(message: 'We could not load this. Check your connection.', onRetry: _noop)),
       const SizedBox(height: 90, child: EmLoading(showLabel: true)),
       const _Sub('EmBottomSheet'),
       EmSecondaryButton(
