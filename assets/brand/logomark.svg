@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PENDING BRAND APPROVAL: redrawn from the geometry of assets/images/eldermin_logomark.png
+     (1800x1800 source, circles/lines measured by component analysis). Not an official brand file. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="150 60 1410 1670" width="1410" height="1670" role="img" aria-label="Eldermin logomark">
+  <title>Eldermin logomark</title>
+  <g fill="none" stroke="#B5D3EC" stroke-width="58" stroke-linecap="butt">
+    <path d="M346 253V1535"/>
+    <path d="M346 249H1413"/>
+    <path d="M345 901H1135"/>
+    <path d="M346 1554H1413"/>
+  </g>
+  <g fill="none" stroke="#4A89C8" stroke-width="34" stroke-dasharray="52 15">
+    <path d="M1368 362L1226 655"/>
+    <path d="M1226 1122L1362 1405"/>
+  </g>
+  <circle cx="346.5" cy="253.5" r="172.5" fill="#18457A"/>
+  <circle cx="346.5" cy="1534.5" r="172.5" fill="#18457A"/>
+  <circle cx="1413" cy="253.5" r="129" fill="#1B5FA3"/>
+  <circle cx="1413" cy="1534.5" r="129" fill="#1B5FA3"/>
+  <circle cx="345" cy="895.5" r="147" fill="#1B5FA3"/>
+  <circle cx="1135.5" cy="894" r="251" fill="#EE9F27"/>
+</svg>

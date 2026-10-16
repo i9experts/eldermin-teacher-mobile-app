@@ -58,6 +58,7 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/fonts/OFL.txt
+    - assets/brand/
 
   # Plus Jakarta Sans (SIL OFL 1.1), bundled - no runtime font fetching.
   # The license text is registered with LicenseRegistry in
