@@ -188,8 +188,8 @@ class AppColors {
   @Deprecated('Use EmColors.border (core/design). Alias kept so screens re-palette without edits.')
   static const Color dividerColorApp = EmColors.border;
 
-  // UNMAPPED (kept at its old value, see D1A_FOUNDATION.md)
-  static const Color lightPurple = Color(0xFFF0EDFF);
+  @Deprecated('Use EmColors.statusLeaveContainer (core/design). Alias kept so screens re-palette without edits.')
+  static const Color lightPurple = EmColors.statusLeaveContainer;
 
   @Deprecated('Use EmColors.successContainer (core/design). Alias kept so screens re-palette without edits.')
   static const Color lightGreen = EmColors.successContainer;
@@ -206,8 +206,8 @@ class AppColors {
   @Deprecated('Use EmColors.primaryDark (core/design). Alias kept so screens re-palette without edits.')
   static const Color americanBlue = EmColors.primaryDark;
 
-  // UNMAPPED (kept at its old value, see D1A_FOUNDATION.md)
-  static const Color lightPink = Color(0xFFF6E3EC);
+  @Deprecated('Use EmColors.errorContainer (core/design). Alias kept so screens re-palette without edits.')
+  static const Color lightPink = EmColors.errorContainer;
 
   @Deprecated('Use EmColors.primaryContainer (core/design). Alias kept so screens re-palette without edits.')
   static const Color lightBlue = EmColors.primaryContainer;
@@ -227,8 +227,8 @@ class AppColors {
   @Deprecated('Use EmColors.background (core/design). Alias kept so screens re-palette without edits.')
   static const Color bgColorSearchField = EmColors.background;
 
-  // UNMAPPED (kept at its old value, see D1A_FOUNDATION.md)
-  static const Color purpleColor = Color(0xFF7A63D2);
+  @Deprecated('Use EmColors.statusLeave (core/design). Alias kept so screens re-palette without edits.')
+  static const Color purpleColor = EmColors.statusLeave;
 
   @Deprecated('Use EmColors.border (core/design). Alias kept so screens re-palette without edits.')
   static const Color lightGreyColor = EmColors.border;
@@ -323,8 +323,8 @@ class AppColors {
   @Deprecated('Use EmColors.primary (core/design). Alias kept so screens re-palette without edits.')
   static const Color categoryBlue = EmColors.primary;
 
-  // UNMAPPED (kept at its old value, see D1A_FOUNDATION.md)
-  static const Color categoryPurple = Color(0xFF7A63D2);
+  @Deprecated('Use EmColors.statusLeave (core/design). Alias kept so screens re-palette without edits.')
+  static const Color categoryPurple = EmColors.statusLeave;
 
   @Deprecated('Use EmColors.success (core/design). Alias kept so screens re-palette without edits.')
   static const Color categoryTeal = EmColors.success;
@@ -335,8 +335,8 @@ class AppColors {
   @Deprecated('Use EmColors.primaryContainer (core/design). Alias kept so screens re-palette without edits.')
   static const Color categoryBg1 = EmColors.primaryContainer;
 
-  // UNMAPPED (kept at its old value, see D1A_FOUNDATION.md)
-  static const Color categoryBg2 = Color(0xFFF0EDFF);
+  @Deprecated('Use EmColors.statusLeaveContainer (core/design). Alias kept so screens re-palette without edits.')
+  static const Color categoryBg2 = EmColors.statusLeaveContainer;
 
   @Deprecated('Use EmColors.successContainer (core/design). Alias kept so screens re-palette without edits.')
   static const Color categoryBg3 = EmColors.successContainer;
@@ -398,11 +398,11 @@ class AppColors {
   @Deprecated('Use EmColors.error (core/design). Alias kept so screens re-palette without edits.')
   static const Color redText = EmColors.error;
 
-  // UNMAPPED (kept at its old value, see D1A_FOUNDATION.md)
-  static const Color purple = Color(0xFF7A63D2);
+  @Deprecated('Use EmColors.statusLeave (core/design). Alias kept so screens re-palette without edits.')
+  static const Color purple = EmColors.statusLeave;
 
-  // UNMAPPED (kept at its old value, see D1A_FOUNDATION.md)
-  static const Color purpleBg = Color(0xFFF0EDFF);
+  @Deprecated('Use EmColors.statusLeaveContainer (core/design). Alias kept so screens re-palette without edits.')
+  static const Color purpleBg = EmColors.statusLeaveContainer;
 
   @Deprecated('Use EmColors.surface (core/design). Alias kept so screens re-palette without edits.')
   static const Color surface = EmColors.surface;
@@ -435,10 +435,11 @@ class TagStyle {
   final Color bg;
   const TagStyle(this.fg, this.bg);
 
-  static const info = TagStyle(EmColors.primary, EmColors.primaryContainer);
-  static const amber = TagStyle(EmColors.warning, EmColors.warningContainer);
-  static const green = TagStyle(EmColors.success, EmColors.successContainer);
-  static const red = TagStyle(EmColors.error, EmColors.errorContainer);
+  static const info = TagStyle(EmColors.onInfoContainer, EmColors.infoContainer);
+  static const amber = TagStyle(EmColors.onWarningContainer, EmColors.warningContainer);
+  static const green = TagStyle(EmColors.onSuccessContainer, EmColors.successContainer);
+  static const red = TagStyle(EmColors.onErrorContainer, EmColors.errorContainer);
+  static const leave = TagStyle(EmColors.onStatusLeaveContainer, EmColors.statusLeaveContainer);
   static const neutral = TagStyle(EmColors.textSecondary, EmColors.primaryTint);
 }
 

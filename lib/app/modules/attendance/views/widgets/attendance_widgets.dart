@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/models/classroom/attendance_models.dart';
 import '../../../../../core/models/classroom/student_models.dart';
+import '../../../../../core/design/design.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../components/custom_text.dart';
 
@@ -8,15 +9,15 @@ import '../../../../components/custom_text.dart';
 ({Color fg, Color bg}) statusColors(AttendanceStatus s) {
   switch (s) {
     case AttendanceStatus.present:
-      return (fg: AppColors.greenText, bg: AppColors.greenBg);
+      return (fg: EmColors.onSuccessContainer, bg: EmColors.successContainer);
     case AttendanceStatus.absent:
-      return (fg: AppColors.redText, bg: AppColors.redBg);
+      return (fg: EmColors.onErrorContainer, bg: EmColors.errorContainer);
     case AttendanceStatus.late:
-      return (fg: AppColors.amberText, bg: AppColors.amberBg);
+      return (fg: EmColors.onWarningContainer, bg: EmColors.warningContainer);
     case AttendanceStatus.excused:
-      return (fg: AppColors.blue, bg: AppColors.pale);
+      return (fg: EmColors.onInfoContainer, bg: EmColors.infoContainer);
     case AttendanceStatus.halfDay:
-      return (fg: AppColors.purple, bg: AppColors.purpleBg);
+      return (fg: EmColors.onStatusLeaveContainer, bg: EmColors.statusLeaveContainer);
   }
 }
 

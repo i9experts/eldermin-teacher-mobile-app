@@ -52,6 +52,10 @@ class EmColors {
   static const Color info = primary;
   static const Color infoContainer = primaryContainer;
 
+  /// Attendance "half day" and other leave-like statuses (muted violet).
+  static const Color statusLeave = Color(0xFF6B4FA0);
+  static const Color statusLeaveContainer = Color(0xFFEEE9F8);
+
   // ---- On-colours ----
   static const Color onPrimary = Color(0xFFFFFFFF);
   static const Color onPrimaryDark = Color(0xFFFFFFFF);
@@ -61,6 +65,17 @@ class EmColors {
   static const Color onBackground = ink;
   static const Color onSuccess = Color(0xFFFFFFFF);
   static const Color onError = Color(0xFFFFFFFF);
+  static const Color onWarning = Color(0xFFFFFFFF);
+  static const Color onInfo = Color(0xFFFFFFFF);
+  static const Color onStatusLeave = Color(0xFFFFFFFF);
+
+  /// Dark text/icons on the light `*Container` of each semantic colour.
+  /// Chips and badges use container + these, never a solid fill.
+  static const Color onSuccessContainer = Color(0xFF0E5C3B);
+  static const Color onErrorContainer = Color(0xFF8E1F2F);
+  static const Color onWarningContainer = Color(0xFF6B4000);
+  static const Color onInfoContainer = primaryDark;
+  static const Color onStatusLeaveContainer = Color(0xFF4B3580);
 
   /// Navy glyph on an accent fill (icons / large text only: 4.43:1).
   static const Color onAccent = primaryDark;
@@ -105,7 +120,6 @@ class EmColors {
     EmContrastPair('onPrimary / primary', onPrimary, primary, 4.5),
     EmContrastPair('onPrimaryDark / primaryDark', onPrimaryDark, primaryDark, 4.5),
     EmContrastPair('primaryLight / primaryDark', primaryLight, primaryDark, 4.5),
-    EmContrastPair('onSuccess / success', onSuccess, success, 4.5),
     EmContrastPair('onError / error', onError, error, 4.5),
     EmContrastPair('success / surface', success, surface, 4.5),
     EmContrastPair('success / background', success, background, 4.5),
@@ -116,6 +130,18 @@ class EmColors {
     EmContrastPair('warning / surface', warning, surface, 4.5),
     EmContrastPair('warning / background', warning, background, 4.5),
     EmContrastPair('warning / warningContainer', warning, warningContainer, 4.5),
+    EmContrastPair('onSuccess / success', onSuccess, success, 4.5),
+    EmContrastPair('onWarning / warning', onWarning, warning, 4.5),
+    EmContrastPair('onInfo / info', onInfo, info, 4.5),
+    EmContrastPair('onStatusLeave / statusLeave', onStatusLeave, statusLeave, 4.5),
+    EmContrastPair('statusLeave / surface', statusLeave, surface, 4.5),
+    EmContrastPair('statusLeave / background', statusLeave, background, 4.5),
+    EmContrastPair('statusLeave / statusLeaveContainer', statusLeave, statusLeaveContainer, 4.5),
+    EmContrastPair('onSuccessContainer / successContainer', onSuccessContainer, successContainer, 4.5),
+    EmContrastPair('onErrorContainer / errorContainer', onErrorContainer, errorContainer, 4.5),
+    EmContrastPair('onWarningContainer / warningContainer', onWarningContainer, warningContainer, 4.5),
+    EmContrastPair('onInfoContainer / infoContainer', onInfoContainer, infoContainer, 4.5),
+    EmContrastPair('onStatusLeaveContainer / statusLeaveContainer', onStatusLeaveContainer, statusLeaveContainer, 4.5),
     EmContrastPair('categoryOrange / surface', categoryOrange, surface, 4.5),
     EmContrastPair('categoryOrange / background', categoryOrange, background, 4.5),
     EmContrastPair('categoryTeal / surface', categoryTeal, surface, 4.5),

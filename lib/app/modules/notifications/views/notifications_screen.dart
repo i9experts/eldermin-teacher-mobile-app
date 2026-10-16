@@ -159,7 +159,7 @@ class _Row extends StatelessWidget {
 
   static (IconData, Color) _iconFor(String type) => switch (type) {
         'message' => (Icons.chat_bubble_outline_rounded, AppColors.blue),
-        'ptm' => (Icons.handshake_outlined, AppColors.purple),
+        'ptm' => (Icons.handshake_outlined, AppColors.sky),
         'substitution' => (Icons.swap_horiz_rounded, AppColors.amberText),
         'lesson_plan' => (Icons.edit_note_rounded, AppColors.green),
         'homework' => (Icons.menu_book_outlined, AppColors.blue),

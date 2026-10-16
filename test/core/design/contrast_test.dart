@@ -37,9 +37,26 @@ void main() {
   });
 
   group('TagStyle pairs are AA', () {
-    final tags = {'info': TagStyle.info, 'amber': TagStyle.amber, 'green': TagStyle.green, 'red': TagStyle.red, 'neutral': TagStyle.neutral};
+    final tags = {'info': TagStyle.info, 'amber': TagStyle.amber, 'green': TagStyle.green, 'red': TagStyle.red, 'neutral': TagStyle.neutral, 'leave': TagStyle.leave};
     tags.forEach((name, t) {
       test(name, () => expect(contrastRatio(t.fg, t.bg), greaterThanOrEqualTo(4.5)));
+    });
+  });
+
+  group('every semantic colour has a container + on-colour', () {
+    final sets = {
+      'success': (EmColors.success, EmColors.onSuccess, EmColors.successContainer, EmColors.onSuccessContainer),
+      'error': (EmColors.error, EmColors.onError, EmColors.errorContainer, EmColors.onErrorContainer),
+      'warning': (EmColors.warning, EmColors.onWarning, EmColors.warningContainer, EmColors.onWarningContainer),
+      'info': (EmColors.info, EmColors.onInfo, EmColors.infoContainer, EmColors.onInfoContainer),
+      'statusLeave': (EmColors.statusLeave, EmColors.onStatusLeave, EmColors.statusLeaveContainer, EmColors.onStatusLeaveContainer),
+    };
+    sets.forEach((name, c) {
+      test('$name: on-colour on solid and on-container on container are AA; container is a light tint', () {
+        expect(contrastRatio(c.$2, c.$1), greaterThanOrEqualTo(4.5));
+        expect(contrastRatio(c.$4, c.$3), greaterThanOrEqualTo(4.5));
+        expect(relativeLuminance(c.$3), greaterThan(0.8), reason: 'container must be light');
+      });
     });
   });
 
@@ -94,6 +111,12 @@ void main() {
       expect(AppColors.amberText, EmColors.warning);
       expect(AppColors.amber, EmColors.accent);
       expect(AppColors.ink, EmColors.ink);
+    });
+    test('purple/pink family now aliases the semantic status tokens', () {
+      expect(AppColors.purple, EmColors.statusLeave);
+      expect(AppColors.purpleBg, EmColors.statusLeaveContainer);
+      expect(AppColors.lightPurple, EmColors.statusLeaveContainer);
+      expect(AppColors.categoryPurple, EmColors.statusLeave);
     });
     test('every text-bearing legacy colour used on white is AA', () {
       for (final c in [AppColors.primaryColor, AppColors.blue, AppColors.muted, AppColors.faint, AppColors.redText, AppColors.amberText, AppColors.greenText, AppColors.ink]) {
