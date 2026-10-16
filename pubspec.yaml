@@ -86,9 +86,25 @@ flutter_launcher_icons:
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/launcher_icon/icon_foreground.png"
 
-# Native splash from the logomark - `dart run flutter_native_splash:create`.
+# Native splash: primaryDark background + the reversed logomark (PENDING BRAND
+# APPROVAL), identical in light and dark OS mode so there is no white flash.
+# The PNGs are exported from assets/brand/logomark_reversed.svg by
+#   flutter test tool/brand/export_splash_assets_test.dart
+# and regenerated into ios/ + android/ with
+#   dart run flutter_native_splash:create
+# The logo is EmLogomark.splashHeight (112dp) tall and exactly centred, like the
+# Flutter SplashScreen, so the hand-off is seamless.
 flutter_native_splash:
-  color: "#FFFFFF"
-  image: "assets/images/eldermin_logomark.png"
-  android: false
+  color: "#18457A"
+  image: assets/splash/splash_logo.png
+  color_dark: "#18457A"
+  image_dark: assets/splash/splash_logo.png
+  android: true
   ios: true
+  android_12:
+    color: "#18457A"
+    image: assets/splash/splash_android12.png
+    icon_background_color: "#18457A"
+    color_dark: "#18457A"
+    image_dark: assets/splash/splash_android12.png
+    icon_background_color_dark: "#18457A"
