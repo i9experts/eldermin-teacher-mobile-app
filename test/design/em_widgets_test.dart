@@ -1,5 +1,6 @@
 import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
 import '../support/design_harness.dart';
 
@@ -152,10 +153,25 @@ void main() {
       expect(sem.flagsCollection.isSelected, isTrue);
       h.dispose();
     });
-    testWidgets('narrow: scrolls and keeps >= 48dp pills', (t) async {
-      await pumpEm(t, EmDateStrip(days: EmDateStrip.weekOf(monday), selected: DateTime(2025, 5, 21), onSelected: (_) {}), width: 300);
+    testWidgets('pill width = (available - gaps) / 7 clamped 40..48; height >= 56; no scroll while 40 fits', (t) async {
+      // available 326 (390 screen, hero padding 16+16, screen padding 16+16): (326-36)/7 = 41.4
+      await pumpEm(t, EmDateStrip(days: EmDateStrip.weekOf(monday), selected: monday, onSelected: (_) {}), width: 358, padding: EdgeInsets.zero);
+      expect(find.byType(ListView), findsNothing);
+      final w = t.getSize(find.byType(InkWell).first);
+      expect(w.width, closeTo((358 - 36) / 7, 0.5));
+      expect(w.width, inInclusiveRange(40, 48));
+      expect(w.height, greaterThanOrEqualTo(56));
+    });
+    testWidgets('wide: pills cap at 48 and spread', (t) async {
+      await pumpEm(t, EmDateStrip(days: EmDateStrip.weekOf(monday), selected: monday, onSelected: (_) {}), width: 700);
+      expect(t.getSize(find.byType(InkWell).first).width, 48);
+    });
+    testWidgets('scrolls only when 40dp pills do not fit (available < 7*40+6*6 = 316)', (t) async {
+      await pumpEm(t, EmDateStrip(days: EmDateStrip.weekOf(monday), selected: monday, onSelected: (_) {}), width: 300, padding: EdgeInsets.zero);
       expect(find.byType(ListView), findsOneWidget);
-      expect(t.getSize(find.byType(InkWell).first).width, greaterThanOrEqualTo(48));
+      expect(t.getSize(find.byType(InkWell).first).width, 40);
+      await pumpEm(t, EmDateStrip(days: EmDateStrip.weekOf(monday), selected: monday, onSelected: (_) {}), width: 316, padding: EdgeInsets.zero);
+      expect(find.byType(ListView), findsNothing);
     });
     testWidgets('selected pill is solid primary with a white circle', (t) async {
       await pumpEm(t, EmDateStrip(days: EmDateStrip.weekOf(monday), selected: monday, onSelected: (_) {}), width: 700);
@@ -181,13 +197,56 @@ void main() {
       h.dispose();
     });
     testWidgets('3 tiles in a 320dp row at 1.3x / RTL do not overflow', (t) async {
-      await expectRobust(t, () => const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: EmStatTile(icon: Icons.groups_outlined, value: '1,280', unit: 'kcal', label: 'Calories burned today', onMenu: _noop)),
-            SizedBox(width: 8),
-            Expanded(child: EmStatTile(icon: Icons.favorite_border, value: '200', unit: 'bpm', label: 'Heart rate', onMenu: _noop)),
-            SizedBox(width: 8),
-            Expanded(child: EmStatTile(icon: Icons.schedule, value: '03:00', unit: 'min', label: 'Workout time', onMenu: _noop)),
+      await expectRobust(t, () => const EmStatTileRow(tiles: [
+            EmStatTile(icon: Icons.groups_outlined, value: '1,280', unit: 'kcal', label: 'Calories burned today', onMenu: _noop),
+            EmStatTile(icon: Icons.favorite_border, value: '200', unit: 'bpm', label: 'Heart rate', onMenu: _noop),
+            EmStatTile(icon: Icons.schedule, value: '03:00', unit: 'min', label: 'Workout time', onMenu: _noop),
           ]));
+    });
+    testWidgets('EmStatTileRow: never breaks a label inside a word; layout switches 3-up / 2+1 / stacked', (t) async {
+      const tiles = [
+        EmStatTile(icon: Icons.groups_outlined, value: '28', unit: 'present', label: 'Attendance', onMenu: _noop),
+        EmStatTile(icon: Icons.menu_book_outlined, value: '4', unit: 'due', label: 'Homework', onMenu: _noop),
+        EmStatTile(icon: Icons.schedule, value: '5', unit: 'classes', label: 'Today', onMenu: _noop),
+      ];
+      final seen = <String>{};
+      for (final w in [320.0, 360.0, 375.0, 430.0]) {
+        for (final scale in [1.0, 1.3]) {
+          await pumpEm(t, const EmStatTileRow(tiles: tiles), width: w, textScale: scale);
+          expectNoLayoutErrors(t);
+          // every label's paragraph is at least as wide as its longest word => no mid-word break
+          for (final label in ['Attendance', 'Homework', 'Today']) {
+            final para = t.renderObject<RenderParagraph>(find.text(label));
+            final tp = TextPainter(text: TextSpan(text: label, style: EmStatTile.labelStyle), textDirection: TextDirection.ltr, textScaler: TextScaler.linear(scale))..layout();
+            expect(para.size.width, greaterThanOrEqualTo(tp.width - 0.5), reason: '$label at ${w}x$scale');
+            expect(para.size.height, lessThanOrEqualTo(tp.height * 1.01), reason: '$label must stay on one line here');
+          }
+          final tops = {for (final l in ['Attendance', 'Homework', 'Today']) t.getTopLeft(find.text(l)).dy.round()};
+          seen.add('${tops.length}rows');
+        }
+      }
+      expect(seen.length, greaterThan(1), reason: 'the layout must change across the width/scale matrix');
+    });
+    testWidgets('EmStatTileRow columns: 3-up at 1.0 on 390, fewer at 1.3 on 320', (t) async {
+      const tiles = [
+        EmStatTile(icon: Icons.groups_outlined, value: '28', unit: 'present', label: 'Attendance', onMenu: _noop),
+        EmStatTile(icon: Icons.menu_book_outlined, value: '4', unit: 'due', label: 'Homework', onMenu: _noop),
+        EmStatTile(icon: Icons.schedule, value: '5', unit: 'classes', label: 'Today', onMenu: _noop),
+      ];
+      late BuildContext ctx;
+      Future<int> cols(double w, double scale) async {
+        await pumpEm(t, Builder(builder: (c) { ctx = c; return const SizedBox(); }), width: w, textScale: scale);
+        return EmStatTileRow.columnsFor(ctx, tiles, w - 32);
+      }
+      expect(await cols(430, 1.0), 3);
+      expect(await cols(320, 1.3), lessThan(3));
+      expect(await cols(320, 1.3), greaterThanOrEqualTo(1));
+    });
+    testWidgets('value and unit stay together (unit may wrap below)', (t) async {
+      await pumpEm(t, const SizedBox(width: 90, child: EmStatTile(icon: Icons.groups_outlined, value: '1,280', unit: 'kcal', label: 'Calories')), textScale: 1.3);
+      expectNoLayoutErrors(t);
+      expect(find.text('1,280'), findsOneWidget);
+      expect(find.text('kcal'), findsOneWidget);
     });
   });
 

@@ -222,12 +222,10 @@ class _GalleryDashboardSectionState extends State<GalleryDashboardSection> {
           const SizedBox(height: 12),
           EmDateStrip(days: EmDateStrip.weekOf(_sel), selected: _sel, onSelected: (d) => setState(() => _sel = d)),
           const SizedBox(height: 12),
-          const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: EmStatTile(icon: Icons.groups_outlined, value: '28', unit: 'present', label: 'Attendance', onMenu: _noop)),
-            SizedBox(width: 8),
-            Expanded(child: EmStatTile(icon: Icons.menu_book_outlined, value: '4', unit: 'due', label: 'Homework', onMenu: _noop)),
-            SizedBox(width: 8),
-            Expanded(child: EmStatTile(icon: Icons.schedule_rounded, value: '5', unit: 'classes', label: 'Today', onMenu: _noop)),
+          const EmStatTileRow(tiles: [
+            EmStatTile(icon: Icons.groups_outlined, value: '28', unit: 'present', label: 'Attendance', onMenu: _noop),
+            EmStatTile(icon: Icons.menu_book_outlined, value: '4', unit: 'due', label: 'Homework', onMenu: _noop),
+            EmStatTile(icon: Icons.schedule_rounded, value: '5', unit: 'classes', label: 'Today', onMenu: _noop),
           ]),
         ]),
       ),

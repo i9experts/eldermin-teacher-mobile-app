@@ -6,8 +6,10 @@ import '../tokens/em_radius.dart';
 import '../tokens/em_typography.dart';
 
 /// Horizontal strip of vertical day pills. Selected = solid primary with a
-/// white inner circle; others white. Pills are 48dp wide (touch target), so
-/// the strip scrolls when 7 do not fit, keeping the selected day in view.
+/// white inner circle; others white. Pill width = (available - gaps) / 7,
+/// clamped to 40..48dp; height is at least 56dp so the hit area stays >= 48dp.
+/// The strip scrolls only when even 40dp pills do not fit (selected day kept
+/// in view).
 class EmDateStrip extends StatefulWidget {
   const EmDateStrip({
     super.key,
@@ -55,12 +57,13 @@ class _EmDateStripState extends State<EmDateStrip> {
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.3);
-    final height = 76.0 * scale;
+    final height = 76.0 * scale; // always >= 56dp
     return SizedBox(
       height: height,
       child: LayoutBuilder(builder: (context, c) {
-        const minPill = 48.0, gap = 6.0;
-        final fits = c.maxWidth >= widget.days.length * minPill + (widget.days.length - 1) * gap;
+        const minPill = 40.0, maxPill = 48.0, gap = 6.0;
+        final n = widget.days.length;
+        final raw = (c.maxWidth - gap * (n - 1)) / n;
         final pills = [
           for (final d in widget.days)
             _DayPill(
@@ -71,14 +74,20 @@ class _EmDateStripState extends State<EmDateStrip> {
               onTap: () => widget.onSelected(d),
             ),
         ];
-        if (fits) {
-          return Row(children: [
-            for (var i = 0; i < pills.length; i++) ...[if (i > 0) const SizedBox(width: gap), Expanded(child: pills[i])],
-          ]);
+        // Pill width = (available - gaps) / 7 clamped to 40..48dp. Only when even
+        // 40dp does not fit does the strip scroll.
+        if (raw >= minPill) {
+          final w = raw.clamp(minPill, maxPill).toDouble();
+          return Row(
+            mainAxisAlignment: raw > maxPill ? MainAxisAlignment.spaceBetween : MainAxisAlignment.start,
+            children: [
+              for (var i = 0; i < n; i++) ...[if (i > 0 && raw <= maxPill) const SizedBox(width: gap), SizedBox(width: w, child: pills[i])],
+            ],
+          );
         }
         return ListView.separated(
           scrollDirection: Axis.horizontal,
-          itemCount: pills.length,
+          itemCount: n,
           separatorBuilder: (_, __) => const SizedBox(width: gap),
           itemBuilder: (_, i) => SizedBox(width: minPill, child: pills[i]),
         );

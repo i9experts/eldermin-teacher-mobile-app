@@ -30,6 +30,21 @@ class EmStatTile extends StatelessWidget {
   final String menuLabel;
   final VoidCallback? onTap;
 
+  static final TextStyle labelStyle = EmType.caption.copyWith(color: EmColors.textSecondary);
+
+  /// Horizontal space a tile needs so [label] never breaks inside a word
+  /// (longest word + the tile's inner padding), at the ambient text scale.
+  static double minWidthFor(BuildContext context, String label) {
+    final scaler = MediaQuery.textScalerOf(context);
+    var longest = 0.0;
+    for (final w in label.split(RegExp(r'\s+'))) {
+      if (w.isEmpty) continue;
+      final tp = TextPainter(text: TextSpan(text: w, style: labelStyle), textDirection: TextDirection.ltr, textScaler: scaler, maxLines: 1)..layout();
+      if (tp.width > longest) longest = tp.width;
+    }
+    return longest + 12 + 8 + 2; // start/end padding + rounding slack
+  }
+
   @override
   Widget build(BuildContext context) {
     final summary = '$label: $value${unit != null ? ' $unit' : ''}';
@@ -52,15 +67,16 @@ class EmStatTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          Text.rich(
-            TextSpan(children: [
-              TextSpan(text: value, style: EmType.valueSmall.copyWith(color: EmColors.ink)),
-              if (unit != null) TextSpan(text: ' $unit', style: EmType.caption.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400)),
-            ]),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+          // value + unit stay together; the unit may drop below the value
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.end,
+            spacing: 4,
+            children: [
+              Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: EmType.valueSmall.copyWith(color: EmColors.ink)),
+              if (unit != null) Text(unit!, maxLines: 1, overflow: TextOverflow.ellipsis, style: EmType.caption.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400)),
+            ],
           ),
-          Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+          Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: labelStyle),
         ],
       ),
     );
@@ -105,5 +121,62 @@ class EmStatTile extends StatelessWidget {
       ),
     );
     return tile;
+  }
+}
+
+/// Lays [tiles] out side by side while each tile is wide enough for its
+/// longest label word (no mid-word wrapping); otherwise falls back to 2 + 1,
+/// then stacked. Decided from the measured label words at the current text
+/// scale and from the width, so it also switches when text scale > ~1.15.
+class EmStatTileRow extends StatelessWidget {
+  const EmStatTileRow({super.key, required this.tiles, this.gap = 8});
+
+  final List<EmStatTile> tiles;
+  final double gap;
+
+  /// Columns used for [width] given the tiles' needs (exposed for tests).
+  static int columnsFor(BuildContext context, List<EmStatTile> tiles, double width, {double gap = 8}) {
+    if (tiles.isEmpty) return 1;
+    var need = 0.0;
+    for (final t in tiles) {
+      final n = EmStatTile.minWidthFor(context, t.label);
+      if (n > need) need = n;
+    }
+    // icon chip (40) + kebab glyph area also bound the minimum
+    need = need < 88 ? 88 : need;
+    for (var c = tiles.length; c > 1; c--) {
+      if ((width - gap * (c - 1)) / c >= need) return c;
+    }
+    return 1;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final cols = columnsFor(context, tiles, constraints.maxWidth, gap: gap);
+      final rows = <List<EmStatTile>>[];
+      if (cols >= tiles.length) {
+        rows.add(tiles);
+      } else {
+        // balanced: 3 tiles with 2 columns = 2 + 1
+        for (var i = 0; i < tiles.length; i += cols) {
+          rows.add(tiles.sublist(i, i + cols > tiles.length ? tiles.length : i + cols));
+        }
+      }
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var r = 0; r < rows.length; r++) ...[
+            if (r > 0) SizedBox(height: gap),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < rows[r].length; i++) ...[if (i > 0) SizedBox(width: gap), Expanded(child: rows[r][i])],
+              ],
+            ),
+          ],
+        ],
+      );
+    });
   }
 }
