@@ -1,5 +1,5 @@
 // import '../config/app_colors.dart';
-import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
+import 'package:eldermin_teacher_app/core/design/tokens/em_colors.dart';
 
 import '../config/app_text_styles.dart';
 import '../config/app_font_size.dart';
@@ -24,7 +24,7 @@ class CustomText extends StatelessWidget {
   const CustomText({
     super.key,
     required this.text,
-    this.color = AppColors.black,
+    this.color = EmColors.ink,
     this.fontSize = AppFontSize.extraSmall,
     this.fontWeight = FontWeight.w400,
     this.overflow,

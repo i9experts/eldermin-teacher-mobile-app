@@ -10,7 +10,9 @@
 analyzer:
   errors:
     prefer_const_constructors: ignore
+    # Legacy AppColors aliases are @Deprecated during the redesign (D1-D10).
     deprecated_member_use: ignore
+    deprecated_member_use_from_same_package: ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:
