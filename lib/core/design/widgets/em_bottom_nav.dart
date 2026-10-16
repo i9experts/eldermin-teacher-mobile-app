@@ -57,9 +57,12 @@ class EmBottomNav extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(EmRadius.navTop)),
                 boxShadow: EmShadows.nav,
               ),
-              child: Padding(
-                padding: EdgeInsets.only(bottom: bottom, left: 8, right: 8),
-                child: Row(children: [item(0), item(1), const SizedBox(width: 84), item(2), item(3)]),
+              child: Material(
+                type: MaterialType.transparency,
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: bottom, left: 8, right: 8),
+                  child: Row(children: [item(0), item(1), const SizedBox(width: 84), item(2), item(3)]),
+                ),
               ),
             ),
           ),
