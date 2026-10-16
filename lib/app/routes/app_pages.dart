@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import '../../core/design/gallery/design_gallery_screen.dart';
 import '../modules/about/bindings/about_binding.dart';
 import '../modules/about/views/about_screen.dart';
 import '../modules/assessments/bindings/assessments_binding.dart';
@@ -98,9 +100,14 @@ class AppPages {
 
   /// Every page, each wrapped with [RouteGuard] unless it is public (login, splash, intro, forgot / reset password, the not-available screen).
   static final pages = <GetPage>[
-    for (final p in _routes)
+    for (final p in [..._routes, ...designGalleryPages()])
       RouteGuardRules.isPublic(p.name) ? p : p.copy(middlewares: [RouteGuard()]),
   ];
+
+  /// The design gallery page. Empty unless [enabled] (defaults to `kDebugMode`),
+  /// so a release build has no route to it (and tree-shakes the screen).
+  static List<GetPage> designGalleryPages({bool enabled = kDebugMode}) =>
+      enabled ? [GetPage(name: Routes.designGallery, page: () => const DesignGalleryScreen())] : const [];
 
   static final _routes = <GetPage>[
     GetPage(name: Routes.notAvailable, page: () => const NotAvailableScreen()),

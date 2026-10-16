@@ -79,6 +79,9 @@ abstract class Routes {
   static const about = '/about';
   static const deleteAccount = '/delete-account';
 
+  /// Debug-only design system catalogue (registered only when kDebugMode).
+  static const designGallery = '/design-gallery';
+
   // Helpers for parameterised routes
   static String messageThreadOf(String threadId) => '/messages/$threadId';
   static String studentDetailOf(String id) => '/students/$id';
