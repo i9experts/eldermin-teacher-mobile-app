@@ -65,6 +65,10 @@ class EmColors {
   /// Navy glyph on an accent fill (icons / large text only: 4.43:1).
   static const Color onAccent = primaryDark;
 
+  // ---- Categorical (calendar event types; AA on surface and background) ----
+  static const Color categoryOrange = Color(0xFFB04A12);
+  static const Color categoryTeal = Color(0xFF0F766E);
+
   // ---- Misc ----
   static const Color scrim = Color(0xFF0A1B2C);
   static const Color shimmerBase = Color(0xFFE3ECF6);
@@ -112,6 +116,10 @@ class EmColors {
     EmContrastPair('warning / surface', warning, surface, 4.5),
     EmContrastPair('warning / background', warning, background, 4.5),
     EmContrastPair('warning / warningContainer', warning, warningContainer, 4.5),
+    EmContrastPair('categoryOrange / surface', categoryOrange, surface, 4.5),
+    EmContrastPair('categoryOrange / background', categoryOrange, background, 4.5),
+    EmContrastPair('categoryTeal / surface', categoryTeal, surface, 4.5),
+    EmContrastPair('categoryTeal / background', categoryTeal, background, 4.5),
     // Icons / large text / UI component boundaries (3:1)
     EmContrastPair('onAccent / accent (icon)', onAccent, accent, 3.0),
     EmContrastPair('outline / surface (UI)', outline, surface, 3.0),

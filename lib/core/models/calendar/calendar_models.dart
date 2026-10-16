@@ -1,4 +1,6 @@
 import 'dart:ui' show Color;
+import '../../design/contrast.dart';
+import '../../design/tokens/em_colors.dart';
 import '../../utils/class_match.dart' show collapseDoubledGrade;
 import '../../utils/safe_text.dart';
 import '../json_helpers.dart';
@@ -16,23 +18,24 @@ import '../json_helpers.dart';
 
 /// Wire value `type` of a calendar entry (CES:11-13 + the synthetic `exam` / `academic_term`, SCS:117-151). `fee_due` is deliberately NOT here.
 enum CalendarEventType {
-  holiday('holiday', 'Holiday', 0xFFE24B4A),
-  publicHoliday('public_holiday', 'Public holiday', 0xFFD85A30),
-  halfDay('half_day', 'Half day', 0xFF888888),
-  exam('exam', 'Exam', 0xFF7F77DD),
-  event('event', 'Event', 0xFF1D9E75),
-  admissionDeadline('admission_deadline', 'Admission deadline', 0xFF378ADD),
-  training('training', 'Training', 0xFFBA7517),
-  academicTerm('academic_term', 'Term', 0xFF008300),
-  other('other', 'Other', 0xFF0C447C);
+  holiday('holiday', 'Holiday', EmColors.error),
+  publicHoliday('public_holiday', 'Public holiday', EmColors.categoryOrange),
+  halfDay('half_day', 'Half day', EmColors.textSecondary),
+  exam('exam', 'Exam', EmColors.primaryDark),
+  event('event', 'Event', EmColors.success),
+  admissionDeadline('admission_deadline', 'Admission deadline', EmColors.primary),
+  training('training', 'Training', EmColors.warning),
+  academicTerm('academic_term', 'Term', EmColors.categoryTeal),
+  other('other', 'Other', EmColors.ink);
 
   final String wire;
   final String label;
-  final int _argb;
-  const CalendarEventType(this.wire, this.label, this._argb);
 
-  /// CALENDAR_EVENT_COLORS (CES:15-28).
-  Color get color => Color(_argb);
+  /// Default colour, mapped onto the design palette (each is AA as text on
+  /// white). The web's CALENDAR_EVENT_COLORS (CES:15-28) are no longer used;
+  /// an entry's own server `color` hex still wins (see [CalendarEntry.tryParse]).
+  final Color color;
+  const CalendarEventType(this.wire, this.label, this.color);
 
   static CalendarEventType fromWire(String? w) {
     for (final t in values) {
@@ -60,6 +63,11 @@ DateTime _localDay(DateTime i) {
   return DateTime(l.year, l.month, l.day);
 }
 
+/// Readable foreground (white or ink) for text/icons drawn ON [color]
+/// (a chip fill, a dot with a glyph): picked by contrast, so it also works
+/// for arbitrary server-supplied hexes.
+Color calendarForegroundOn(Color color) => readableOn(color);
+
 final _hex6 = RegExp(r'^#[0-9a-fA-F]{6}$');
 
 /// One calendar entry (whitelisted).
@@ -69,6 +77,9 @@ class CalendarEntry {
   final String description;
   final CalendarEventType type;
   final Color color;
+
+  /// Readable foreground to draw on top of [color].
+  Color get onColor => calendarForegroundOn(color);
   final DateTime start; // UTC instant as stored
   final DateTime end; // UTC instant as stored (>= start)
   final bool allDay;

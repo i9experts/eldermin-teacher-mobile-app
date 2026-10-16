@@ -1,3 +1,4 @@
+import 'package:eldermin_teacher_app/core/design/tokens/em_colors.dart';
 import 'dart:convert';
 import 'package:eldermin_teacher_app/core/models/calendar/calendar_models.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/student_models.dart';
@@ -40,10 +41,10 @@ void main() {
       expect((e.id, e.title, e.description, e.type, e.start, e.end, e.allDay), (clean.id, clean.title, clean.description, clean.type, clean.start, clean.end, clean.allDay));
     });
 
-    test('type -> colour per CALENDAR_EVENT_COLORS; an own #RRGGBB colour wins; a bad colour falls back; unknown type = other', () {
-      expect(CalendarEventType.holiday.color.value, 0xFFE24B4A);
-      expect(CalendarEventType.exam.color.value, 0xFF7F77DD);
-      expect(CalendarEventType.academicTerm.color.value, 0xFF008300);
+    test('type -> palette colour (design tokens, was the web CALENDAR_EVENT_COLORS); an own #RRGGBB colour wins; a bad colour falls back; unknown type = other', () {
+      expect(CalendarEventType.holiday.color, EmColors.error);
+      expect(CalendarEventType.exam.color, EmColors.primaryDark);
+      expect(CalendarEventType.academicTerm.color, EmColors.categoryTeal);
       expect(CalendarEntry.tryParse(calRow('a', 'A', type: 'training', color: '#123456'))!.color.value, 0xFF123456);
       expect(CalendarEntry.tryParse(calRow('a', 'A', type: 'training', color: 'red'))!.color.value, CalendarEventType.training.color.value);
       expect(CalendarEntry.tryParse(calRow('a', 'A', type: 'zzz'))!.type, CalendarEventType.other);
