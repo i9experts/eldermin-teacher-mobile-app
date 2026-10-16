@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/design/design.dart';
 import '../../../../core/utils/validators.dart';
-import '../../../components/custom_button.dart';
-import '../../../components/custom_text.dart';
-import '../../../components/custom_text_field.dart';
 import '../../../routes/app_routes.dart';
 import '../../auth/views/auth_widgets.dart';
 import '../bindings/forgot_password_binding.dart';
@@ -61,29 +58,33 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              CustomTextField(
+              EmTextField(
                 controller: _email,
-                hintText: 'Email',
+                label: 'Email',
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.email],
+                prefixIcon: Icons.mail_outline_rounded,
+                fillColor: EmColors.background,
+                radius: EmRadius.pill,
                 validator: Validators.email,
-                onFieldSubmitted: (_) => _submit(),
+                onSubmitted: (_) => _submit(),
               ),
               Obx(() => c.error.value == null
-                  ? const SizedBox(height: AppSpacing.lg)
+                  ? const SizedBox(height: EmSpacing.s20)
                   : Padding(
-                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                      padding: const EdgeInsetsDirectional.symmetric(vertical: EmSpacing.s12),
                       child: AuthBanner(message: c.error.value!),
                     )),
-              Obx(() => CustomButton(
+              Obx(() => EmPrimaryButton(
                     label: c.submitting.value ? 'Sending...' : 'Send reset link',
-                    enabled: !c.submitting.value,
+                    loading: c.submitting.value,
                     onPressed: _submit,
-                    color: AppColors.primaryColor,
                   )),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: EmSpacing.s4),
               TextButton(
                 onPressed: () => Get.toNamed(Routes.resetPassword),
-                child: const CustomText(text: 'I already have a reset code', color: AppColors.blue, fontSize: 12),
+                child: const Text('I already have a reset code'),
               ),
             ],
           ),
@@ -106,23 +107,26 @@ class _Sent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.mark_email_read_outlined, size: 56, color: AppColors.secondryColor),
-          const SizedBox(height: AppSpacing.md),
-          const CustomText(
-              text: 'Open the link on this phone, or copy the link and paste it on the next screen.',
-              textAlign: TextAlign.center,
-              color: AppColors.muted,
-              fontSize: 12),
-          const SizedBox(height: AppSpacing.lg),
-          CustomButton(
+          Center(
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(color: EmColors.successContainer, shape: BoxShape.circle),
+              child: const Icon(Icons.mark_email_read_outlined, size: 34, color: EmColors.onSuccessContainer),
+            ),
+          ),
+          const SizedBox(height: EmSpacing.s16),
+          Text('Open the link on this phone, or copy the link and paste it on the next screen.',
+              textAlign: TextAlign.center, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
+          const SizedBox(height: EmSpacing.s20),
+          EmPrimaryButton(
             label: 'I have a reset code or link',
-            color: AppColors.primaryColor,
             onPressed: () => Get.toNamed(Routes.resetPassword),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: EmSpacing.s4),
           TextButton(
             onPressed: () => Get.back(),
-            child: const CustomText(text: 'Back to sign in', color: AppColors.blue, fontSize: 12),
+            child: const Text('Back to sign in'),
           ),
         ],
       ),

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/design/design.dart';
 import '../../../../core/utils/validators.dart';
-import '../../../components/custom_button.dart';
-import '../../../components/custom_text.dart';
-import '../../../components/custom_text_field.dart';
 import '../../../routes/app_routes.dart';
 import '../bindings/login_binding.dart';
 import '../controllers/login_controller.dart';
@@ -68,84 +65,90 @@ class _LoginScreenState extends State<LoginScreen> {
               final notice = c.auth.loginNotice.value;
               if (notice == null) return const SizedBox.shrink();
               return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                padding: const EdgeInsetsDirectional.only(bottom: EmSpacing.s16),
                 child: AuthBanner(message: notice),
               );
             }),
-            CustomTextField(
+            EmTextField(
               controller: _email,
-              hintText: 'Email',
+              label: 'Email',
               keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.username, AutofillHints.email],
+              prefixIcon: Icons.mail_outline_rounded,
+              fillColor: EmColors.background,
+              radius: EmRadius.pill,
               validator: Validators.email,
             ),
-            const SizedBox(height: AppSpacing.md),
-            Obx(() => CustomTextField(
+            const SizedBox(height: EmSpacing.s12),
+            Obx(() => EmTextField(
                   controller: _password,
-                  hintText: 'Password',
+                  label: 'Password',
                   obscureText: c.obscure.value,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: const [AutofillHints.password],
+                  prefixIcon: Icons.lock_outline_rounded,
+                  fillColor: EmColors.background,
+                  radius: EmRadius.pill,
                   validator: Validators.requiredPassword,
-                  onFieldSubmitted: (_) => _submit(),
-                  suffixIcon: PasswordVisibilityButton(
+                  onSubmitted: (_) => _submit(),
+                  suffix: PasswordVisibilityButton(
                     obscured: c.obscure.value,
                     onToggle: c.obscure.toggle,
                   ),
                 )),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: EmSpacing.s4),
             Obx(() => Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: InkWell(
                         key: const Key('school_code_toggle'),
                         onTap: c.schoolExpanded.toggle,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
+                        borderRadius: EmRadius.smAll,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 48),
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            const CustomText(
-                                text: 'Signing in to a specific school?',
-                                color: AppColors.blue,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600),
+                            Flexible(
+                              child: Text('Signing in to a specific school?',
+                                  style: EmType.label.copyWith(color: EmColors.primary)),
+                            ),
                             Icon(c.schoolExpanded.value ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                                color: AppColors.blue, size: 18),
+                                color: EmColors.primary, size: 20),
                           ]),
                         ),
                       ),
                     ),
                     if (c.schoolExpanded.value) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      CustomTextField(
+                      EmTextField(
                         controller: _schoolCode,
-                        hintText: 'School code',
+                        label: 'School code',
                         keyboardType: TextInputType.url,
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.only(top: 4, left: 4),
-                        child: CustomText(
-                            text: 'Only needed if your email is used at more than one school.',
-                            color: AppColors.faint,
-                            fontSize: 11),
+                        textInputAction: TextInputAction.done,
+                        prefixIcon: Icons.school_outlined,
+                        fillColor: EmColors.background,
+                        radius: EmRadius.pill,
+                        helper: 'Only needed if your email is used at more than one school.',
                       ),
                     ],
                   ],
                 )),
             Obx(() => c.error.value == null
-                ? const SizedBox(height: AppSpacing.md)
+                ? const SizedBox(height: EmSpacing.s16)
                 : Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    padding: const EdgeInsetsDirectional.symmetric(vertical: EmSpacing.s12),
                     child: AuthBanner(message: c.error.value!),
                   )),
-            Obx(() => CustomButton(
+            Obx(() => EmPrimaryButton(
                   label: c.loading.value ? 'Signing in...' : 'Sign in',
-                  enabled: !c.loading.value,
+                  loading: c.loading.value,
                   onPressed: _submit,
-                  color: AppColors.primaryColor,
                 )),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: EmSpacing.s4),
             TextButton(
               onPressed: () => Get.toNamed(Routes.forgotPassword),
-              child: const CustomText(text: 'Forgot password?', color: AppColors.blue, fontSize: 12),
+              child: const Text('Forgot password?'),
             ),
           ],
         ),

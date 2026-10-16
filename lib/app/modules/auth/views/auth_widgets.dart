@@ -1,62 +1,60 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../components/common_image_view.dart';
-import '../../../components/custom_text.dart';
-import '../../../config/app_images.dart';
+import '../../../../core/design/design.dart';
 
 /// Shared layout for the signed-out screens (login, forgot / reset
-/// password): logo, title, subtitle, then the form content.
+/// password): tinted scaffold, logomark, title, subtitle, then the form on a
+/// white card. Scrolls, and keeps the form reachable with the keyboard open.
 class AuthPageShell extends StatelessWidget {
   final String title;
   final String subtitle;
   final Widget child;
   final bool showBack;
+
+  /// Wraps [child] in the white form card (default). Turn off for content that
+  /// brings its own surface.
+  final bool card;
   const AuthPageShell({
     super.key,
     required this.title,
     required this.subtitle,
     required this.child,
     this.showBack = false,
+    this.card = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: showBack
-          ? AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              foregroundColor: AppColors.primaryColor,
-              iconTheme: const IconThemeData(color: AppColors.primaryColor),
-            )
-          : null,
+    return EmScaffold(
+      extendBody: false,
+      appBar: showBack ? const EmAppBar() : null,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+        top: !showBack,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.screenH, vertical: EmSpacing.s16),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(
-                    height: 84,
-                    child: CommonImageView(imagePath: AppImages.fullLogo, fit: BoxFit.contain),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight - EmSpacing.s32),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Center(child: EmLogomark(height: 72, semanticLabel: 'Eldermin')),
+                      const SizedBox(height: EmSpacing.s20),
+                      Semantics(
+                        header: true,
+                        child: Text(title, textAlign: TextAlign.center, style: EmType.display.copyWith(color: EmColors.ink, fontSize: 26)),
+                      ),
+                      const SizedBox(height: EmSpacing.s8),
+                      Text(subtitle, textAlign: TextAlign.center, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
+                      const SizedBox(height: EmSpacing.s24),
+                      if (card) EmCard(padding: const EdgeInsetsDirectional.all(EmSpacing.s20), child: child) else child,
+                    ],
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  CustomText(
-                      text: title,
-                      textAlign: TextAlign.center,
-                      color: AppColors.primaryColor,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800),
-                  const SizedBox(height: 4),
-                  CustomText(text: subtitle, textAlign: TextAlign.center, color: AppColors.muted, fontSize: 13),
-                  const SizedBox(height: AppSpacing.xl),
-                  child,
-                ],
+                ),
               ),
             ),
           ),
@@ -66,7 +64,8 @@ class AuthPageShell extends StatelessWidget {
   }
 }
 
-/// Inline message box (errors in red, notices in amber).
+/// Inline message box: errors use the error container, notices the info
+/// container; text is the dark on-container colour. Announced to screen readers.
 class AuthBanner extends StatelessWidget {
   final String message;
   final bool isError;
@@ -74,33 +73,47 @@ class AuthBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = isError ? AppColors.error : AppColors.primaryColor;
-    final bg = isError ? AppColors.redBg : AppColors.pale;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md - 2),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppRadius.md)),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(isError ? Icons.error_outline_rounded : Icons.info_outline_rounded, color: fg, size: 18),
-          const SizedBox(width: 8),
-          Expanded(child: CustomText(text: message, color: fg, fontSize: 12.5)),
-        ],
+    final tone = isError ? EmTone.error : EmTone.info;
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsetsDirectional.all(EmSpacing.s12),
+        decoration: BoxDecoration(color: tone.background, borderRadius: EmRadius.mdAll),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(isError ? Icons.error_outline_rounded : Icons.info_outline_rounded, color: tone.foreground, size: 20),
+            const SizedBox(width: EmSpacing.s8),
+            Expanded(child: Text(message, style: EmType.body.copyWith(color: tone.foreground, fontSize: 13))),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Eye icon button for password fields.
+/// Eye icon button for password fields (48dp target).
 class PasswordVisibilityButton extends StatelessWidget {
   final bool obscured;
   final VoidCallback onToggle;
   const PasswordVisibilityButton({super.key, required this.obscured, required this.onToggle});
 
   @override
-  Widget build(BuildContext context) => InkWell(
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: obscured ? 'Show password' : 'Hide password',
+        excludeSemantics: true,
         onTap: onToggle,
-        child: Icon(obscured ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20),
+        child: InkResponse(
+          onTap: onToggle,
+          radius: 24,
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Icon(obscured ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20, color: EmColors.textSecondary),
+          ),
+        ),
       );
 }

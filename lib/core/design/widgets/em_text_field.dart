@@ -25,6 +25,11 @@ class EmTextField extends StatelessWidget {
     this.maxLines = 1,
     this.inputFormatters,
     this.autofillHints,
+    this.focusNode,
+    this.fillColor,
+    this.radius,
+    this.textCapitalization = TextCapitalization.none,
+    this.onTap,
   });
 
   final String label;
@@ -44,11 +49,23 @@ class EmTextField extends StatelessWidget {
   final int? maxLines;
   final List<TextInputFormatter>? inputFormatters;
   final Iterable<String>? autofillHints;
+  final FocusNode? focusNode;
+
+  /// Overrides the theme fill (e.g. the scaffold tint when the field sits on a white card).
+  final Color? fillColor;
+
+  /// Corner radius; defaults to the theme (16). Use `EmRadius.pill` for pill fields.
+  final double? radius;
+  final TextCapitalization textCapitalization;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
+      textCapitalization: textCapitalization,
+      onTap: onTap,
       enabled: enabled,
       obscureText: obscureText,
       keyboardType: keyboardType,
@@ -60,7 +77,27 @@ class EmTextField extends StatelessWidget {
       inputFormatters: inputFormatters,
       autofillHints: autofillHints,
       style: EmType.body.copyWith(color: enabled ? EmColors.ink : EmColors.onDisabled),
-      decoration: InputDecoration(
+      decoration: _decoration(context),
+    );
+  }
+
+  InputDecoration _decoration(BuildContext context) {
+    final base = Theme.of(context).inputDecorationTheme;
+    OutlineInputBorder? shaped(InputBorder? b) {
+      if (radius == null || b is! OutlineInputBorder) return b as OutlineInputBorder?;
+      return b.copyWith(borderRadius: BorderRadius.circular(radius!));
+    }
+
+    return InputDecoration(
+        filled: true,
+        fillColor: fillColor,
+        border: shaped(base.border),
+        enabledBorder: shaped(base.enabledBorder),
+        focusedBorder: shaped(base.focusedBorder),
+        errorBorder: shaped(base.errorBorder),
+        focusedErrorBorder: shaped(base.focusedErrorBorder),
+        disabledBorder: shaped(base.disabledBorder),
+        contentPadding: radius != null && radius! > 24 ? const EdgeInsetsDirectional.symmetric(horizontal: 22, vertical: 14) : null,
         labelText: label,
         hintText: hint,
         helperText: helper,
@@ -70,7 +107,6 @@ class EmTextField extends StatelessWidget {
         prefixIcon: prefixIcon == null ? null : Icon(prefixIcon, size: 22),
         suffixIcon: suffix,
         constraints: const BoxConstraints(minHeight: 56),
-      ),
     );
   }
 }

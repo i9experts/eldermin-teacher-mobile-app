@@ -73,7 +73,12 @@ class EmSecondaryButton extends StatelessWidget {
 
 Widget _content(String label, IconData? icon, bool loading, Color color) {
   if (loading) {
-    return SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: color));
+    // spinner + the (busy) label, so the state is readable, not only animated
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: color)),
+      const SizedBox(width: 10),
+      Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: EmType.label.copyWith(fontSize: 15))),
+    ]);
   }
   Text text() => Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: EmType.label.copyWith(fontSize: 15));
   if (icon == null) return text();

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/design/design.dart';
 import '../../../../core/utils/validators.dart';
-import '../../../components/custom_button.dart';
-import '../../../components/custom_text.dart';
-import '../../../components/custom_text_field.dart';
 import '../../auth/views/auth_widgets.dart';
 import '../bindings/reset_password_binding.dart';
 import '../controllers/reset_password_controller.dart';
@@ -67,23 +64,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Obx(() => CustomTextField(
+        Obx(() => EmTextField(
               controller: _paste,
-              hintText: 'Paste reset code or link',
+              label: 'Paste reset code or link',
               keyboardType: TextInputType.url,
+              textInputAction: TextInputAction.done,
+              prefixIcon: Icons.link_rounded,
+              fillColor: EmColors.background,
+              radius: EmRadius.pill,
               errorText: c.pasteError.value,
               onChanged: (_) => c.pasteError.value = null,
+              onSubmitted: (_) => c.applyPasted(_paste.text),
             )),
-        const SizedBox(height: AppSpacing.sm),
-        const CustomText(
-            text: 'Opening the link from your email on this phone fills this in automatically. '
-                'You can also paste the whole link or just the code.',
-            color: AppColors.faint,
-            fontSize: 11),
-        const SizedBox(height: AppSpacing.lg),
-        CustomButton(
+        const SizedBox(height: EmSpacing.s8),
+        Padding(
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s4),
+          child: Text(
+              'Opening the link from your email on this phone fills this in automatically. '
+              'You can also paste the whole link or just the code.',
+              style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+        ),
+        const SizedBox(height: EmSpacing.s20),
+        EmPrimaryButton(
           label: 'Continue',
-          color: AppColors.primaryColor,
           onPressed: () => c.applyPasted(_paste.text),
         ),
       ],
@@ -97,45 +100,54 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Obx(() => CustomTextField(
+          Obx(() => EmTextField(
                 controller: _password,
-                hintText: 'New password',
+                label: 'New password',
                 obscureText: c.obscure.value,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.newPassword],
+                prefixIcon: Icons.lock_outline_rounded,
+                fillColor: EmColors.background,
+                radius: EmRadius.pill,
                 validator: Validators.newPassword,
-                suffixIcon: PasswordVisibilityButton(obscured: c.obscure.value, onToggle: c.obscure.toggle),
+                suffix: PasswordVisibilityButton(obscured: c.obscure.value, onToggle: c.obscure.toggle),
               )),
-          const SizedBox(height: AppSpacing.md),
-          Obx(() => CustomTextField(
+          const SizedBox(height: EmSpacing.s12),
+          Obx(() => EmTextField(
                 controller: _confirm,
-                hintText: 'Confirm new password',
+                label: 'Confirm new password',
                 obscureText: c.obscure.value,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.newPassword],
+                prefixIcon: Icons.lock_outline_rounded,
+                fillColor: EmColors.background,
+                radius: EmRadius.pill,
                 validator: (v) => Validators.confirmPassword(v, _password.text),
-                onFieldSubmitted: (_) => _submit(),
+                onSubmitted: (_) => _submit(),
               )),
           Obx(() => c.error.value == null
-              ? const SizedBox(height: AppSpacing.lg)
+              ? const SizedBox(height: EmSpacing.s20)
               : Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  padding: const EdgeInsetsDirectional.symmetric(vertical: EmSpacing.s12),
                   child: AuthBanner(message: c.error.value!),
                 )),
-          Obx(() => CustomButton(
+          Obx(() => EmPrimaryButton(
                 label: c.submitting.value ? 'Updating...' : 'Update password',
-                enabled: !c.submitting.value,
+                loading: c.submitting.value,
                 onPressed: _submit,
-                color: AppColors.primaryColor,
               )),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: EmSpacing.s4),
           Obx(() => c.tokenRejected.value
               ? TextButton(
                   onPressed: c.requestNewLink,
-                  child: const CustomText(text: 'Request a new reset link', color: AppColors.blue, fontSize: 12),
+                  child: const Text('Request a new reset link'),
                 )
               : TextButton(
                   onPressed: () {
                     _paste.clear();
                     c.clearToken();
                   },
-                  child: const CustomText(text: 'Use a different code or link', color: AppColors.blue, fontSize: 12),
+                  child: const Text('Use a different code or link'),
                 )),
         ],
       ),

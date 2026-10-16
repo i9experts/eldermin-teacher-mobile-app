@@ -10,10 +10,8 @@ import 'app/modules/home/views/home_shell.dart';
 import 'app/modules/intro/views/intro_screen.dart';
 import 'app/modules/splash/views/splash_screen.dart';
 import 'app/routes/app_pages.dart';
-import 'core/design/font_license.dart';
+import 'core/design/design.dart';
 import 'core/theme/app_theme.dart';
-import 'core/widgets/app_widgets.dart';
-import 'app/components/custom_text.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -97,17 +95,8 @@ class _LinkSignInScreen extends StatelessWidget {
   const _LinkSignInScreen();
 
   @override
-  Widget build(BuildContext context) => const Scaffold(
-        backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AppLoader(),
-              SizedBox(height: AppSpacing.md),
-              Center(child: CustomText(text: 'Signing you in...', color: AppColors.muted, fontSize: 13)),
-            ],
-          ),
-        ),
+  Widget build(BuildContext context) => const EmScaffold(
+        extendBody: false,
+        body: SafeArea(child: EmLoading(label: 'Signing you in...', showLabel: true)),
       );
 }

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/app_widgets.dart';
-import '../../../components/custom_text.dart';
+import '../../../../core/design/design.dart';
 import '../controllers/auth_controller.dart';
 
 /// Shown while a stored session is being re-checked (`GET /auth/me` then
@@ -15,20 +13,20 @@ class ProfileLoadScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = Get.find<AuthController>();
-    return Scaffold(
-      backgroundColor: AppColors.background,
+    return EmScaffold(
+      extendBody: false,
       body: SafeArea(
         child: Obx(() {
           final error = auth.profileError.value;
-          if (error == null) return const AppLoader();
+          if (error == null) return const EmLoading();
           return Column(
             children: [
-              Expanded(child: AppErrorView(message: error, onRetry: auth.retryRestore)),
+              Expanded(child: EmErrorState(message: error, onRetry: auth.retryRestore, retryLabel: 'Try again')),
               TextButton(
                 onPressed: auth.logout,
-                child: const CustomText(text: 'Sign out', color: AppColors.blue, fontSize: 13),
+                child: const Text('Sign out'),
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: EmSpacing.s20),
             ],
           );
         }),

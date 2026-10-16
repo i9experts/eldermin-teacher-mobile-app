@@ -1,16 +1,17 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../components/common_image_view.dart';
-import '../../../components/custom_text.dart';
-import '../../../config/app_images.dart';
+import '../../../../core/design/design.dart';
 
 /// The root screen shown while [AuthController] resolves its bootstrap
 /// (token check + profile fetch). Purely presentational - the
 /// swap away from this screen is driven entirely by `_AuthGate` in
-/// main.dart reacting to `AuthController.status`, matching the same
-/// gradient/ring language as [HeroCard] so the very first frame the
-/// user sees already looks like the rest of the app.
+/// main.dart reacting to `AuthController.status`.
+///
+/// Hand-off from the native splash: same `primaryDark` background and the
+/// reversed logomark at the same size ([EmLogomark.splashHeight]) in the exact
+/// centre of the screen, fully visible from the first frame (no scale or fade
+/// on the logo, so nothing jumps). Only the title, tagline and loading dots
+/// fade in, below the logo.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -18,14 +19,9 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
   late final AnimationController _entrance;
   late final AnimationController _loop;
-  late final Animation<double> _ringFade;
-  late final Animation<double> _ringScale;
-  late final Animation<double> _logoFade;
-  late final Animation<double> _logoScale;
   late final Animation<double> _titleFade;
   late final Animation<Offset> _titleSlide;
   late final Animation<double> _taglineFade;
@@ -34,41 +30,13 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-
-    _entrance = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..forward();
-    _loop = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1400))
-      ..repeat();
-    _ringFade = CurvedAnimation(
-        parent: _entrance,
-        curve: const Interval(0.0, 0.45, curve: Curves.easeOut));
-    _ringScale = Tween(begin: 0.5, end: 1.0).animate(CurvedAnimation(
-        parent: _entrance,
-        curve: const Interval(0.0, 0.55, curve: Curves.easeOutCubic)));
-
-    _logoFade = CurvedAnimation(
-        parent: _entrance,
-        curve: const Interval(0.05, 0.5, curve: Curves.easeOut));
-    _logoScale = Tween(begin: 0.55, end: 1.0).animate(CurvedAnimation(
-        parent: _entrance,
-        curve: const Interval(0.05, 0.6, curve: Curves.easeOutBack)));
-
-    _titleFade = CurvedAnimation(
-        parent: _entrance,
-        curve: const Interval(0.4, 0.75, curve: Curves.easeOut));
-    _titleSlide = Tween(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-        CurvedAnimation(
-            parent: _entrance,
-            curve: const Interval(0.4, 0.8, curve: Curves.easeOutCubic)));
-
-    _taglineFade = CurvedAnimation(
-        parent: _entrance,
-        curve: const Interval(0.6, 0.95, curve: Curves.easeOut));
-    _loaderFade = CurvedAnimation(
-        parent: _entrance,
-        curve: const Interval(0.75, 1.0, curve: Curves.easeOut));
+    _entrance = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..forward();
+    _loop = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat();
+    _titleFade = CurvedAnimation(parent: _entrance, curve: const Interval(0.1, 0.55, curve: Curves.easeOut));
+    _titleSlide = Tween(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _entrance, curve: const Interval(0.1, 0.6, curve: Curves.easeOutCubic)));
+    _taglineFade = CurvedAnimation(parent: _entrance, curve: const Interval(0.35, 0.8, curve: Curves.easeOut));
+    _loaderFade = CurvedAnimation(parent: _entrance, curve: const Interval(0.6, 1.0, curve: Curves.easeOut));
   }
 
   @override
@@ -81,162 +49,95 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primaryColor,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: AppColors.heroGradient,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -70,
-              top: -70,
-              child: FadeTransition(
-                opacity: _ringFade,
-                child: ScaleTransition(
-                  scale: _ringScale,
-                  child: Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: Colors.white.withOpacity(0.07), width: 42),
-                    ),
+      backgroundColor: EmColors.primaryDark,
+      body: LayoutBuilder(
+        builder: (context, box) {
+          final belowLogo = box.maxHeight / 2 + EmLogomark.splashHeight / 2 + EmSpacing.s24;
+          return Stack(
+            children: [
+              // exact centre, identical to the native splash image
+              const Center(child: EmLogomark(height: EmLogomark.splashHeight, reversed: true, semanticLabel: 'Eldermin Teacher')),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: belowLogo,
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FadeTransition(
+                        opacity: _titleFade,
+                        child: SlideTransition(
+                          position: _titleSlide,
+                          child: Text('Eldermin Teacher',
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: EmType.display.copyWith(color: EmColors.onPrimaryDark, fontSize: 28)),
+                        ),
+                      ),
+                      const SizedBox(height: EmSpacing.s8),
+                      FadeTransition(
+                        opacity: _taglineFade,
+                        child: Text('Your classroom, in your pocket.',
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: EmType.body.copyWith(color: EmColors.primaryLight, fontWeight: FontWeight.w400)),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              left: -60,
-              bottom: -80,
-              child: FadeTransition(
-                opacity: _ringFade,
-                child: ScaleTransition(
-                  scale: _ringScale,
-                  child: Container(
-                    width: 220,
-                    height: 220,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: Colors.white.withOpacity(0.05), width: 46),
-                    ),
+              PositionedDirectional(
+                start: 0,
+                end: 0,
+                bottom: 0,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.only(bottom: EmSpacing.s32),
+                    child: FadeTransition(opacity: _loaderFade, child: Center(child: _LoadingDots(loop: _loop))),
                   ),
                 ),
               ),
-            ),
-            SafeArea(
-              child: SizedBox(
-                width: double.infinity,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Spacer(flex: 3),
-                    FadeTransition(
-                      opacity: _logoFade,
-                      child: ScaleTransition(
-                        scale: _logoScale,
-                        child: Container(
-                          width: 128,
-                          height: 128,
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                                color: AppColors.primaryColor.withOpacity(0.8)),
-                          ),
-                          child: const CommonImageView(
-                            imagePath: AppImages.fullLogo,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    FadeTransition(
-                      opacity: _titleFade,
-                      child: SlideTransition(
-                        position: _titleSlide,
-                        child: const CustomText(
-                          text: 'Eldermin Teacher',
-                          textAlign: TextAlign.center,
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    FadeTransition(
-                      opacity: _taglineFade,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.xl),
-                        child: CustomText(
-                          text: 'Your classroom, in your pocket.',
-                          textAlign: TextAlign.center,
-                          color: Colors.white.withOpacity(0.75),
-                          fontSize: 13.5,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    const Spacer(flex: 4),
-                    FadeTransition(
-                      opacity: _loaderFade,
-                      child: _LoadingDots(loop: _loop),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-/// Three softly pulsing dots, phase-offset via a repeating [loop]
-/// controller - a lighter-weight "still working" affordance than a
-/// spinner, consistent with the calm tone of the rest of the splash.
+/// Three softly pulsing dots (phase-offset via a repeating controller).
 class _LoadingDots extends StatelessWidget {
   final AnimationController loop;
   const _LoadingDots({required this.loop});
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: loop,
-      builder: (context, _) {
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(3, (i) {
-            final phase = (loop.value + i * 0.2) % 1.0;
-            final t = 0.5 + 0.5 * math.sin(2 * math.pi * phase);
-            return Container(
-              width: 8,
-              height: 8,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.35 + 0.55 * t),
-              ),
-            );
-          }),
-        );
-      },
+    return Semantics(
+      label: 'Loading',
+      liveRegion: true,
+      excludeSemantics: true,
+      child: AnimatedBuilder(
+        animation: loop,
+        builder: (context, _) {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(3, (i) {
+              final phase = (loop.value + i * 0.2) % 1.0;
+              final t = 0.5 + 0.5 * math.sin(2 * math.pi * phase);
+              return Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: EmColors.primaryLight.withOpacity(0.35 + 0.65 * t)),
+              );
+            }),
+          );
+        },
+      ),
     );
   }
 }

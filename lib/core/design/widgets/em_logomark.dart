@@ -9,6 +9,10 @@ class EmLogomark extends StatelessWidget {
   final bool reversed;
   final String semanticLabel;
 
+  /// Height of the logomark on the native and Flutter splash (dp). The native
+  /// splash PNGs (assets/splash) are exported at this size so the hand-off is seamless.
+  static const double splashHeight = 112;
+
   static const asset = 'assets/brand/logomark.svg';
   static const reversedAsset = 'assets/brand/logomark_reversed.svg';
 
