@@ -10,12 +10,14 @@ import 'app/modules/home/views/home_shell.dart';
 import 'app/modules/intro/views/intro_screen.dart';
 import 'app/modules/splash/views/splash_screen.dart';
 import 'app/routes/app_pages.dart';
+import 'core/design/font_license.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/app_widgets.dart';
 import 'app/components/custom_text.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  registerFontLicenses();
   runApp(const EldeminTeacherApp());
 }
 

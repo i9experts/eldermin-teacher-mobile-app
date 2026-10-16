@@ -28,7 +28,6 @@ dependencies:
   intl: ^0.19.0
 
   # UI
-  google_fonts: ^6.2.1
   cached_network_image: ^3.3.1
   shimmer: ^3.0.0
   table_calendar: ^3.1.2
@@ -58,6 +57,22 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/fonts/OFL.txt
+
+  # Plus Jakarta Sans (SIL OFL 1.1), bundled - no runtime font fetching.
+  # The license text is registered with LicenseRegistry in
+  # lib/core/design/font_license.dart.
+  fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
 
 # Launcher icon: placeholder-quality Eldermin Teacher variant generated from
 # the Eldermin logomark (see assets/launcher_icon). Re-run with
