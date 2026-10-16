@@ -1,0 +1,3 @@
+tags:
+  golden:
+    description: "Pixel goldens of the design gallery sections (macOS baseline). Update with: flutter test --tags golden --update-goldens"
