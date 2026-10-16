@@ -39,7 +39,7 @@ class HomeworkNewScreen extends GetView<HomeworkFormController> {
         Get.back();
       },
       child: Scaffold(
-        appBar: AppBar(title: CustomText(text: c.isEditing ? 'Edit homework' : 'New homework', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+        appBar: AppBar(title: CustomText(text: c.isEditing ? 'Edit homework' : 'New homework', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
         body: Obx(() {
           if (!c.isEditing && c.classes.isEmpty) {
             return const AppEmptyView(

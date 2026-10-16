@@ -112,9 +112,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         title: Obx(() {
           final t = c.thread;
           return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            CustomText(key: const Key('chat_title'), text: t == null || t.guardianName.isEmpty ? 'Conversation' : t.guardianName, color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, maxLines: 1, overflow: TextOverflow.ellipsis),
+            CustomText(key: const Key('chat_title'), text: t == null || t.guardianName.isEmpty ? 'Conversation' : t.guardianName, color: AppColors.ink, fontSize: 16, fontWeight: FontWeight.w800, maxLines: 1, overflow: TextOverflow.ellipsis),
             if (t != null && (t.studentName.isNotEmpty || t.subject.isNotEmpty))
-              CustomText(text: [if (t.studentName.isNotEmpty) 're ${t.studentName}', if (t.subject.isNotEmpty) t.subject].join(' · '), color: const Color(0xFFBCD3E5), fontSize: 11, maxLines: 1, overflow: TextOverflow.ellipsis),
+              CustomText(text: [if (t.studentName.isNotEmpty) 're ${t.studentName}', if (t.subject.isNotEmpty) t.subject].join(' · '), color: AppColors.muted, fontSize: 11, maxLines: 1, overflow: TextOverflow.ellipsis),
           ]);
         }),
         actions: [

@@ -19,14 +19,14 @@ class LessonPlansScreen extends GetView<LessonPlansController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const CustomText(text: 'Lesson plans', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+        title: const CustomText(text: 'Lesson plans', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700),
         actions: [
           Obx(() => controller.canView && controller.state.value.status != SectionStatus.forbidden
               ? IconButton(
                   key: const Key('lp_upload_action'),
                   tooltip: 'Upload & parse',
                   onPressed: () => Get.toNamed(Routes.lessonPlanUpload),
-                  icon: const Icon(Icons.upload_file_rounded, color: Colors.white),
+                  icon: const Icon(Icons.upload_file_rounded, color: AppColors.ink),
                 )
               : const SizedBox.shrink()),
         ],

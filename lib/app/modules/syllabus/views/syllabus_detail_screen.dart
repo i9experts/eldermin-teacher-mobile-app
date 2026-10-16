@@ -24,7 +24,7 @@ class SyllabusDetailScreen extends GetView<SyllabusDetailController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Syllabus', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Syllabus', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       body: Obx(() {
         final c = controller;
         // The list controller owns the syllabus after the first load (ticks update it), so read it reactively; the detail state covers the

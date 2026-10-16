@@ -25,7 +25,7 @@ class AttendanceScreen extends GetView<AttendanceController> {
     final body = Obx(() => controller.allowed ? _hub() : const _NotClassTeacher());
     if (embedded) return body;
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Attendance', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Attendance', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       body: body,
     );
   }

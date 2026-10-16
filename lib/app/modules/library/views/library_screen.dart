@@ -49,7 +49,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Library', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Library', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       body: Obx(() {
         final state = c.state.value;
         final cat = c.category.value;

@@ -32,7 +32,7 @@ class _BehaviourScreenState extends State<BehaviourScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Behaviour & Tarbiyah', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Behaviour & Tarbiyah', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       floatingActionButton: Obx(() => c.canView && c.canLog && c.classes.isNotEmpty && c.state.value.status != SectionStatus.forbidden
           ? FloatingActionButton.extended(
               key: const Key('beh_new_fab'),

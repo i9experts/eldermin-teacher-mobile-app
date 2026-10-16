@@ -19,7 +19,7 @@ class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
   Widget build(BuildContext context) {
     final c = controller;
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Student behaviour', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Student behaviour', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       floatingActionButton: Obx(() {
         final s = c.student.value.data;
         return s != null && c.canLog

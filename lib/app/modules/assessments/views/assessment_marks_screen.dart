@@ -100,7 +100,7 @@ class _MarksBodyState extends State<_MarksBody> {
         if (await _confirmLeave()) Get.back();
       },
       child: Scaffold(
-        appBar: AppBar(title: Obx(() => CustomText(text: c.editable ? 'Enter marks' : 'Marks', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700))),
+        appBar: AppBar(title: Obx(() => CustomText(text: c.editable ? 'Enter marks' : 'Marks', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700))),
         body: Obx(() {
           c.revision.value;
           final state = c.state.value;

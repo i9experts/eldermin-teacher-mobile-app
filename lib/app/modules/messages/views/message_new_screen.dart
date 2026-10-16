@@ -37,7 +37,7 @@ class MessageNewScreen extends GetView<NewThreadController> {
         Get.back();
       },
       child: Scaffold(
-        appBar: AppBar(title: const CustomText(text: 'New message', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+        appBar: AppBar(title: const CustomText(text: 'New message', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
         body: Obx(() {
           if (c.classes.isEmpty) {
             return const AppEmptyView(key: Key('new_no_classes'), icon: Icons.school_outlined, title: "You aren't assigned to any class yet", subtitle: 'You can message the guardians of students in your classes.');

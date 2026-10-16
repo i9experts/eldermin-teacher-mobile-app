@@ -29,9 +29,9 @@ class CalendarScreen extends StatelessWidget {
         appBar: AppBar(
           title: const Text('School calendar'),
           bottom: TabBar(
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: const Color(0xFFBCD3E5),
+            indicatorColor: AppColors.ink,
+            labelColor: AppColors.ink,
+            unselectedLabelColor: AppColors.muted,
             tabs: [
               const Tab(key: Key('tab_calendar'), text: 'Calendar'),
               Tab(
@@ -42,7 +42,7 @@ class CalendarScreen extends StatelessWidget {
                     const Text('Circulars'),
                     if (n > 0) ...[
                       const SizedBox(width: 6),
-                      Container(key: const Key('circulars_pending_badge'), padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1), decoration: BoxDecoration(color: AppColors.amber, borderRadius: BorderRadius.circular(9)), child: Text('$n', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white))),
+                      Container(key: const Key('circulars_pending_badge'), padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1), decoration: BoxDecoration(color: AppColors.amber, borderRadius: BorderRadius.circular(9)), child: Text('$n', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.ink))),
                     ],
                   ]);
                 }),

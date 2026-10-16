@@ -21,7 +21,7 @@ class AssessmentDetailScreen extends GetView<AssessmentDetailController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Assessment', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Assessment', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       body: Obx(() {
         final c = controller;
         final fromList = list.byId(c.id);

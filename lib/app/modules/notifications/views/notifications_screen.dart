@@ -27,7 +27,7 @@ class NotificationsScreen extends GetView<NotificationsController> {
             return TextButton(
               key: const Key('notif_mark_all'),
               onPressed: enabled ? () => _markAll(context) : null,
-              child: Text('Mark all read', style: TextStyle(color: enabled ? Colors.white : Colors.white38, fontWeight: FontWeight.w700, fontSize: 12)),
+              child: Text('Mark all read', style: TextStyle(color: enabled ? AppColors.ink : AppColors.faint, fontWeight: FontWeight.w700, fontSize: 12)),
             );
           }),
         ],

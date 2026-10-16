@@ -17,7 +17,7 @@ class QuizAttemptsScreen extends GetView<QuizAttemptsController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Quiz grading', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Quiz grading', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       body: Obx(() {
         final c = controller;
         final state = c.state.value;

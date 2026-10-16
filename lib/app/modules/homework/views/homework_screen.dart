@@ -17,7 +17,7 @@ class HomeworkScreen extends GetView<HomeworkController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Homework', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Homework', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       floatingActionButton: Obx(() => controller.canView && controller.state.value.status != SectionStatus.forbidden
           ? FloatingActionButton.extended(
               key: const Key('hw_new_fab'),

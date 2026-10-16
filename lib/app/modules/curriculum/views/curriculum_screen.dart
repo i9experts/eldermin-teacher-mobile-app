@@ -18,7 +18,7 @@ class CurriculumScreen extends GetView<CurriculumController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Curriculum', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Curriculum', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       body: Obx(() {
         final c = controller;
         final state = c.state.value;

@@ -20,7 +20,7 @@ class LessonPlanUploadScreen extends GetView<LessonPlanUploadController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Upload & parse', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Upload & parse', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       body: Obx(() {
         final reading = c.phase.value == UploadPhase.reading;
         final file = c.picked.value;

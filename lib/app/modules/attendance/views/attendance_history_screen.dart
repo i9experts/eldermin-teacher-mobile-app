@@ -23,7 +23,7 @@ class AttendanceHistoryScreen extends GetView<AttendanceHistoryController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Attendance history', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Attendance history', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       body: Obx(() {
         if (!controller.daily.allowed) {
           return const AppEmptyView(

@@ -66,14 +66,14 @@ class _HomeShellState extends State<HomeShell> {
                           text: user?.name ?? 'Teacher',
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: AppColors.ink,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                       if (subtitle.isNotEmpty)
                         CustomText(
                             text: subtitle,
                             fontSize: 10,
-                            color: const Color(0xFFBCD3E5),
+                            color: AppColors.muted,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                     ],
@@ -88,21 +88,20 @@ class _HomeShellState extends State<HomeShell> {
             padding: const EdgeInsets.only(right: 12),
             child: InkWell(
               onTap: () => Get.toNamed(Routes.notifications),
-              borderRadius: BorderRadius.circular(13),
+              customBorder: const CircleBorder(),
               child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(color: Colors.white.withOpacity(0.13))),
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                    color: AppColors.surface,
+                    shape: BoxShape.circle),
                 // Badge only from the real unread-count endpoint; none when
                 // unavailable (404/501, not deployed yet) or zero.
                 child: Center(
                   child: Obx(() => _CountBadge(
                         key: const Key('bell_badge'),
                         count: badges.notificationUnread.value,
-                        child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20),
+                        child: const Icon(Icons.notifications_none_rounded, color: AppColors.ink, size: 22),
                       )),
                 ),
               ),
@@ -193,9 +192,8 @@ class _Avatar extends StatelessWidget {
       height: 38,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Colors.white, Color(0xFFD9EAFA)]),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.35), width: 2),
+        gradient: const LinearGradient(colors: [AppColors.surface, AppColors.pale]),
+        shape: BoxShape.circle,
       ),
       child: (url == null || url!.isEmpty)
           ? fallback

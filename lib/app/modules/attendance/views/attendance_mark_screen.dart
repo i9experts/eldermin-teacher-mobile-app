@@ -142,7 +142,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         if (mounted) Get.back();
       },
       child: Scaffold(
-        appBar: AppBar(title: const CustomText(text: 'Mark attendance', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+        appBar: AppBar(title: const CustomText(text: 'Mark attendance', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
         body: Obx(() {
           if (!c.allowed) {
             return const AppEmptyView(

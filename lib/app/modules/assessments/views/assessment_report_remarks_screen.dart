@@ -18,7 +18,7 @@ class AssessmentReportRemarksScreen extends GetView<ReportRemarksController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Report card remarks', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'Report card remarks', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       body: Obx(_body),
     );
   }

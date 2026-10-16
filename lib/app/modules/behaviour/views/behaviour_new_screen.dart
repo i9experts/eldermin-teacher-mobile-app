@@ -38,7 +38,7 @@ class BehaviourNewScreen extends GetView<BehaviourLogController> {
         Get.back();
       },
       child: Scaffold(
-        appBar: AppBar(title: const CustomText(text: 'Log behaviour', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+        appBar: AppBar(title: const CustomText(text: 'Log behaviour', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
         body: Obx(() {
           if (!c.canLog) {
             return const AppEmptyView(key: Key('beh_no_access'), icon: Icons.lock_outline_rounded, title: "You don't have access", subtitle: "Your account isn't allowed to log behaviour. Ask your school admin if you think this is a mistake.");

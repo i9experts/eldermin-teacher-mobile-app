@@ -41,7 +41,7 @@ class LessonPlanNewScreen extends GetView<LessonPlanFormController> {
         appBar: AppBar(
           title: CustomText(
             text: c.isEditing ? (c.editing!.status == LessonPlanStatus.rejected ? 'Edit and resubmit' : 'Edit lesson plan') : 'New lesson plan',
-            color: Colors.white,
+            color: AppColors.ink,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),

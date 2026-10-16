@@ -22,7 +22,7 @@ class TimetableScreen extends GetView<TimetableController> {
     if (embedded) return body;
     return Scaffold(
       appBar: AppBar(
-        title: const CustomText(text: 'Timetable', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+        title: const CustomText(text: 'Timetable', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700),
       ),
       body: body,
     );

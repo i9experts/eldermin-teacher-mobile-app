@@ -17,7 +17,7 @@ class StudentsScreen extends GetView<StudentsController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'My students', color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+      appBar: AppBar(title: const CustomText(text: 'My students', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
       body: Obx(_body),
     );
   }
