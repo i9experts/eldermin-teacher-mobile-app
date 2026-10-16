@@ -206,9 +206,7 @@ Future<void> showCalendarEntrySheet(BuildContext context, CalendarEntry e) {
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Container(width: 12, height: 12, decoration: BoxDecoration(color: e.color, shape: BoxShape.circle)),
-            const SizedBox(width: 8),
-            CustomText(text: e.type.label.toUpperCase(), fontSize: 10.5, fontWeight: FontWeight.w800, color: e.color),
+            CalendarTypeLabel(color: e.color, label: e.type.label, dotSize: 12),
             if (e.source == 'academics' || e.source == 'assessments') ...[const SizedBox(width: 8), CustomText(text: e.source == 'academics' ? 'from Academics' : 'from Assessments', fontSize: 10.5, color: AppColors.faint)],
           ]),
           const SizedBox(height: 8),

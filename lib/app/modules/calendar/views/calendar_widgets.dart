@@ -1,3 +1,4 @@
+import '../../../../core/design/tokens/em_colors.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/models/calendar/calendar_models.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -46,6 +47,23 @@ class CalendarEntryCard extends StatelessWidget {
   }
 }
 
+/// Event-type label: a dot in the event colour plus the label in ink. The
+/// colour is never used for text, so a server-supplied hex cannot fail contrast.
+class CalendarTypeLabel extends StatelessWidget {
+  final Color color;
+  final String label;
+  final double dotSize;
+  final double fontSize;
+  const CalendarTypeLabel({super.key, required this.color, required this.label, this.dotSize = 9, this.fontSize = 10.5});
+
+  @override
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(key: const Key('cal_type_dot'), width: dotSize, height: dotSize, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Flexible(child: CustomText(text: label.toUpperCase(), fontSize: fontSize, fontWeight: FontWeight.w800, color: EmColors.ink, maxLines: 1, overflow: TextOverflow.ellipsis)),
+      ]);
+}
+
 class _TypeChip extends StatelessWidget {
   final CalendarEventType type;
   final Color color;
@@ -54,8 +72,8 @@ class _TypeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(AppRadius.pill)),
-        child: CustomText(text: type.label.toUpperCase(), fontSize: 9, fontWeight: FontWeight.w800, color: color),
+        decoration: BoxDecoration(color: EmColors.primaryTint, borderRadius: BorderRadius.circular(AppRadius.pill)),
+        child: CalendarTypeLabel(color: color, label: type.label, dotSize: 8, fontSize: 9),
       );
 }
 
