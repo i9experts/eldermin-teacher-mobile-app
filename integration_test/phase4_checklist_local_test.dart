@@ -71,13 +71,15 @@ Finder idKeyedAnyPrefix(List<String> prefixes) => find.byWidgetPredicate((w) {
       return k is ValueKey<String> && prefixes.any((p) => k.value.startsWith(p)) && RegExp(r'[0-9a-f]{24}$').hasMatch(k.value);
     });
 
+/// Messages tab count + whether the bell shows its unread dot (D3: no Material `Badge` in the shell any more).
 String badgeTexts(WidgetTester t) {
   final out = <String>[];
-  for (final e in find.byType(Badge).evaluate()) {
-    final b = e.widget as Badge;
-    final l = b.label;
-    if (l is Text) out.add(l.data ?? '');
+  final msg = find.byKey(const Key('messages_badge'));
+  if (msg.evaluate().isNotEmpty) {
+    final txt = find.descendant(of: msg, matching: find.byType(Text));
+    if (txt.evaluate().isNotEmpty) out.add((txt.evaluate().first.widget as Text).data ?? '');
   }
+  if (find.descendant(of: find.byKey(const Key('bell_badge')), matching: find.byKey(const Key('em_dot'))).evaluate().isNotEmpty) out.add('dot');
   return out.join(',');
 }
 

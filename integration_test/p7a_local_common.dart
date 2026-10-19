@@ -53,11 +53,14 @@ Future<void> realWait(WidgetTester t, int seconds) async {
   await t.pump(const Duration(milliseconds: 300));
 }
 
-/// The count shown by a `_CountBadge` with [key] ('0' when there is no badge).
+/// The unread indicator for [key]: for `messages_badge` (the Messages tab) the count shown in the count badge
+/// ('0' when there is none); for `bell_badge` (the header bell) the bell shows an unread DOT without a number,
+/// so it reads 'dot' when the dot is drawn and '0' when it is not (D3: the shell's Material `Badge` is gone).
 String badgeOf(String key) {
-  final badge = find.descendant(of: find.byKey(Key(key)), matching: find.byType(Badge));
-  if (badge.evaluate().isEmpty) return '0';
-  final txt = find.descendant(of: badge, matching: find.byType(Text));
+  final k = find.byKey(Key(key));
+  if (k.evaluate().isEmpty) return '0';
+  if (key == 'bell_badge') return find.descendant(of: k, matching: find.byKey(const Key('em_dot'))).evaluate().isEmpty ? '0' : 'dot';
+  final txt = find.descendant(of: k, matching: find.byType(Text));
   return txt.evaluate().isEmpty ? '?' : (txt.evaluate().first.widget as Text).data ?? '?';
 }
 
