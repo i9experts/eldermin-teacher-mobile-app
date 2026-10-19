@@ -15,6 +15,7 @@ class EmIconCircleButton extends StatelessWidget {
     this.size = 48,
     this.iconColor = EmColors.ink,
     this.elevated = true,
+    this.tooltip,
   }) : assert(size >= 48, 'touch target must be at least 48dp');
 
   final IconData icon;
@@ -28,9 +29,12 @@ class EmIconCircleButton extends StatelessWidget {
   final Color iconColor;
   final bool elevated;
 
+  /// Long-press / hover hint. Also what `tester.pageBack()` looks for on a back button (tooltip "Back").
+  final String? tooltip;
+
   @override
   Widget build(BuildContext context) {
-    return Semantics(
+    final button = Semantics(
       button: true,
       enabled: onTap != null,
       label: showDot ? '$semanticLabel, $dotLabel' : semanticLabel,
@@ -55,7 +59,9 @@ class EmIconCircleButton extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Icon(icon, size: 22, color: onTap == null ? EmColors.onDisabled : iconColor),
+                  Icon(icon,
+                      size: 22,
+                      color: onTap == null ? EmColors.onDisabled : iconColor),
                   if (showDot)
                     PositionedDirectional(
                       top: size * 0.22,
@@ -67,7 +73,8 @@ class EmIconCircleButton extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: EmColors.error,
                           shape: BoxShape.circle,
-                          border: Border.all(color: EmColors.surface, width: 1.5),
+                          border:
+                              Border.all(color: EmColors.surface, width: 1.5),
                         ),
                       ),
                     ),
@@ -78,5 +85,8 @@ class EmIconCircleButton extends StatelessWidget {
         ),
       ),
     );
+    return tooltip == null
+        ? button
+        : Tooltip(message: tooltip!, excludeFromSemantics: true, child: button);
   }
 }

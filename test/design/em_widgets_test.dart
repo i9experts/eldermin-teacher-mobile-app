@@ -59,6 +59,19 @@ void main() {
       expect(find.byIcon(Icons.chevron_left_rounded), findsNothing);
       expectNoLayoutErrors(t);
     });
+    testWidgets('the back circle carries the "Back" tooltip, so tester.pageBack() works (integration helpers rely on it)', (t) async {
+      final nav = GlobalKey<NavigatorState>();
+      t.view.physicalSize = const Size(360, 800);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(MaterialApp(navigatorKey: nav, home: const Scaffold(body: Text('root'))));
+      nav.currentState!.push(MaterialPageRoute<void>(builder: (_) => host(const EmAppBar(title: 'Page'))));
+      await t.pumpAndSettle();
+      expect(find.byTooltip('Back'), findsOneWidget);
+      await t.pageBack();
+      await t.pumpAndSettle();
+      expect(find.text('root'), findsOneWidget);
+    });
     testWidgets('RTL uses the mirrored chevron', (t) async {
       await pumpEm(t, host(EmAppBar(title: 'T', onBack: () {})), scaffold: false, dir: TextDirection.rtl);
       expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);

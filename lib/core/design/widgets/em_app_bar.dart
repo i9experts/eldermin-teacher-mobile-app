@@ -45,6 +45,7 @@ class EmAppBar extends StatelessWidget implements PreferredSizeWidget {
         ? EmIconCircleButton(
             icon: rtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
             semanticLabel: backLabel,
+            tooltip: backLabel,
             onTap: onBack ?? () => Navigator.maybeOf(context)?.maybePop(),
           )
         : const SizedBox(width: 48, height: 48);
