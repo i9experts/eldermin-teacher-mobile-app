@@ -144,7 +144,9 @@ class _CaughtUp extends StatelessWidget {
         child: Row(children: [
           Icon(Icons.mark_email_read_outlined, color: AppColors.faint, size: 22),
           SizedBox(width: 12),
-          CustomText(text: "You're all caught up - no unread messages", color: AppColors.primaryColor, fontWeight: FontWeight.w700, fontSize: 12),
+          Expanded(
+            child: CustomText(text: "You're all caught up - no unread messages", color: AppColors.primaryColor, fontWeight: FontWeight.w700, fontSize: 12, maxLines: 2, overflow: TextOverflow.ellipsis),
+          ),
         ]),
       );
 }
