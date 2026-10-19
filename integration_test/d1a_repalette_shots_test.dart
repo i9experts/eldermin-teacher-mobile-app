@@ -3,6 +3,7 @@
 // markers for tool/dev/capture_walkthrough.sh. Not a unit test.
 //
 //   tool/dev/capture_walkthrough.sh <sim> <out-dir> integration_test/d1a_repalette_shots_test.dart
+import 'package:get/get.dart';
 import 'package:eldermin_teacher_app/main.dart' as app;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,16 @@ Finder navLabel(String label) => find.descendant(of: find.byKey(const Key('app_s
 
 /// The Attendance hub is no longer a bottom tab: Classes tab -> Attendance card (a pushed page; go back once more to reach the shell).
 Future<void> openAttendanceHub(WidgetTester t) async {
+  // the bar is hidden while a pushed page covers the shell: go back to it first
+  for (var i = 0; i < 6 && (Get.key.currentState?.canPop() ?? false); i++) {
+    await t.pageBack();
+    await t.pump(const Duration(milliseconds: 700));
+    // an unsaved-changes screen asks before it closes
+    if (find.byKey(const Key('discard_confirm')).evaluate().isNotEmpty) {
+      await t.tap(find.byKey(const Key('discard_confirm')));
+      await t.pump(const Duration(milliseconds: 700));
+    }
+  }
   await t.tap(navLabel('Classes'));
   await t.pump(const Duration(milliseconds: 800));
   await t.tap(find.byKey(const ValueKey('module_attendance')));

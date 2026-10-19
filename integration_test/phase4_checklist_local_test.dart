@@ -91,7 +91,7 @@ Future<void> openTimetableTabForA(WidgetTester t) async {
 
 Future<void> toHome(WidgetTester t) async {
   // leave a pushed page (e.g. the timetable opened from the FAB) before using the bar
-  for (var i = 0; i < 3 && find.byKey(const Key('app_shell_nav')).evaluate().isEmpty; i++) {
+  for (var i = 0; i < 3 && (Get.key.currentState?.canPop() ?? false); i++) {
     await t.pageBack();
     await settle(t, 600);
   }

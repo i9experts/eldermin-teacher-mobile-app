@@ -2,6 +2,7 @@
 // (tool/dev/stub_server.py, dummy data). Prints SHOT:<name> / STUB:<path> markers for tool/dev/capture_walkthrough.sh.
 //
 //   tool/dev/capture_walkthrough.sh <sim> <out-dir> integration_test/phase5a_classroom_test.dart
+import 'package:get/get.dart';
 import 'package:eldermin_teacher_app/main.dart' as app;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,8 +38,32 @@ Finder chip(int i, String wire) => find.byKey(ValueKey('chip_${sid(i)}_$wire'));
 
 Finder navLabel(String label) => find.descendant(of: find.byKey(const Key('app_shell_nav')), matching: find.text(label));
 
+/// Pops pushed pages until the shell (the root route) is showing again. (The covered bar is still
+/// 'found' under a pushed page, so check the navigator, not the finder.)
+Future<void> backToShell(WidgetTester t) async {
+  for (var i = 0; i < 6 && (Get.key.currentState?.canPop() ?? false); i++) {
+    await t.pageBack();
+    await t.pump(const Duration(milliseconds: 700));
+    // an unsaved-changes screen asks before it closes
+    if (find.byKey(const Key('discard_confirm')).evaluate().isNotEmpty) {
+      await t.tap(find.byKey(const Key('discard_confirm')));
+      await t.pump(const Duration(milliseconds: 700));
+    }
+  }
+}
+
 /// The Attendance hub is no longer a bottom tab: Classes tab -> Attendance card (a pushed page; go back once more to reach the shell).
 Future<void> openAttendanceHub(WidgetTester t) async {
+  // the bar is hidden while a pushed page covers the shell: go back to it first
+  for (var i = 0; i < 6 && (Get.key.currentState?.canPop() ?? false); i++) {
+    await t.pageBack();
+    await t.pump(const Duration(milliseconds: 700));
+    // an unsaved-changes screen asks before it closes
+    if (find.byKey(const Key('discard_confirm')).evaluate().isNotEmpty) {
+      await t.tap(find.byKey(const Key('discard_confirm')));
+      await t.pump(const Duration(milliseconds: 700));
+    }
+  }
   await t.tap(navLabel('Classes'));
   await t.pump(const Duration(milliseconds: 800));
   await t.tap(find.byKey(const ValueKey('module_attendance')));
@@ -140,9 +165,7 @@ void main() {
     await shot(t, '5a_31_history_day_detail');
 
     // ── Timetable (class teachers reach it via More) ──
-    await t.pageBack(); // history -> hub
-    await settle(t, 600);
-    await t.pageBack(); // hub -> shell (the hub is a pushed page now)
+    await backToShell(t); // history -> hub -> shell (the hub is a pushed page now)
     await settle(t, 600);
     await t.tap(navLabel('More'));
     await settle(t, 800);
