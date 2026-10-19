@@ -116,9 +116,10 @@ class AppPages {
     GetPage(name: Routes.unsupportedRole, page: () => const UnsupportedRoleScreen()),
     GetPage(name: Routes.home, page: () => const HomeShell(initialTab: 0)),
     GetPage(name: Routes.homeClasses, page: () => const HomeShell(initialTab: 1)),
-    GetPage(name: Routes.homeAttendance, page: () => const HomeShell(initialTab: 2)),
-    GetPage(name: Routes.homeMessages, page: () => const HomeShell(initialTab: 3)),
-    GetPage(name: Routes.homeMore, page: () => const HomeShell(initialTab: 4)),
+    // Attendance is no longer a tab: /home/attendance opens the (class-teacher-only, guarded) Attendance screen itself.
+    GetPage(name: Routes.homeAttendance, page: () => const AttendanceScreen(), binding: AttendanceBinding()),
+    GetPage(name: Routes.homeMessages, page: () => const HomeShell(initialTab: 2)),
+    GetPage(name: Routes.homeMore, page: () => const HomeShell(initialTab: 3)),
     GetPage(
         name: Routes.intro,
         page: () => const IntroScreen(),
@@ -132,7 +133,7 @@ class AppPages {
         page: () => const ResetPasswordScreen(),
         binding: ResetPasswordBinding()),
     // Static paths before the parameterised one: `/messages/new` must never be read as a thread id.
-    GetPage(name: Routes.messages, page: () => const HomeShell(initialTab: 3)),
+    GetPage(name: Routes.messages, page: () => const HomeShell(initialTab: 2)),
     GetPage(
         name: Routes.messageNew,
         page: () => const MessageNewScreen(),

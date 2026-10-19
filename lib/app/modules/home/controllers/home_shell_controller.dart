@@ -2,8 +2,8 @@ import 'package:get/get.dart';
 import 'home_badges_controller.dart';
 
 class HomeShellController extends GetxController {
-  /// Index of the Messages tab in the shell's bottom navigation.
-  static const int messagesTab = 3;
+  /// Index of the Messages tab in the shell's bottom navigation (Home 0 · Classes 1 · Messages 2 · More 3).
+  static const int messagesTab = 2;
 
   final tabIndex = 0.obs;
 

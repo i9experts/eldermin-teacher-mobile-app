@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -36,16 +37,20 @@ class ClassesScreen extends GetView<ClassesController> {
             const SizedBox(height: 14),
           ],
           const SectionRow(title: 'Tools'),
-          GridView.count(
-            key: const Key('classes_grid'),
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1.25,
-            children: [for (final e in entries) _ModuleCard(entry: e, onTap: () => Get.toNamed(e.route))],
-          ),
+          // Card height = the old 1.25 aspect ratio, but never below what the content needs
+          // (320dp wide or large text overflowed the fixed ratio by a pixel or more).
+          LayoutBuilder(builder: (context, box) {
+            final scale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.3);
+            final cardWidth = (box.maxWidth - 10) / 2;
+            final extent = math.max(cardWidth / 1.25, 124.0 * scale);
+            return GridView(
+              key: const Key('classes_grid'),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, mainAxisExtent: extent),
+              children: [for (final e in entries) _ModuleCard(entry: e, onTap: () => Get.toNamed(e.route))],
+            );
+          }),
         ],
       );
     });
