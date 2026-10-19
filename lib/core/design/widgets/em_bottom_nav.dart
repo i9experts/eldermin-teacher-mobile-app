@@ -5,7 +5,15 @@ import '../tokens/em_shadows.dart';
 import '../tokens/em_typography.dart';
 
 class EmNavItem {
-  const EmNavItem({required this.icon, required this.activeIcon, required this.label, this.badgeCount, this.showDot = false});
+  const EmNavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    this.badgeCount,
+    this.badgeCapped = false,
+    this.badgeKey,
+    this.showDot = false,
+  });
   final IconData icon;
 
   /// Filled variant shown when active.
@@ -14,6 +22,12 @@ class EmNavItem {
 
   /// Unread count over the icon (null/0 = none; >99 shows "99+").
   final int? badgeCount;
+
+  /// The count is a lower bound (shows "n+").
+  final bool badgeCapped;
+
+  /// Key set on the count badge (tests / finders).
+  final Key? badgeKey;
   final bool showDot;
 }
 
@@ -21,8 +35,10 @@ class EmNavItem {
 /// [centerAction] (an [EmDiamondFab]) overlaps the top edge by half. Active
 /// item = filled icon + primary label; no pill behind it.
 ///
-/// Not wired into the app shell yet (D3). Place it in `EmScaffold` with
-/// `extendBody: true`.
+/// Without a [centerAction] the four items share the full width (no gap). It
+/// is the app shell's bottom navigation (`HomeShell`, key `app_shell_nav`).
+/// The widget's own height includes the FAB overhang, so a scaffold body with
+/// `extendBody: false` ends above it.
 class EmBottomNav extends StatelessWidget {
   const EmBottomNav({super.key, required this.items, required this.currentIndex, required this.onTap, this.centerAction})
       : assert(items.length == 4, 'EmBottomNav shows exactly 4 items plus the centre slot');
@@ -61,7 +77,7 @@ class EmBottomNav extends StatelessWidget {
                 type: MaterialType.transparency,
                 child: Padding(
                   padding: EdgeInsets.only(bottom: bottom, left: 8, right: 8),
-                  child: Row(children: [item(0), item(1), const SizedBox(width: 84), item(2), item(3)]),
+                  child: Row(children: [item(0), item(1), if (centerAction != null) const SizedBox(width: 84), item(2), item(3)]),
                 ),
               ),
             ),
@@ -100,10 +116,10 @@ class _NavButton extends StatelessWidget {
           end: n > 0 ? -10 : -2,
           child: n > 0
               ? Container(
-                  key: const Key('em_nav_badge'),
+                  key: item.badgeKey ?? const Key('em_nav_badge'),
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                   decoration: const BoxDecoration(color: EmColors.error, borderRadius: EmRadius.pillAll),
-                  child: Text(n > 99 ? '99+' : '$n', style: EmType.navLabel.copyWith(color: EmColors.onError, fontSize: 10, height: 1.2)),
+                  child: Text(n > 99 ? '99+' : '$n${item.badgeCapped ? '+' : ''}', style: EmType.navLabel.copyWith(color: EmColors.onError, fontSize: 10, height: 1.2)),
                 )
               : Container(key: const Key('em_nav_dot'), width: 9, height: 9, decoration: BoxDecoration(color: EmColors.error, shape: BoxShape.circle, border: Border.all(color: EmColors.surface, width: 1.5))),
         ),

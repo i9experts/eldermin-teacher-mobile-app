@@ -1,3 +1,4 @@
+import '../design/design.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../../app/components/custom_text.dart';
@@ -375,22 +376,26 @@ class RefreshFailedBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: const Key('refresh_failed_banner'),
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.only(left: 12, top: 4, bottom: 4, right: 4),
-      decoration: BoxDecoration(color: AppColors.redBg, borderRadius: BorderRadius.circular(AppRadius.md)),
-      child: Row(children: [
-        const Icon(Icons.error_outline_rounded, color: AppColors.red, size: 18),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const CustomText(text: 'Refresh failed', color: AppColors.red, fontSize: 12, fontWeight: FontWeight.w800),
-            if (message != null) CustomText(text: message!, color: AppColors.muted, fontSize: 11, maxLines: 2),
-          ]),
-        ),
-        TextButton(onPressed: onRetry, child: const CustomText(text: 'Retry', color: AppColors.blue, fontWeight: FontWeight.w700)),
-      ]),
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      child: Container(
+        key: const Key('refresh_failed_banner'),
+        margin: const EdgeInsetsDirectional.only(bottom: EmSpacing.s12),
+        padding: const EdgeInsetsDirectional.only(start: EmSpacing.s16, top: EmSpacing.s4, bottom: EmSpacing.s4, end: EmSpacing.s4),
+        decoration: const BoxDecoration(color: EmColors.errorContainer, borderRadius: EmRadius.mdAll),
+        child: Row(children: [
+          const Icon(Icons.error_outline_rounded, color: EmColors.onErrorContainer, size: 20),
+          const SizedBox(width: EmSpacing.s8),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Refresh failed', style: EmType.label.copyWith(color: EmColors.onErrorContainer)),
+              if (message != null) Text(message!, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.caption.copyWith(color: EmColors.onErrorContainer, fontWeight: FontWeight.w400)),
+            ]),
+          ),
+          TextButton(onPressed: onRetry, child: Text('Retry', style: EmType.label.copyWith(color: EmColors.primary))),
+        ]),
+      ),
     );
   }
 }
@@ -428,18 +433,32 @@ class SectionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        CustomText(text: title, color: AppColors.primaryColor, fontSize: 13, fontWeight: FontWeight.w800),
+      padding: const EdgeInsetsDirectional.only(top: EmSpacing.s16, bottom: EmSpacing.s8),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.heading.copyWith(color: EmColors.ink)),
+          ),
+        ),
         if (onSeeAll != null)
-          Material(
-            color: Colors.transparent,
+          Semantics(
+            button: true,
+            label: 'See all $title',
+            excludeSemantics: true,
+            onTap: onSeeAll,
             child: InkWell(
               onTap: onSeeAll,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                child: CustomText(text: 'See all', color: AppColors.blue, fontSize: 10, fontWeight: FontWeight.w700),
+              borderRadius: EmRadius.smAll,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+                child: Center(
+                  widthFactor: 1,
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s8),
+                    child: Text('See all', style: EmType.label.copyWith(color: EmColors.primary)),
+                  ),
+                ),
               ),
             ),
           ),
