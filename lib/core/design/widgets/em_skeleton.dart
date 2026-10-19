@@ -32,17 +32,20 @@ class EmSkeletonBox extends StatelessWidget {
 
 /// Loading placeholder for an [EmListRow]-shaped card (leading circle + two lines).
 class EmSkeletonRow extends StatelessWidget {
-  const EmSkeletonRow({super.key});
+  const EmSkeletonRow({super.key, this.compact = false});
+
+  /// Shorter row (pickers and sheets, where five of them must fit a small panel).
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => Container(
-        margin: const EdgeInsetsDirectional.only(bottom: 12),
-        padding: const EdgeInsetsDirectional.all(16),
+        margin: EdgeInsetsDirectional.only(bottom: compact ? 8 : 12),
+        padding: EdgeInsetsDirectional.all(compact ? 12 : 16),
         decoration: const BoxDecoration(color: EmColors.surface, borderRadius: EmRadius.cardAll),
-        child: const Row(children: [
-          EmSkeletonBox(height: 44, circle: true),
-          SizedBox(width: 12),
-          Expanded(
+        child: Row(children: [
+          EmSkeletonBox(height: compact ? 36 : 44, circle: true),
+          const SizedBox(width: 12),
+          const Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               EmSkeletonBox(height: 14, width: 160),
               SizedBox(height: 8),
