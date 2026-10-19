@@ -567,7 +567,7 @@ Future<void> hungScenario(WidgetTester t) async {
   await step(t, 'B login, Home with data', () async {
     await bootAndSignIn(t, e2eClassEmail, e2eClassPassword);
     await settle(t, 4000);
-    expectTrue('Home greeting visible', find.byKey(const Key('greeting')).evaluate().isNotEmpty);
+    expectTrue('Home greeting visible', find.byKey(const Key('shell_header')).evaluate().isNotEmpty && find.byKey(const Key('greeting_date')).evaluate().isNotEmpty); // D3: the greeting is the shell header (shell_header) + the date line on Home
     await pshot(t, 'home_before_hang');
   });
   await step(t, 'pull-to-refresh with a hung server: errors within ~20 s, old data stays, Retry works after release', () async {
@@ -595,7 +595,7 @@ Future<void> hungScenario(WidgetTester t) async {
     }
     result('seconds until the refresh spinner stopped', settledAt < 0 ? 'NEVER' : settledAt.toStringAsFixed(1));
     result('error banners/sections on Home', find.byKey(const Key('section_error')).evaluate().length);
-    expectTrue('old data stays visible (greeting still there)', find.byKey(const Key('greeting')).evaluate().isNotEmpty);
+    expectTrue('old data stays visible (greeting still there)', find.byKey(const Key('shell_header')).evaluate().isNotEmpty && find.byKey(const Key('greeting_date')).evaluate().isNotEmpty);
     await pshot(t, 'home_hung_errors_old_data_kept');
     await dbAction(t, 'proxy_forward');
     await dbAction(t, 'mark_before_retry');
