@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/design/design.dart';
 import '../../../../../core/widgets/app_widgets.dart';
-import '../../../../../core/widgets/shimmer_widgets.dart';
-import '../../../../components/custom_text.dart';
 import '../../models/section_state.dart';
 
 /// Renders one independent Home section from its [SectionState]:
@@ -47,44 +45,58 @@ class SectionView<T> extends StatelessWidget {
       children: [
         SectionRow(title: title, onSeeAll: state.hasData ? onSeeAll : null),
         _body(),
-        const SizedBox(height: 6),
+        const SizedBox(height: EmSpacing.s4),
       ],
     );
   }
 
+  Widget _iconChip(IconData icon, {Color bg = EmColors.primaryTint, Color fg = EmColors.primary}) => Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+        child: ExcludeSemantics(child: Icon(icon, color: fg, size: 22)),
+      );
+
   Widget _body() {
     switch (state.status) {
       case SectionStatus.loading:
-        return AppShimmer(
+        return EmShimmer(
           key: const Key('section_loading'),
-          child: Column(children: List.generate(skeletonRows, (_) => const ShimmerListRowSkeleton())),
+          child: Column(children: List.generate(skeletonRows, (_) => const EmSkeletonRow())),
         );
       case SectionStatus.data:
         return builder(state.data as T);
       case SectionStatus.empty:
-        return AppCard(
+        return EmCard(
           key: const Key('section_empty'),
           child: Row(children: [
-            Icon(emptyIcon, color: AppColors.faint, size: 22),
-            const SizedBox(width: 12),
+            _iconChip(emptyIcon),
+            const SizedBox(width: EmSpacing.s12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                CustomText(text: emptyTitle, fontWeight: FontWeight.w700, color: AppColors.primaryColor, fontSize: 13),
-                if (emptySubtitle != null)
-                  CustomText(text: emptySubtitle!, color: AppColors.faint, fontSize: 11),
+                Text(emptyTitle, style: EmType.bodyLarge.copyWith(color: EmColors.ink)),
+                if (emptySubtitle != null) Text(emptySubtitle!, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400, fontSize: 13)),
               ]),
             ),
           ]),
         );
       case SectionStatus.forbidden:
-        return const AppCard(
-          key: Key('section_forbidden'),
-          child: CustomText(text: "You don't have access", color: AppColors.muted, fontSize: 12),
+        return EmCard(
+          key: const Key('section_forbidden'),
+          child: Row(children: [
+            _iconChip(Icons.lock_outline_rounded, bg: EmColors.primaryTint, fg: EmColors.textSecondary),
+            const SizedBox(width: EmSpacing.s12),
+            Expanded(child: Text("You don't have access", style: EmType.body.copyWith(color: EmColors.textSecondary))),
+          ]),
         );
       case SectionStatus.unavailable:
-        return const AppCard(
-          key: Key('section_unavailable'),
-          child: CustomText(text: 'Not available on this server yet', color: AppColors.muted, fontSize: 12),
+        return EmCard(
+          key: const Key('section_unavailable'),
+          child: Row(children: [
+            _iconChip(Icons.cloud_off_outlined, bg: EmColors.primaryTint, fg: EmColors.textSecondary),
+            const SizedBox(width: EmSpacing.s12),
+            Expanded(child: Text('Not available on this server yet', style: EmType.body.copyWith(color: EmColors.textSecondary))),
+          ]),
         );
       case SectionStatus.error:
         if (state.isStale) {
@@ -93,13 +105,13 @@ class SectionView<T> extends StatelessWidget {
             builder(state.data as T),
           ]);
         }
-        return AppCard(
+        return EmCard(
           key: const Key('section_error'),
           child: Row(children: [
-            const Icon(Icons.error_outline_rounded, color: AppColors.red, size: 22),
-            const SizedBox(width: 12),
-            Expanded(child: CustomText(text: state.message ?? 'Something went wrong', color: AppColors.muted, fontSize: 12, maxLines: 3)),
-            TextButton(onPressed: onRetry, child: const CustomText(text: 'Retry', color: AppColors.blue, fontWeight: FontWeight.w700)),
+            _iconChip(Icons.error_outline_rounded, bg: EmColors.errorContainer, fg: EmColors.onErrorContainer),
+            const SizedBox(width: EmSpacing.s12),
+            Expanded(child: Text(state.message ?? 'Something went wrong', maxLines: 3, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.textSecondary))),
+            TextButton(onPressed: onRetry, child: Text('Retry', style: EmType.label.copyWith(color: EmColors.primary))),
           ]),
         );
     }

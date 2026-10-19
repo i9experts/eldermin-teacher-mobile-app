@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/design/design.dart';
 import '../../../../core/utils/home_time.dart';
-import '../../../../core/widgets/app_widgets.dart';
 import '../../../components/custom_refresh_wrapper.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
-import '../../auth/controllers/auth_controller.dart';
 import '../controllers/home_dashboard_controller.dart';
 import '../controllers/home_shell_controller.dart';
 import 'widgets/home_sections.dart';
 import 'widgets/section_view.dart';
 
-/// Home tab: greeting, quick actions and independent dashboard sections.
+/// Home tab: today's date and independent dashboard sections (the greeting header
+/// and the bell live in the shell; quick actions are the shell's centre FAB).
 /// Pull-to-refresh re-fetches `/staff-portal/me` and then every section.
 class HomeDashboardScreen extends GetView<HomeDashboardController> {
   const HomeDashboardScreen({super.key});
@@ -24,34 +22,9 @@ class HomeDashboardScreen extends GetView<HomeDashboardController> {
       onRefresh: c.refreshAll,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        padding: const EdgeInsetsDirectional.fromSTEB(EmSpacing.screenH, EmSpacing.s8, EmSpacing.screenH, EmSpacing.s24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          _Greeting(c),
-          Obx(() {
-            final actions = c.quickActions;
-            if (actions.isEmpty) return const SizedBox.shrink();
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(children: [
-                  for (final a in actions)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ActionChip(
-                        key: Key('quick_${a.label}'),
-                        visualDensity: VisualDensity.compact,
-                        avatar: Icon(a.icon, size: 16, color: AppColors.blue),
-                        label: CustomText(text: a.label, fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primaryColor),
-                        backgroundColor: AppColors.surface,
-                        side: const BorderSide(color: AppColors.line),
-                        onPressed: () => Get.toNamed(a.route),
-                      ),
-                    ),
-                ]),
-              ),
-            );
-          }),
+          _TodayHeading(c),
           Obx(() => c.showClassCard
               ? SectionView(
                   title: 'My class',
@@ -139,34 +112,34 @@ class HomeDashboardScreen extends GetView<HomeDashboardController> {
 class _CaughtUp extends StatelessWidget {
   const _CaughtUp();
   @override
-  Widget build(BuildContext context) => const AppCard(
-        key: Key('messages_caught_up'),
+  Widget build(BuildContext context) => EmCard(
+        key: const Key('messages_caught_up'),
         child: Row(children: [
-          Icon(Icons.mark_email_read_outlined, color: AppColors.faint, size: 22),
-          SizedBox(width: 12),
-          CustomText(text: "You're all caught up - no unread messages", color: AppColors.primaryColor, fontWeight: FontWeight.w700, fontSize: 12),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(color: EmColors.successContainer, shape: BoxShape.circle),
+            child: const ExcludeSemantics(child: Icon(Icons.mark_email_read_outlined, color: EmColors.onSuccessContainer, size: 22)),
+          ),
+          const SizedBox(width: EmSpacing.s12),
+          Expanded(
+            child: Text("You're all caught up - no unread messages", maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink, fontSize: 15)),
+          ),
         ]),
       );
 }
 
-class _Greeting extends StatelessWidget {
+/// Today's date (the greeting itself is in the shell header).
+class _TodayHeading extends StatelessWidget {
   final HomeDashboardController c;
-  const _Greeting(this.c);
+  const _TodayHeading(this.c);
 
   @override
   Widget build(BuildContext context) {
-    final auth = Get.find<AuthController>();
-    return Obx(() {
-      final now = c.now.value;
-      final name = (auth.user.value?.name ?? '').trim();
-      final first = name.isEmpty ? '' : ', ${name.split(RegExp(r'\s+')).first}';
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText(text: '${greetingFor(now)}$first', key: const Key('greeting'), fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryColor),
-          CustomText(text: longDateOf(now), key: const Key('greeting_date'), fontSize: 12, color: AppColors.muted),
-        ]),
-      );
-    });
+    return Obx(() => Padding(
+          padding: const EdgeInsetsDirectional.only(bottom: EmSpacing.s4),
+          child: Text(longDateOf(c.now.value),
+              key: const Key('greeting_date'), style: EmType.body.copyWith(color: EmColors.textSecondary)),
+        ));
   }
 }

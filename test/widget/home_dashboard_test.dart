@@ -243,13 +243,12 @@ void main() {
       return _mount(t, repo, classTeacher: classTeacher, clock: clock);
     }
 
-    testWidgets('shimmer while loading, then sections; greeting uses the injected clock', (t) async {
+    testWidgets('shimmer while loading, then sections; the date uses the injected clock (the greeting lives in the shell header, see app_shell_test)', (t) async {
       repo = FakeHomeRepository();
       final gate = Completer<List<PtmMeeting>>();
       repo.ptms = (_) => gate.future;
       await _mount(t, repo, clock: DateTime(2026, 10, 5, 8, 10));
       expect(find.byKey(const Key('section_loading')), findsWidgets);
-      expect(find.text('Good morning, Tess'), findsOneWidget);
       expect(find.text('Monday, 5 October'), findsOneWidget);
       gate.complete([PtmMeeting(id: 'p', teacherId: me, studentName: 'Sam', scheduledDate: DateTime.utc(2099, 1, 1), status: 'confirmed')]);
       await t.pump();
@@ -299,11 +298,11 @@ void main() {
       expect(find.text('Today\'s classes'), findsOneWidget);
     });
 
-    testWidgets('quick action chips are shown (permission filtered)', (t) async {
+    testWidgets('Home no longer carries quick-action chips (they are the shell FAB, see app_shell_test)', (t) async {
       await pumpDashboard(t);
       await t.pump();
-      expect(find.byKey(const Key('quick_Homework')), findsOneWidget);
-      expect(find.byKey(const Key('quick_Attendance')), findsNothing);
+      expect(find.byKey(const Key('quick_Homework')), findsNothing);
+      expect(find.byType(ActionChip), findsNothing);
     });
 
     testWidgets('pull-to-refresh reloads every section', (t) async {
@@ -319,17 +318,21 @@ void main() {
   });
 
   group('shell badges', () {
-    testWidgets('bell and Messages tab badges show real counts', (t) async {
+    testWidgets('bell unread dot and Messages tab count badge come from the real counts', (t) async {
       final repo = FakeHomeRepository()
         ..unread = (() async => 3)
         ..threads = (() async => ThreadsResult(items: [
               const MessageThread(id: '1', staffHasUnread: true),
               const MessageThread(id: '2', staffHasUnread: true),
             ]));
+      final sem = t.ensureSemantics();
       await _mountShell(t, repo);
       await t.pump();
-      expect(find.descendant(of: find.byKey(const Key('bell_badge')), matching: find.text('3')), findsOneWidget);
+      // the bell shows an unread DOT (REFERENCE_SPEC) and announces the count
+      expect(find.descendant(of: find.byKey(const Key('bell_badge')), matching: find.byKey(const Key('em_dot'))), findsOneWidget);
+      expect(find.bySemanticsLabel('Notifications, 3 unread'), findsOneWidget);
       expect(find.descendant(of: find.byKey(const Key('messages_badge')), matching: find.text('2')), findsOneWidget);
+      sem.dispose();
     });
 
     testWidgets('404/zero: no badge anywhere', (t) async {
@@ -339,6 +342,8 @@ void main() {
       await _mountShell(t, repo);
       await t.pump();
       expect(find.byType(Badge), findsNothing);
+      expect(find.byKey(const Key('em_dot')), findsNothing);
+      expect(find.byKey(const Key('messages_badge')), findsNothing);
       final zero = FakeHomeRepository();
       Get.reset();
       Get.testMode = true;

@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/design/design.dart';
 import '../../../../../core/models/home/class_snapshot.dart';
 import '../../../../../core/models/home/messaging.dart';
 import '../../../../../core/models/home/summaries.dart';
 import '../../../../../core/models/home/teaching.dart';
-import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/home_time.dart';
 import '../../../../../core/utils/ptm_agenda.dart';
-import '../../../../../core/widgets/app_widgets.dart';
-import '../../../../../core/widgets/hero_card.dart';
-import '../../../../components/custom_text.dart';
 
+/// White rounded row card (REFERENCE_SPEC list row): optional leading widget,
+/// two-line text, optional trailing. [highlight] fills it with the primary tint.
 Widget _row({
   required String title,
   required String subtitle,
@@ -19,37 +18,39 @@ Widget _row({
   Widget? leading,
   Key? key,
 }) {
-  return Container(
+  return Padding(
     key: key,
-    margin: const EdgeInsets.only(bottom: 8),
-    decoration: BoxDecoration(
-      color: highlight ? AppColors.pale : AppColors.surface,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      border: Border.all(color: highlight ? AppColors.blue : AppColors.line, width: highlight ? 1.5 : 1),
-    ),
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(children: [
-            if (leading != null) ...[leading, const SizedBox(width: 12)],
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                CustomText(text: title, fontWeight: FontWeight.w700, color: AppColors.primaryColor, fontSize: 13, maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                CustomText(text: subtitle, color: AppColors.muted, fontSize: 11, maxLines: 2, overflow: TextOverflow.ellipsis),
-              ]),
-            ),
-            if (trailing != null) ...[const SizedBox(width: 8), trailing],
+    padding: const EdgeInsetsDirectional.only(bottom: EmSpacing.row),
+    child: EmCard(
+      color: highlight ? EmColors.primaryContainer : EmColors.surface,
+      onTap: onTap,
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s16, vertical: EmSpacing.s12),
+      child: Row(children: [
+        if (leading != null) ...[leading, const SizedBox(width: EmSpacing.s12)],
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink, fontSize: 15)),
+            if (subtitle.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400, fontSize: 13)),
+            ],
           ]),
         ),
-      ),
+        if (trailing != null) ...[const SizedBox(width: EmSpacing.s8), trailing],
+      ]),
     ),
   );
 }
+
+Widget _iconChip(IconData icon, {Color bg = EmColors.primaryTint, Color fg = EmColors.primary}) => Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+      child: ExcludeSemantics(child: Icon(icon, color: fg, size: 22)),
+    );
+
+/// Existing [TagStyle]-style status -> [EmTone] (container + dark text).
+EmChip _chip(String label, EmTone tone, {Key? key}) => EmChip.status(key: key, label: label, tone: tone);
 
 /// Today's periods: past dimmed, current highlighted "NOW", next "NEXT".
 class TimetableStrip extends StatelessWidget {
@@ -59,12 +60,12 @@ class TimetableStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (periods.isEmpty) {
-      return const AppCard(
-        key: Key('timetable_no_classes'),
+      return EmCard(
+        key: const Key('timetable_no_classes'),
         child: Row(children: [
-          Icon(Icons.wb_sunny_outlined, color: AppColors.faint, size: 22),
-          SizedBox(width: 12),
-          CustomText(text: 'No classes today', fontWeight: FontWeight.w700, color: AppColors.primaryColor, fontSize: 13),
+          _iconChip(Icons.wb_sunny_outlined),
+          const SizedBox(width: EmSpacing.s12),
+          Expanded(child: Text('No classes today', style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
         ]),
       );
     }
@@ -74,17 +75,13 @@ class TimetableStrip extends StatelessWidget {
           key: ValueKey('period_$i'),
           highlight: tp.phase == PeriodPhase.current,
           leading: SizedBox(
-            width: 50,
+            width: 52,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              CustomText(
-                  text: tp.period.startMinutes != null ? formatHm(tp.period.startMinutes!) : (tp.period.startText.isEmpty ? '--:--' : tp.period.startText),
-                  fontWeight: FontWeight.w800,
-                  color: tp.phase == PeriodPhase.past ? AppColors.faint : AppColors.primaryColor,
-                  fontSize: 13),
-              CustomText(
-                  text: tp.period.endMinutes != null ? formatHm(tp.period.endMinutes!) : tp.period.endText,
-                  color: AppColors.faint,
-                  fontSize: 10),
+              Text(
+                  tp.period.startMinutes != null ? formatHm(tp.period.startMinutes!) : (tp.period.startText.isEmpty ? '--:--' : tp.period.startText),
+                  style: EmType.valueSmall.copyWith(color: tp.phase == PeriodPhase.past ? EmColors.textSecondary : EmColors.ink)),
+              Text(tp.period.endMinutes != null ? formatHm(tp.period.endMinutes!) : tp.period.endText,
+                  style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
             ]),
           ),
           title: [tp.period.subject, tp.period.classLabel].where((e) => e.isNotEmpty).join(' · '),
@@ -93,11 +90,11 @@ class TimetableStrip extends StatelessWidget {
             if (tp.period.splitLabel != null) tp.period.splitLabel!,
           ].join(' · '),
           trailing: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
-            if (tp.phase == PeriodPhase.current) const AppTag('NOW', style: TagStyle.green),
-            if (tp.phase == PeriodPhase.next) const AppTag('NEXT', style: TagStyle.amber),
+            if (tp.phase == PeriodPhase.current) _chip('NOW', EmTone.success),
+            if (tp.phase == PeriodPhase.next) _chip('NEXT', EmTone.warning),
             if (tp.period.weekCycleTag != null) ...[
-              const SizedBox(height: 4),
-              AppTag('Week ${tp.period.weekCycleTag}', style: TagStyle.neutral),
+              const SizedBox(height: EmSpacing.s4),
+              _chip('Week ${tp.period.weekCycleTag}', EmTone.neutral),
             ],
           ]),
         ),
@@ -105,7 +102,8 @@ class TimetableStrip extends StatelessWidget {
   }
 }
 
-/// Class-teacher card: roster size + attendance-marked-today, with the action button.
+/// Class-teacher card: roster size + attendance-marked-today in a hero container
+/// (ring + stat tiles), with the action button.
 class ClassTeacherCard extends StatelessWidget {
   final ClassAttendanceSnapshot snap;
   final VoidCallback onMarkAttendance;
@@ -122,24 +120,48 @@ class ClassTeacherCard extends StatelessWidget {
       case AttendanceMarkState.complete:
         trend = 'Attendance marked today';
     }
+    final done = snap.state == AttendanceMarkState.complete;
     return Column(children: [
-      HeroCard(
-        kicker: 'Class teacher · ${snap.label}',
-        value: '${snap.markedCount} / ${snap.rosterSize}',
-        trend: trend,
-        trendWarn: snap.state != AttendanceMarkState.complete,
-        percent: snap.percent,
-        metrics: [('${snap.rosterSize}', 'Students'), ('${snap.markedCount}', 'Marked today')],
+      EmHeroCard(
+        padding: const EdgeInsetsDirectional.all(EmSpacing.s16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('Class teacher · ${snap.label}', maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.label.copyWith(color: EmColors.textSecondary)),
+          const SizedBox(height: EmSpacing.s8),
+          Row(children: [
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text('${snap.markedCount} / ${snap.rosterSize}', style: EmType.display.copyWith(color: EmColors.ink)),
+                ),
+                const SizedBox(height: EmSpacing.s8),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(top: 5),
+                    child: Container(width: 8, height: 8, decoration: BoxDecoration(color: done ? EmColors.success : EmColors.accent, shape: BoxShape.circle)),
+                  ),
+                  const SizedBox(width: EmSpacing.s8),
+                  Expanded(child: Text(trend, style: EmType.body.copyWith(color: EmColors.ink, fontSize: 13))),
+                ]),
+              ]),
+            ),
+            const SizedBox(width: EmSpacing.s12),
+            EmProgressRing(value: snap.percent / 100, size: 96, strokeWidth: 10, centerText: '${snap.percent}%', semanticLabel: 'Marked today ${snap.percent} percent'),
+          ]),
+          const SizedBox(height: EmSpacing.s16),
+          EmStatTileRow(tiles: [
+            EmStatTile(icon: Icons.groups_outlined, value: '${snap.rosterSize}', label: 'Students'),
+            EmStatTile(icon: Icons.fact_check_outlined, value: '${snap.markedCount}', label: 'Marked today'),
+          ]),
+        ]),
       ),
-      const SizedBox(height: 10),
-      SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          key: const Key('mark_attendance_button'),
-          onPressed: onMarkAttendance,
-          icon: const Icon(Icons.fact_check_outlined, size: 18),
-          label: const CustomText(text: 'Mark Attendance', color: Colors.white, fontWeight: FontWeight.w700),
-        ),
+      const SizedBox(height: EmSpacing.s12),
+      EmPrimaryButton(
+        key: const Key('mark_attendance_button'),
+        label: 'Mark Attendance',
+        icon: Icons.fact_check_outlined,
+        onPressed: onMarkAttendance,
       ),
     ]);
   }
@@ -163,22 +185,25 @@ class HomeworkCard extends StatelessWidget {
       if (data.unlistedUngraded > 0) '${data.unlistedUngraded} more waiting in assignments not listed here.',
     ];
     return Column(children: [
-      AppCard(
-        child: Row(children: [
-          CustomText(text: '${data.totalUngraded}', key: const Key('homework_total'), fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.primaryColor),
-          const SizedBox(width: 12),
-          Expanded(child: CustomText(text: data.totalUngraded == 1 ? 'submission waiting to be graded' : 'submissions waiting to be graded', color: AppColors.muted, fontSize: 12)),
-        ]),
+      Padding(
+        padding: const EdgeInsetsDirectional.only(bottom: EmSpacing.row),
+        child: EmCard(
+          child: Row(children: [
+            Text('${data.totalUngraded}', key: const Key('homework_total'), style: EmType.display.copyWith(color: EmColors.primary)),
+            const SizedBox(width: EmSpacing.s12),
+            Expanded(child: Text(data.totalUngraded == 1 ? 'submission waiting to be graded' : 'submissions waiting to be graded', style: EmType.body.copyWith(color: EmColors.textSecondary))),
+          ]),
+        ),
       ),
       for (final i in data.items.take(_shown))
         _row(
           key: ValueKey('grading_${i.assignmentId}'),
           title: i.title.isEmpty ? 'Untitled assignment' : i.title,
           subtitle: [i.subject, i.classLabel].where((e) => e.isNotEmpty).join(' · '),
-          trailing: AppTag('${i.ungraded} to grade', style: TagStyle.amber),
+          trailing: _chip('${i.ungraded} to grade', EmTone.warning),
           onTap: () => onOpen(i),
         ),
-      for (final n in notes) Padding(padding: const EdgeInsets.only(bottom: 4), child: CustomText(text: n, color: AppColors.faint, fontSize: 10.5)),
+      for (final n in notes) Padding(padding: const EdgeInsetsDirectional.only(bottom: EmSpacing.s4), child: Text(n, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
     ]);
   }
 }
@@ -194,25 +219,37 @@ class LessonPlansCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      StatsRow(
-        items: [('${data.submitted.length}', 'Awaiting approval', null), ('${data.rejected.length}', 'Rejected', null)],
-        onTaps: onOpenFilter == null ? null : [() => onOpenFilter!('submitted'), () => onOpenFilter!('rejected')],
-      ),
-      const SizedBox(height: 8),
+      EmStatTileRow(tiles: [
+        EmStatTile(
+          key: const ValueKey('stat_tap_0'),
+          icon: Icons.hourglass_empty_rounded,
+          value: '${data.submitted.length}',
+          label: 'Awaiting approval',
+          onTap: onOpenFilter == null ? null : () => onOpenFilter!('submitted'),
+        ),
+        EmStatTile(
+          key: const ValueKey('stat_tap_1'),
+          icon: Icons.assignment_return_outlined,
+          value: '${data.rejected.length}',
+          label: 'Rejected',
+          onTap: onOpenFilter == null ? null : () => onOpenFilter!('rejected'),
+        ),
+      ]),
+      const SizedBox(height: EmSpacing.row),
       for (final p in data.rejected.take(3))
         _row(
           title: p.topic.isEmpty ? 'Untitled plan' : p.topic,
           subtitle: (p.rejectionReason != null && p.rejectionReason!.isNotEmpty)
               ? 'Rejected: ${p.rejectionReason}'
               : 'Rejected (no reason given)',
-          trailing: const AppTag('Rejected', style: TagStyle.red),
+          trailing: _chip('Rejected', EmTone.error),
           onTap: () => onOpen(p),
         ),
       for (final p in data.submitted.take(3))
         _row(
           title: p.topic.isEmpty ? 'Untitled plan' : p.topic,
           subtitle: [p.subject, p.classLabel].where((e) => e.isNotEmpty).join(' · '),
-          trailing: const AppTag('Awaiting', style: TagStyle.info),
+          trailing: _chip('Awaiting', EmTone.info),
           onTap: () => onOpen(p),
         ),
     ]);
@@ -233,29 +270,29 @@ class PtmList extends StatefulWidget {
 class _PtmListState extends State<PtmList> {
   bool _earlierOpen = false;
 
-  static (String, TagStyle) _status(String s) => switch (s) {
-        'confirmed' => ('Confirmed', TagStyle.green),
-        'requested' => ('Requested', TagStyle.amber),
-        'completed' => ('Completed', TagStyle.green),
-        'cancelled' => ('Cancelled', TagStyle.red),
-        'no_show' => ('No-show', TagStyle.red),
-        _ => (s.isEmpty ? 'Unknown' : s, TagStyle.neutral),
+  static (String, EmTone) _status(String s) => switch (s) {
+        'confirmed' => ('Confirmed', EmTone.success),
+        'requested' => ('Requested', EmTone.warning),
+        'completed' => ('Completed', EmTone.success),
+        'cancelled' => ('Cancelled', EmTone.error),
+        'no_show' => ('No-show', EmTone.error),
+        _ => (s.isEmpty ? 'Unknown' : s, EmTone.neutral),
       };
 
   Widget _label(String text, {Key? key, Widget? trailing, VoidCallback? onTap}) => InkWell(
         key: key,
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 6),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: onTap == null ? 32 : 48),
           child: Row(children: [
-            Expanded(child: CustomText(text: text, fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.muted)),
+            Expanded(child: Text(text, style: EmType.label.copyWith(color: EmColors.textSecondary))),
             if (trailing != null) trailing,
           ]),
         ),
       );
 
   Widget _meeting(PtmMeeting m, {bool today = false, bool dim = false}) {
-    final (label, style) = _status(m.status);
+    final (label, tone) = _status(m.status);
     return _row(
       key: ValueKey('ptm_${m.id}'),
       title: m.studentName.isEmpty ? 'Parent meeting' : m.studentName,
@@ -264,7 +301,7 @@ class _PtmListState extends State<PtmList> {
         if (m.timeRange.isNotEmpty) m.timeRange,
         if (m.guardianName.isNotEmpty) m.guardianName,
       ].join(' · '),
-      trailing: AppTag(label, style: dim && (m.status == 'confirmed' || m.status == 'requested') ? TagStyle.neutral : style),
+      trailing: _chip(label, dim && (m.status == 'confirmed' || m.status == 'requested') ? EmTone.neutral : tone),
       onTap: () => widget.onOpen(m),
     );
   }
@@ -282,7 +319,7 @@ class _PtmListState extends State<PtmList> {
           'Earlier today (${a.earlierToday.length})',
           key: const Key('ptm_earlier_toggle'),
           onTap: () => setState(() => _earlierOpen = !_earlierOpen),
-          trailing: Icon(_earlierOpen ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: AppColors.faint, size: 20),
+          trailing: Icon(_earlierOpen ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: EmColors.textSecondary, size: 22),
         ),
         if (_earlierOpen) for (final m in a.earlierToday) _meeting(m, today: true, dim: true),
       ],
@@ -308,7 +345,7 @@ class SubstitutionsCard extends StatelessWidget {
           key: ValueKey('sub_covering_${s.id}'),
           title: "You're covering ${s.subject.isEmpty ? 'a class' : s.subject}",
           subtitle: [s.classLabel, when(s), if (s.originalTeacherName.isNotEmpty) 'for ${s.originalTeacherName}'].where((e) => e.isNotEmpty).join(' · '),
-          trailing: const AppTag('Covering', style: TagStyle.amber),
+          trailing: _chip('Covering', EmTone.warning),
           onTap: () => onOpen(s),
         ),
       for (final s in data.covered)
@@ -322,8 +359,8 @@ class SubstitutionsCard extends StatelessWidget {
           ].where((e) => e.isNotEmpty).join(' · '),
           // No substitute yet = nobody covers it: do not say "Covered" (seen on the local run, LOCAL_VERIFICATION s12).
           trailing: s.substituteTeacherName.isEmpty
-              ? const AppTag('Not covered yet', style: TagStyle.amber, key: Key('sub_chip_open'))
-              : const AppTag('Covered', style: TagStyle.info),
+              ? _chip('Not covered yet', EmTone.warning, key: const Key('sub_chip_open'))
+              : _chip('Covered', EmTone.info),
           onTap: () => onOpen(s),
         ),
     ]);
@@ -339,19 +376,19 @@ class MessagesSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final n = data.unreadCount;
     return Column(children: [
-      AppCard(
-        onTap: onOpen,
-        child: Row(children: [
-          const Icon(Icons.mark_email_unread_outlined, color: AppColors.blue),
-          const SizedBox(width: 12),
-          Expanded(
-              child: CustomText(
-                  text: '$n${data.mayUndercount ? '+' : ''} unread ${n == 1 ? 'conversation' : 'conversations'}',
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primaryColor,
-                  fontSize: 13)),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.faint),
-        ]),
+      Padding(
+        padding: const EdgeInsetsDirectional.only(bottom: EmSpacing.row),
+        child: EmCard(
+          onTap: onOpen,
+          child: Row(children: [
+            _iconChip(Icons.mark_email_unread_outlined),
+            const SizedBox(width: EmSpacing.s12),
+            Expanded(
+                child: Text('$n${data.mayUndercount ? '+' : ''} unread ${n == 1 ? 'conversation' : 'conversations'}',
+                    style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
+            const Icon(Icons.chevron_right_rounded, color: EmColors.textSecondary),
+          ]),
+        ),
       ),
       for (final t in data.unreadThreads.take(3))
         _row(
