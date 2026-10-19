@@ -74,13 +74,18 @@ class TimetableStrip extends StatelessWidget {
         _row(
           key: ValueKey('period_$i'),
           highlight: tp.phase == PeriodPhase.current,
+          // the time column grows with the text scale so "08:00" never wraps onto two lines
           leading: SizedBox(
-            width: 52,
+            width: 52 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.5),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(
                   tp.period.startMinutes != null ? formatHm(tp.period.startMinutes!) : (tp.period.startText.isEmpty ? '--:--' : tp.period.startText),
+                  maxLines: 1,
+                  softWrap: false,
                   style: EmType.valueSmall.copyWith(color: tp.phase == PeriodPhase.past ? EmColors.textSecondary : EmColors.ink)),
               Text(tp.period.endMinutes != null ? formatHm(tp.period.endMinutes!) : tp.period.endText,
+                  maxLines: 1,
+                  softWrap: false,
                   style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
             ]),
           ),

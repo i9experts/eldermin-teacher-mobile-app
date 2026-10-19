@@ -12,6 +12,7 @@ import 'package:eldermin_teacher_app/app/routes/app_routes.dart';
 import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:eldermin_teacher_app/core/models/auth_me.dart';
 import 'package:eldermin_teacher_app/core/models/home/messaging.dart';
+import 'package:eldermin_teacher_app/core/models/home/timetable.dart';
 import 'package:eldermin_teacher_app/core/models/staff_me.dart';
 import 'package:eldermin_teacher_app/core/network/base_client.dart';
 import 'package:eldermin_teacher_app/core/services/auth_api_service.dart';
@@ -315,6 +316,27 @@ void main() {
       await openSheet(t);
       expect(find.byKey(const Key('quick_action_attendance')), findsNothing);
       expect(c.auth.status.value, AuthStatus.authenticated);
+    });
+  });
+
+  group('Home content at large text (visual wrapping, not only overflow)', () {
+    testWidgets('timetable times stay on one line at text scale 1.3 (360dp): "08:00" must not wrap to "08:0 / 0"', (t) async {
+      final repo = FakeHomeRepository()
+        ..timetable = ((_) async => [
+              TimetableDoc(id: 'd', gradeLevel: 'Grade 5', sectionName: 'A', periods: const [
+                TimetablePeriod(day: 1, periodNo: 1, startTime: '08:00', endTime: '08:45', subject: 'Mathematics', teacherId: 's1', roomNo: '101'),
+                TimetablePeriod(day: 1, periodNo: 2, startTime: '09:00', endTime: '09:45', subject: 'Science', teacherId: 's1', roomNo: '102'),
+              ]),
+            ]);
+      await _mount(t, repo: repo, size: const Size(360, 800), scale: 1.3, clock: DateTime(2026, 10, 5, 7, 0));
+      await t.pump(const Duration(milliseconds: 400));
+      final times = find.text('08:00');
+      expect(times, findsWidgets);
+      for (final e in times.evaluate()) {
+        final h = (e.renderObject as RenderBox).size.height;
+        // one line of EmType.valueSmall (15 * 1.2) at 1.3x
+        expect(h, lessThanOrEqualTo(15 * 1.2 * 1.3 + 2), reason: 'time wrapped onto two lines (height $h)');
+      }
     });
   });
 
