@@ -27,11 +27,13 @@ class EmLoading extends StatelessWidget {
 }
 
 class _StateBody extends StatelessWidget {
-  const _StateBody({required this.icon, required this.iconBg, required this.iconColor, required this.title, this.message, this.actionLabel, this.onAction, required this.liveRegion});
+  const _StateBody({required this.icon, required this.iconBg, required this.iconColor, required this.title, this.message, this.actionLabel, this.onAction, required this.liveRegion, this.scroll = true, this.compact = false});
   final IconData icon;
   final Color iconBg;
   final Color iconColor;
-  final String title;
+  final String? title;
+  final bool scroll;
+  final bool compact;
   final String? message;
   final String? actionLabel;
   final VoidCallback? onAction;
@@ -39,45 +41,50 @@ class _StateBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsetsDirectional.all(EmSpacing.s24),
-        child: Column(
+    final pad = compact ? EmSpacing.s16 : EmSpacing.s24;
+    final iconBox = compact ? 52.0 : 72.0;
+    final content = Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: iconBox,
+              height: iconBox,
               decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-              child: ExcludeSemantics(child: Icon(icon, size: 34, color: iconColor)),
+              child: ExcludeSemantics(child: Icon(icon, size: compact ? 26 : 34, color: iconColor)),
             ),
-            const SizedBox(height: EmSpacing.s16),
+            SizedBox(height: compact ? EmSpacing.s12 : EmSpacing.s16),
             Semantics(
               liveRegion: liveRegion,
               container: true,
               child: Column(children: [
-                Text(title, textAlign: TextAlign.center, style: EmType.heading.copyWith(color: EmColors.ink)),
+                if (title != null) Text(title!, textAlign: TextAlign.center, style: EmType.heading.copyWith(color: EmColors.ink)),
                 if (message != null) ...[
-                  const SizedBox(height: 6),
+                  if (title != null) const SizedBox(height: 6),
                   Text(message!, textAlign: TextAlign.center, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
                 ],
               ]),
             ),
             if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: EmSpacing.s20),
+              SizedBox(height: compact ? EmSpacing.s12 : EmSpacing.s20),
               EmPrimaryButton(label: actionLabel!, onPressed: onAction, expand: false),
             ],
           ],
-        ),
-      ),
+        );
+    // [scroll] false: used inside an already scrolling list (unbounded height), so no nested scroll view.
+    return Center(
+      child: scroll
+          ? SingleChildScrollView(padding: EdgeInsetsDirectional.all(pad), child: content)
+          : Padding(padding: EdgeInsetsDirectional.all(pad), child: content),
     );
   }
 }
 
 /// Nothing-here state: tinted icon circle, title, message, optional action.
 class EmEmptyState extends StatelessWidget {
-  const EmEmptyState({super.key, this.icon = Icons.inbox_outlined, required this.title, this.message, this.actionLabel, this.onAction});
+  const EmEmptyState({super.key, this.icon = Icons.inbox_outlined, required this.title, this.message, this.actionLabel, this.onAction, this.scroll = true, this.compact = false});
   final IconData icon;
+  final bool scroll;
+  final bool compact;
   final String title;
   final String? message;
   final String? actionLabel;
@@ -93,13 +100,19 @@ class EmEmptyState extends StatelessWidget {
         actionLabel: actionLabel,
         onAction: onAction,
         liveRegion: false,
+        scroll: scroll,
+        compact: compact,
       );
 }
 
 /// Failure state with a Retry action (announced to screen readers).
 class EmErrorState extends StatelessWidget {
-  const EmErrorState({super.key, this.title = 'Something went wrong', this.message, this.onRetry, this.retryLabel = 'Retry'});
-  final String title;
+  const EmErrorState({super.key, this.title = 'Something went wrong', this.message, this.onRetry, this.retryLabel = 'Retry', this.scroll = true, this.compact = false});
+
+  /// Pass `title: null` to show only [message] (the server's own text).
+  final String? title;
+  final bool scroll;
+  final bool compact;
   final String? message;
   final VoidCallback? onRetry;
   final String retryLabel;
@@ -114,5 +127,7 @@ class EmErrorState extends StatelessWidget {
         actionLabel: onRetry == null ? null : retryLabel,
         onAction: onRetry,
         liveRegion: true,
+        scroll: scroll,
+        compact: compact,
       );
 }

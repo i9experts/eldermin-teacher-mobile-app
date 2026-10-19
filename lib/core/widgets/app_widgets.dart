@@ -340,31 +340,18 @@ class _DonutPainter extends CustomPainter {
 class AppLoader extends StatelessWidget {
   const AppLoader({super.key});
   @override
-  Widget build(BuildContext context) => const Center(child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primaryColor)));
+  Widget build(BuildContext context) => const EmLoading();
 }
 
+/// Error body with Retry ("Try again"): the [message] only, no extra title (Em look, shrink-wrapped
+/// so it also works inside a list).
 class AppErrorView extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
   const AppErrorView({super.key, required this.message, this.onRetry});
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 52, height: 52, decoration: BoxDecoration(color: AppColors.redBg, borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.error_outline_rounded, color: AppColors.red)),
-          const SizedBox(height: 12),
-          CustomText(text: message, textAlign: TextAlign.center, color: AppColors.muted),
-          if (onRetry != null) ...[
-            const SizedBox(height: 12),
-            OutlinedButton(onPressed: onRetry, child: const CustomText(text: 'Try again')),
-          ],
-        ]),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => EmErrorState(title: null, message: message, onRetry: onRetry, retryLabel: 'Try again', scroll: false, compact: true);
 }
 
 /// Shown ABOVE the last good data when a refresh failed ("Refresh failed - Retry"); the data stays on screen.
@@ -407,22 +394,7 @@ class AppEmptyView extends StatelessWidget {
   const AppEmptyView({super.key, required this.icon, required this.title, this.subtitle});
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 60, height: 60, decoration: const BoxDecoration(color: AppColors.background, shape: BoxShape.circle), child: Icon(icon, color: AppColors.faint, size: 28)),
-          const SizedBox(height: 12),
-          CustomText(text: title, fontWeight: FontWeight.w700, color: AppColors.primaryColor, textAlign: TextAlign.center),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            CustomText(text: subtitle!, color: AppColors.faint, fontSize: 12, textAlign: TextAlign.center),
-          ],
-        ]),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => EmEmptyState(icon: icon, title: title, message: subtitle, scroll: false, compact: true);
 }
 
 class SectionRow extends StatelessWidget {

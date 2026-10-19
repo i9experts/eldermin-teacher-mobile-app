@@ -35,6 +35,8 @@ class EmIconCircleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final button = Semantics(
+      container:
+          true, // its own focusable node: never merged into a neighbouring heading in a Row
       button: true,
       enabled: onTap != null,
       label: showDot ? '$semanticLabel, $dotLabel' : semanticLabel,

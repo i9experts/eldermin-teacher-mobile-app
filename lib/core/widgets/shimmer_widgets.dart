@@ -1,3 +1,4 @@
+import '../design/design.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../theme/app_theme.dart' show AppRadius, AppSpacing, AppColors;
@@ -215,33 +216,7 @@ class ShimmerListRowSkeleton extends StatelessWidget {
   const ShimmerListRowSkeleton({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.shimmerBase)),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          ShimmerCircle(size: 38),
-          SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ShimmerBone(width: 130, height: 12, radius: 5),
-                SizedBox(height: 6),
-                ShimmerBone(width: 90, height: 9, radius: 4),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const EmSkeletonRow(compact: true);
 }
 
 /// Convenience: N [ShimmerListRowSkeleton]s in a row of their own.
