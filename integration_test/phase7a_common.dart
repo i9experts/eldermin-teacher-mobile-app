@@ -58,7 +58,7 @@ Future<void> realWait(WidgetTester t, int seconds) async {
   await t.pump(const Duration(milliseconds: 300));
 }
 
-Finder navLabel(String label) => find.descendant(of: find.byType(BottomNavigationBar), matching: find.text(label));
+Finder navLabel(String label) => find.descendant(of: find.byKey(const Key('app_shell_nav')), matching: find.text(label));
 
 /// Signs in (or switches to) [email]: handles the first-run intro, an already signed-in session (signs out first) and the login form.
 Future<void> signInAs(WidgetTester t, String email) async {
@@ -66,18 +66,18 @@ Future<void> signInAs(WidgetTester t, String email) async {
   await t.pump(const Duration(milliseconds: 300));
   for (var i = 0; i < 150; i++) {
     guard('boot');
-    if (find.text('Skip').evaluate().isNotEmpty || find.text('Sign in').evaluate().isNotEmpty || find.byType(BottomNavigationBar).evaluate().isNotEmpty) break;
+    if (find.text('Skip').evaluate().isNotEmpty || find.text('Sign in').evaluate().isNotEmpty || find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty) break;
     await t.pump(const Duration(milliseconds: 200));
   }
   if (find.text('Skip').evaluate().isNotEmpty) {
     await t.tap(find.text('Skip'));
     for (var i = 0; i < 125; i++) {
       guard('after intro');
-      if (find.text('Sign in').evaluate().isNotEmpty || find.byType(BottomNavigationBar).evaluate().isNotEmpty) break;
+      if (find.text('Sign in').evaluate().isNotEmpty || find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty) break;
       await t.pump(const Duration(milliseconds: 200));
     }
   }
-  if (find.byType(BottomNavigationBar).evaluate().isNotEmpty) {
+  if (find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty) {
     // a previous run left a session: sign out through More (one confirm dialog)
     await t.tap(navLabel('More'));
     await settle(t, 800);
@@ -127,10 +127,10 @@ Future<void> leaveScreen(WidgetTester t) async {
 /// Pops screens until the bottom-nav shell is visible: at most 6 attempts.
 Future<void> leaveToShell(WidgetTester t) async {
   for (var i = 0; i < 6; i++) {
-    if (find.byType(BottomNavigationBar).evaluate().isNotEmpty && find.byType(Dialog).evaluate().isEmpty) return;
+    if (find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty && find.byType(Dialog).evaluate().isEmpty) return;
     await leaveScreen(t);
   }
-  if (find.byType(BottomNavigationBar).evaluate().isEmpty) throw TestFailure('could not get back to the home shell after 6 attempts');
+  if (find.byKey(const Key('app_shell_nav')).evaluate().isEmpty) throw TestFailure('could not get back to the home shell after 6 attempts');
 }
 
 /// Stub ids (stub_server._oid / stub_7a._oid).

@@ -458,7 +458,7 @@ Future<void> deepScenario(WidgetTester t) async {
   });
   await step(t, 'login link (JWT of teacher A) while signed out -> signed in, role gate passed', () async {
     links.handleUri(Uri.parse('eldermin-teacher://login?token=$e2eLoginJwt&slug=$e2eSlug'));
-    await waitFor(t, find.byType(BottomNavigationBar), seconds: 30);
+    await waitFor(t, find.byKey(const Key('app_shell_nav')), seconds: 30);
     await settle(t, 2500);
     await waitFor(t, find.text("Today's classes"), seconds: 20);
     final auth = Get.find<AuthController>();
@@ -472,12 +472,12 @@ Future<void> deepScenario(WidgetTester t) async {
     await shot(t, 'account_switch_dialog');
     await t.tap(find.byKey(const Key('confirm_dialog_cancel')));
     await settle(t, 1200);
-    expect(find.byType(BottomNavigationBar), findsOneWidget, reason: 'Cancel keeps the current session');
+    expect(find.byKey(const Key('app_shell_nav')), findsOneWidget, reason: 'Cancel keeps the current session');
     print('INFO account switch: Cancel kept the session');
     links.handleUri(Uri.parse('eldermin-teacher://login?token=$e2eLoginJwt2&slug=$e2eSlug'));
     await waitFor(t, find.text('Switch account?'), seconds: 15);
     await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
-    await waitFor(t, find.byType(BottomNavigationBar), seconds: 30);
+    await waitFor(t, find.byKey(const Key('app_shell_nav')), seconds: 30);
     await settle(t, 2500);
     print('INFO account switch: confirm signed out and signed in again with the link token; isClassTeacher now=${Get.find<AuthController>().isClassTeacher} (B is the class teacher)');
     await shot(t, 'account_switch_confirmed_home');

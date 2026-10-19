@@ -35,7 +35,7 @@ Future<void> waitFor(WidgetTester t, Finder f, {int seconds = 25}) async {
   throw TestFailure('Timed out waiting for $f');
 }
 
-Finder navLabel(String label) => find.descendant(of: find.byType(BottomNavigationBar), matching: find.text(label));
+Finder navLabel(String label) => find.descendant(of: find.byKey(const Key('app_shell_nav')), matching: find.text(label));
 
 class _TestPicker implements AttachmentPicker {
   List<PickedAttachment> next = [];

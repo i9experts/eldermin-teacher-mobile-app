@@ -66,7 +66,7 @@ Future<bool> waitForAny(WidgetTester t, List<Finder> fs, {int seconds = 25}) asy
   return false;
 }
 
-Finder navLabel(String label) => find.descendant(of: find.byType(BottomNavigationBar), matching: find.text(label));
+Finder navLabel(String label) => find.descendant(of: find.byKey(const Key('app_shell_nav')), matching: find.text(label));
 Finder tf(String label) => find.widgetWithText(TextFormField, label);
 
 Finder keyPrefix(String p) => find.byWidgetPredicate((w) => w.key is ValueKey<String> && (w.key as ValueKey<String>).value.startsWith(p));
@@ -157,10 +157,10 @@ Future<void> leaveScreen(WidgetTester t) async {
 /// Pops screens until the bottom-nav shell is visible: at most 6 attempts.
 Future<void> leaveToShell(WidgetTester t) async {
   for (var i = 0; i < 6; i++) {
-    if (find.byType(BottomNavigationBar).evaluate().isNotEmpty && find.byType(Dialog).evaluate().isEmpty) return;
+    if (find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty && find.byType(Dialog).evaluate().isEmpty) return;
     if (!await confirmDiscardIfShown(t)) await leaveScreen(t);
   }
-  if (find.byType(BottomNavigationBar).evaluate().isEmpty) throw TestFailure('could not get back to the home shell after 6 attempts');
+  if (find.byKey(const Key('app_shell_nav')).evaluate().isEmpty) throw TestFailure('could not get back to the home shell after 6 attempts');
 }
 
 Future<void> scroll(WidgetTester t, double dy) async {
@@ -204,7 +204,7 @@ Future<void> signIn(WidgetTester t, String email, String password) async {
   for (var i = 0; i < 100; i++) {
     guard('signIn');
     await t.pump(const Duration(milliseconds: 250));
-    if (find.byType(BottomNavigationBar).evaluate().isNotEmpty) {
+    if (find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty) {
       await settle(t, 2500);
       return;
     }

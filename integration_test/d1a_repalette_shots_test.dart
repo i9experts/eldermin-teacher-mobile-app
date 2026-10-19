@@ -26,7 +26,23 @@ Future<void> waitFor(WidgetTester t, Finder f, {int seconds = 25}) async {
 }
 
 Finder tf(String hint) => find.widgetWithText(TextFormField, hint);
-Finder navLabel(String label) => find.descendant(of: find.byType(BottomNavigationBar), matching: find.text(label));
+Finder navLabel(String label) => find.descendant(of: find.byKey(const Key('app_shell_nav')), matching: find.text(label));
+
+/// The Attendance hub is no longer a bottom tab: Classes tab -> Attendance card (a pushed page; go back once more to reach the shell).
+Future<void> openAttendanceHub(WidgetTester t) async {
+  await t.tap(navLabel('Classes'));
+  await t.pump(const Duration(milliseconds: 800));
+  await t.tap(find.byKey(const ValueKey('module_attendance')));
+  await t.pump(const Duration(milliseconds: 800));
+}
+
+/// Timetable is no longer a bottom tab: centre FAB -> Timetable (a pushed page).
+Future<void> openTimetableViaFab(WidgetTester t) async {
+  await t.tap(find.byKey(const Key('quick_actions_fab')));
+  await t.pump(const Duration(milliseconds: 700));
+  await t.tap(find.byKey(const Key('quick_action_timetable')));
+  await t.pump(const Duration(milliseconds: 900));
+}
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -53,9 +69,11 @@ void main() {
     await settle(t, 1500);
     await shot(t, 'd1a_04_classes');
 
-    await t.tap(navLabel('Attendance'));
-    await settle(t, 2500);
-    await shot(t, 'd1a_05_attendance');
+    await t.tap(find.byKey(const Key('quick_actions_fab')));
+    await settle(t, 1500);
+    await shot(t, 'd1a_05_quick_actions');
+    await t.tapAt(const Offset(10, 10));
+    await settle(t, 800);
 
     await t.tap(navLabel('Messages'));
     await settle(t, 2500);

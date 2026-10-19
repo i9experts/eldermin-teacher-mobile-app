@@ -70,7 +70,7 @@ Future<void> bootAndSignIn(WidgetTester t, String email, String password) async 
   await t.pump(const Duration(milliseconds: 300));
   for (var i = 0; i < 150; i++) {
     guard('boot');
-    if (find.text('Skip').evaluate().isNotEmpty || find.text('Sign in').evaluate().isNotEmpty || find.byType(BottomNavigationBar).evaluate().isNotEmpty) break;
+    if (find.text('Skip').evaluate().isNotEmpty || find.text('Sign in').evaluate().isNotEmpty || find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty) break;
     await t.pump(const Duration(milliseconds: 200));
   }
   // a session left by an earlier run can be ended by the server mid-boot (401 on /auth/me after a DB reset): let the app settle first
@@ -81,12 +81,12 @@ Future<void> bootAndSignIn(WidgetTester t, String email, String password) async 
     await t.tap(find.text('Skip'));
     for (var i = 0; i < 125; i++) {
       guard('after intro');
-      if (find.text('Sign in').evaluate().isNotEmpty || find.byType(BottomNavigationBar).evaluate().isNotEmpty) break;
+      if (find.text('Sign in').evaluate().isNotEmpty || find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty) break;
       await t.pump(const Duration(milliseconds: 200));
     }
   }
-  print('MARK boot: settled; shell=${find.byType(BottomNavigationBar).evaluate().isNotEmpty} skip=${find.text('Skip').evaluate().isNotEmpty} signIn=${find.text('Sign in').evaluate().isNotEmpty}');
-  if (find.byType(BottomNavigationBar).evaluate().isNotEmpty) {
+  print('MARK boot: settled; shell=${find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty} skip=${find.text('Skip').evaluate().isNotEmpty} signIn=${find.text('Sign in').evaluate().isNotEmpty}');
+  if (find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty) {
     // sign out through More (one confirm dialog); the first-run intro may come before the login form
     await t.tap(navLabel('More'));
     await settle(t, 900);
@@ -167,7 +167,7 @@ String landed() {
     'leaves_tabs', 'leave_not_found', 'leave_apply', 'screen_empty', 'screen_error', 'screen_unavailable', 'screen_forbidden', 'notif_mark_all', 'notif_filter',
   ];
   final present = [for (final k in keys) if (find.byKey(Key(k)).evaluate().isNotEmpty) k];
-  final onShell = find.byType(BottomNavigationBar).evaluate().isNotEmpty;
+  final onShell = find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty;
   return 'appbar=${titles.take(3).toList()} keys=$present shellVisible=$onShell';
 }
 

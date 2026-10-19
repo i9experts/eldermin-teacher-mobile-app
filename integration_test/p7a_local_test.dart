@@ -248,7 +248,7 @@ Future<void> tapRow(WidgetTester t, String title, {bool last = false}) async {
 Future<void> backToNotifications(WidgetTester t) async {
   for (var i = 0; i < 4; i++) {
     if (find.byKey(const Key('notif_mark_all')).evaluate().isNotEmpty) return;
-    if (find.byType(BottomNavigationBar).evaluate().isNotEmpty && find.byType(Dialog).evaluate().isEmpty) {
+    if (find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty && find.byType(Dialog).evaluate().isEmpty) {
       await openNotifications(t); // the link ended on a shell tab: reopen the bell
       return;
     }

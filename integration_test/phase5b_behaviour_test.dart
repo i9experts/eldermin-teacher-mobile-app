@@ -28,7 +28,7 @@ Future<void> waitFor(WidgetTester t, Finder f, {int seconds = 25}) async {
   throw TestFailure('Timed out waiting for $f');
 }
 
-Finder navLabel(String label) => find.descendant(of: find.byType(BottomNavigationBar), matching: find.text(label));
+Finder navLabel(String label) => find.descendant(of: find.byKey(const Key('app_shell_nav')), matching: find.text(label));
 
 Finder get page => find.descendant(of: find.byType(ListView).last, matching: find.byType(Scrollable)).first;
 

@@ -76,7 +76,23 @@ Future<void> waitFor(WidgetTester t, Finder f, {int seconds = 25}) async {
 }
 
 Finder navLabel(String label) => find.descendant(
-    of: find.byType(BottomNavigationBar), matching: find.text(label));
+    of: find.byKey(const Key('app_shell_nav')), matching: find.text(label));
+
+/// The Attendance hub is no longer a bottom tab: Classes tab -> Attendance card (a pushed page; go back once more to reach the shell).
+Future<void> openAttendanceHub(WidgetTester t) async {
+  await t.tap(navLabel('Classes'));
+  await t.pump(const Duration(milliseconds: 800));
+  await t.tap(find.byKey(const ValueKey('module_attendance')));
+  await t.pump(const Duration(milliseconds: 800));
+}
+
+/// Timetable is no longer a bottom tab: centre FAB -> Timetable (a pushed page).
+Future<void> openTimetableViaFab(WidgetTester t) async {
+  await t.tap(find.byKey(const Key('quick_actions_fab')));
+  await t.pump(const Duration(milliseconds: 700));
+  await t.tap(find.byKey(const Key('quick_action_timetable')));
+  await t.pump(const Duration(milliseconds: 900));
+}
 Finder tf(String label) => find.widgetWithText(TextFormField, label);
 
 const _errorKeys = [
@@ -177,11 +193,11 @@ Future<void> back(WidgetTester t) => leaveScreen(t);
 /// Pops screens until the bottom-nav shell is visible: at most 6 attempts, then fails with a clear message (never loops unbounded).
 Future<void> leaveToShell(WidgetTester t) async {
   for (var i = 0; i < 6; i++) {
-    if (find.byType(BottomNavigationBar).evaluate().isNotEmpty &&
+    if (find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty &&
         find.byType(Dialog).evaluate().isEmpty) return;
     if (!await confirmDiscardIfShown(t)) await back(t);
   }
-  if (find.byType(BottomNavigationBar).evaluate().isEmpty)
+  if (find.byKey(const Key('app_shell_nav')).evaluate().isEmpty)
     throw TestFailure('could not get back to the home shell after 6 attempts');
 }
 
@@ -215,7 +231,7 @@ Future<void> signIn(WidgetTester t, String email, String password,
   for (var i = 0; i < 100; i++) {
     _guard('signIn');
     await t.pump(const Duration(milliseconds: 250));
-    if (find.byType(BottomNavigationBar).evaluate().isNotEmpty) {
+    if (find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty) {
       await settle(t, 2500);
       return;
     }
@@ -360,7 +376,7 @@ Future<void> walk(WidgetTester t, TestWho w, TestSourcePicker picker) async {
     if (w.isClass) {
       await openMoreEntry(t, 'Timetable');
     } else {
-      await t.tap(navLabel('Timetable'));
+      await openTimetableViaFab(t); // no longer a tab
       await settle(t, 1500);
     }
     await settle(t, 2000);
@@ -372,14 +388,14 @@ Future<void> walk(WidgetTester t, TestWho w, TestSourcePicker picker) async {
     await shot(t, '${L}_timetable_week');
     await scroll(t, 600);
     await shot(t, '${L}_timetable_week_lower');
-    if (w.isClass) await back(t);
+    await back(t);
   });
 
   if (w.isClass) {
     await step(t,
         '$L attendance mark (DELIBERATE local write: mark all present and save for today)',
         () async {
-      await t.tap(navLabel('Attendance'));
+      await openAttendanceHub(t);
       await waitFor(t, find.byKey(const Key('hub_mark_button')));
       await settle(t, 1500);
       expectNoBadStates('$L attendance hub');
@@ -440,7 +456,8 @@ Future<void> walk(WidgetTester t, TestWho w, TestSourcePicker picker) async {
       await shot(t, '${L}_attendance_history');
       await scroll(t, 500);
       await shot(t, '${L}_attendance_history_day');
-      await back(t);
+      await back(t); // history -> hub
+      await back(t); // hub -> shell (the hub is a pushed page now)
     });
   } else {
     await step(t, '$L attendance is class-teacher only', () async {
@@ -842,7 +859,7 @@ void main() {
         rethrow;
       }
     });
-    if (find.byType(BottomNavigationBar).evaluate().isEmpty) {
+    if (find.byKey(const Key('app_shell_nav')).evaluate().isEmpty) {
       await step(t, 'login B without school code (fallback)',
           () async => signIn(t, _classEmail, _classPassword));
     }

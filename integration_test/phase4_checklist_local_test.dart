@@ -81,12 +81,20 @@ String badgeTexts(WidgetTester t) {
   return out.join(',');
 }
 
+/// Timetable is no longer a bottom tab: centre FAB -> Timetable (a pushed page; toHome goes back first).
 Future<void> openTimetableTabForA(WidgetTester t) async {
-  await t.tap(navLabel('Timetable'));
+  await t.tap(find.byKey(const Key('quick_actions_fab')));
+  await settle(t, 800);
+  await t.tap(find.byKey(const Key('quick_action_timetable')));
   await settle(t, 1500);
 }
 
 Future<void> toHome(WidgetTester t) async {
+  // leave a pushed page (e.g. the timetable opened from the FAB) before using the bar
+  for (var i = 0; i < 3 && find.byKey(const Key('app_shell_nav')).evaluate().isEmpty; i++) {
+    await t.pageBack();
+    await settle(t, 600);
+  }
   await t.tap(navLabel('Home'));
   await settle(t, 1200);
 }
@@ -198,7 +206,7 @@ Future<void> refreshScenario(WidgetTester t) async {
   await step(t, 'A baseline Home', () async {
     await settle(t, 2500);
     expectNoBadStates('Home A');
-    tabsBefore = [for (final l in ['Timetable', 'Attendance']) if (navLabel(l).evaluate().isNotEmpty) l].join();
+    tabsBefore = (Get.find<AuthController>().isClassTeacher ? 'Attendance' : 'Timetable') /* role marker: no such tab any more; Mark Attendance is a quick action for class teachers only */;
     print('REFRESH[A] baseline tab=$tabsBefore isClassTeacher=${Get.find<AuthController>().isClassTeacher} badges=${badgeTexts(t)} classCardShown=${find.textContaining('Class teacher').evaluate().isNotEmpty}');
     print('REFRESH[A] baseline messages/notifications texts: ${allTexts().where((s) => s.contains('unread') || s.contains('caught up')).join(' / ')}');
     await p4shot(t, 'A_refresh_baseline_top');
@@ -210,7 +218,7 @@ Future<void> refreshScenario(WidgetTester t) async {
     print('MARK:pull_1');
     await pull(t, waitMs: 4500);
     print('MARK:after_pull_1');
-    final tabsAfter = [for (final l in ['Timetable', 'Attendance']) if (navLabel(l).evaluate().isNotEmpty) l].join();
+    final tabsAfter = (Get.find<AuthController>().isClassTeacher ? 'Attendance' : 'Timetable') /* role marker: no such tab any more; Mark Attendance is a quick action for class teachers only */;
     print('REFRESH[A] after pull: tab=$tabsAfter (was $tabsBefore) isClassTeacher=${Get.find<AuthController>().isClassTeacher} badges=${badgeTexts(t)} classCardShown=${find.textContaining('Class teacher').evaluate().isNotEmpty}');
     print('REFRESH[A] after pull messages texts: ${allTexts().where((s) => s.contains('unread') || s.contains('caught up')).join(' / ')}');
     await p4shot(t, 'A_refresh_after_pull_top');
@@ -220,7 +228,7 @@ Future<void> refreshScenario(WidgetTester t) async {
     print('MARK:pull_2');
     await pull(t, waitMs: 4500);
     print('MARK:after_pull_2');
-    final tabsBack = [for (final l in ['Timetable', 'Attendance']) if (navLabel(l).evaluate().isNotEmpty) l].join();
+    final tabsBack = (Get.find<AuthController>().isClassTeacher ? 'Attendance' : 'Timetable') /* role marker: no such tab any more; Mark Attendance is a quick action for class teachers only */;
     print('REFRESH[A] after flip back + pull: tab=$tabsBack isClassTeacher=${Get.find<AuthController>().isClassTeacher} classCardShown=${find.textContaining('Class teacher').evaluate().isNotEmpty}');
     await p4shot(t, 'A_refresh_after_flip_back');
   });
@@ -262,7 +270,7 @@ Future<void> offlineScenario(WidgetTester t, {required bool unreachable}) async 
     for (final l in ['Messages', 'Classes', 'More', 'Home']) {
       await t.tap(navLabel(l));
       await settle(t, 1400);
-      print('OFFLINE[$tag] tapped tab $l -> bottom bar present=${find.byType(BottomNavigationBar).evaluate().isNotEmpty} appBar present=${find.byType(AppBar).evaluate().isNotEmpty}');
+      print('OFFLINE[$tag] tapped tab $l -> bottom bar present=${find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty} appBar present=${find.byType(AppBar).evaluate().isNotEmpty}');
       if (l == 'Messages' || l == 'Classes') await p4shot(t, 'offline_${tag}_tab_$l');
     }
   });

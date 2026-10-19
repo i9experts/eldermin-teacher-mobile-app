@@ -18,7 +18,7 @@ void main() {
     await demo.waitFor(t, find.text('Sign in'));
     await demo.settle(t);
     await demo.signIn(t, 'classteacher@stub.test', 'StubPass123');
-    await demo.waitFor(t, find.text('Attendance'));
+    await demo.waitFor(t, find.byKey(const Key('mark_attendance_button')));
     await demo.settle(t, 1500);
     // Token link while signed in -> confirmation, Cancel keeps the session.
     await demo.openLink(t, 'eldermin-teacher://login?token=stub.teacher.dummy&slug=demo-school');
@@ -27,7 +27,7 @@ void main() {
     await demo.shot(t, '22_deeplink_switch_account_dialog', ms: 2500);
     await t.tap(find.byKey(const Key('confirm_dialog_cancel')));
     await demo.settle(t, 800);
-    expect(find.text('Attendance'), findsWidgets);
+    expect(find.byKey(const Key('app_shell_nav')), findsOneWidget);
     await demo.signOutViaUi(t, shotName: '21_sign_out_confirmation_dialog');
     print('DONE');
   }, timeout: const Timeout(Duration(minutes: 6)));

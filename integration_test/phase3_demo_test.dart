@@ -135,7 +135,7 @@ void main() {
 
     // ── Sign in as a plain teacher ──
     await signIn(t, 'teacher@stub.test', 'StubPass123');
-    await waitFor(t, find.text('Timetable'));
+    await waitFor(t, find.byKey(const Key('app_shell_nav')));
     await settle(t, 1500);
     await shot(t, '10_home_plain_teacher_timetable_tab');
 
@@ -145,7 +145,7 @@ void main() {
     await t.drag(find.byType(SingleChildScrollView).first, const Offset(0, 420));
     await t.pump(const Duration(milliseconds: 150));
     await shot(t, '11_home_pull_to_refresh_in_progress', ms: 300);
-    await waitFor(t, find.text('Attendance'));
+    await waitFor(t, find.byKey(const Key('mark_attendance_button'))); // class teachers get the class card + Mark Attendance quick action
     await shot(t, '12_home_after_pull_attendance_tab_no_relogin');
     print('STUB:/__stub/class-teacher?email=teacher@stub.test&value=false');
     await t.pump(const Duration(seconds: 1));
@@ -154,7 +154,7 @@ void main() {
 
     // ── Class teacher login ──
     await signIn(t, 'classteacher@stub.test', 'StubPass123');
-    await waitFor(t, find.text('Attendance'));
+    await waitFor(t, find.byKey(const Key('mark_attendance_button')));
     await settle(t, 1500);
     await shot(t, '13_home_class_teacher_attendance_tab');
     await signOutViaUi(t);
@@ -195,7 +195,7 @@ void main() {
 
     // ── Token + slug auto-login via deep link ──
     await openLink(t, 'eldermin-teacher://login?token=stub.classteacher.dummy&slug=demo-school');
-    await waitFor(t, find.text('Attendance'), seconds: 30);
+    await waitFor(t, find.byKey(const Key('mark_attendance_button')), seconds: 30);
     await settle(t, 1500);
     await shot(t, '18_token_login_deeplink_home_class_teacher');
 
@@ -206,7 +206,7 @@ void main() {
     await shot(t, '22_deeplink_switch_account_dialog', ms: 2500);
     await t.tap(find.byKey(const Key('confirm_dialog_cancel')));
     await settle(t, 800);
-    expect(find.text('Attendance'), findsWidgets, reason: 'Cancel keeps the signed-in session');
+    expect(find.byKey(const Key('app_shell_nav')), findsOneWidget, reason: 'Cancel keeps the signed-in session');
     await signOutViaUi(t);
 
     // Rejected token -> clear error, Login.

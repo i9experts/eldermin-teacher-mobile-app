@@ -35,7 +35,23 @@ String sid(int i) => '64f${(0x200 + i).toRadixString(16).padLeft(21, '0')}';
 
 Finder chip(int i, String wire) => find.byKey(ValueKey('chip_${sid(i)}_$wire'));
 
-Finder navLabel(String label) => find.descendant(of: find.byType(BottomNavigationBar), matching: find.text(label));
+Finder navLabel(String label) => find.descendant(of: find.byKey(const Key('app_shell_nav')), matching: find.text(label));
+
+/// The Attendance hub is no longer a bottom tab: Classes tab -> Attendance card (a pushed page; go back once more to reach the shell).
+Future<void> openAttendanceHub(WidgetTester t) async {
+  await t.tap(navLabel('Classes'));
+  await t.pump(const Duration(milliseconds: 800));
+  await t.tap(find.byKey(const ValueKey('module_attendance')));
+  await t.pump(const Duration(milliseconds: 800));
+}
+
+/// Timetable is no longer a bottom tab: centre FAB -> Timetable (a pushed page).
+Future<void> openTimetableViaFab(WidgetTester t) async {
+  await t.tap(find.byKey(const Key('quick_actions_fab')));
+  await t.pump(const Duration(milliseconds: 700));
+  await t.tap(find.byKey(const Key('quick_action_timetable')));
+  await t.pump(const Duration(milliseconds: 900));
+}
 
 Future<void> scroll(WidgetTester t, double dy) async {
   await t.drag(find.byType(Scrollable).last, Offset(0, -dy));
@@ -62,11 +78,11 @@ void main() {
     await t.enterText(tf('Email'), 'classteacher@stub.test');
     await t.enterText(tf('Password'), 'StubPass123');
     await t.tap(find.text('Sign in'));
-    await waitFor(t, navLabel('Attendance'));
+    await waitFor(t, find.byKey(const Key('app_shell_nav')));
     await settle(t, 2500);
 
     // ── Attendance hub, then the mark screen ──
-    await t.tap(navLabel('Attendance'));
+    await openAttendanceHub(t);
     await waitFor(t, find.byKey(const Key('hub_mark_button')));
     await settle(t, 1500);
     await shot(t, '5a_20_attendance_hub_not_marked');
@@ -124,7 +140,9 @@ void main() {
     await shot(t, '5a_31_history_day_detail');
 
     // ── Timetable (class teachers reach it via More) ──
-    await t.pageBack();
+    await t.pageBack(); // history -> hub
+    await settle(t, 600);
+    await t.pageBack(); // hub -> shell (the hub is a pushed page now)
     await settle(t, 600);
     await t.tap(navLabel('More'));
     await settle(t, 800);
@@ -175,7 +193,7 @@ void main() {
     await stub(t, '/__stub/mode?feature=students&value=ok');
 
     // ── 403 from the server on save (reopen the mark screen from the hub) ──
-    await t.tap(navLabel('Attendance'));
+    await openAttendanceHub(t);
     await waitFor(t, find.byKey(const Key('hub_mark_button')));
     await settle(t, 800);
     await t.tap(find.byKey(const Key('hub_mark_button')));

@@ -26,7 +26,23 @@ Future<void> waitFor(WidgetTester t, Finder f, {int seconds = 25}) async {
   throw TestFailure('Timed out waiting for $f');
 }
 
-Finder navLabel(String label) => find.descendant(of: find.byType(BottomNavigationBar), matching: find.text(label));
+Finder navLabel(String label) => find.descendant(of: find.byKey(const Key('app_shell_nav')), matching: find.text(label));
+
+/// The Attendance hub is no longer a bottom tab: Classes tab -> Attendance card (a pushed page; go back once more to reach the shell).
+Future<void> openAttendanceHub(WidgetTester t) async {
+  await t.tap(navLabel('Classes'));
+  await t.pump(const Duration(milliseconds: 800));
+  await t.tap(find.byKey(const ValueKey('module_attendance')));
+  await t.pump(const Duration(milliseconds: 800));
+}
+
+/// Timetable is no longer a bottom tab: centre FAB -> Timetable (a pushed page).
+Future<void> openTimetableViaFab(WidgetTester t) async {
+  await t.tap(find.byKey(const Key('quick_actions_fab')));
+  await t.pump(const Duration(milliseconds: 700));
+  await t.tap(find.byKey(const Key('quick_action_timetable')));
+  await t.pump(const Duration(milliseconds: 900));
+}
 String sid(int i) => '64f${(0x200 + i).toRadixString(16).padLeft(21, '0')}';
 
 void main() {
@@ -43,7 +59,7 @@ void main() {
     await t.enterText(find.widgetWithText(TextFormField, 'Email'), 'classteacher@stub.test');
     await t.enterText(find.widgetWithText(TextFormField, 'Password'), 'StubPass123');
     await t.tap(find.text('Sign in'));
-    await waitFor(t, navLabel('Attendance'));
+    await waitFor(t, find.byKey(const Key('app_shell_nav')));
     await settle(t, 2500);
 
     // Students list answers 403
@@ -59,7 +75,7 @@ void main() {
     await settle(t, 600);
 
     // Attendance save answers 403, marks kept
-    await t.tap(navLabel('Attendance'));
+    await openAttendanceHub(t);
     await waitFor(t, find.byKey(const Key('hub_mark_button')));
     await t.tap(find.byKey(const Key('hub_mark_button')));
     await waitFor(t, find.byKey(const Key('mark_remaining_present')));
@@ -81,6 +97,8 @@ void main() {
       await t.tap(find.byKey(const Key('discard_confirm')));
       await settle(t, 800);
     }
+    await t.pageBack(); // hub -> shell (the hub is a pushed page now)
+    await settle(t, 600);
 
     // Timetable: scroll to the live NOW / NEXT periods
     await t.tap(navLabel('More'));
