@@ -193,6 +193,9 @@ void main() {
     await shot(t, '5a_52_students_second_class');
     await t.tap(find.byKey(const ValueKey('class_chip_0')));
     await settle(t, 1500);
+    // D6: the student rows are taller (EmListRow), so the 7th one starts below the fold
+    await t.scrollUntilVisible(find.byKey(ValueKey('student_${sid(7)}')), 200, scrollable: find.byType(Scrollable).last);
+    await settle(t, 300);
     await t.tap(find.byKey(ValueKey('student_${sid(7)}')));
     await waitFor(t, find.byKey(const Key('student_profile')));
     await settle(t, 2500);
@@ -203,6 +206,8 @@ void main() {
     await shot(t, '5a_55_student_360_bottom');
     await t.pageBack();
     await settle(t, 600);
+    await t.drag(find.byType(Scrollable).last, const Offset(0, 3000)); // D6: back to the top (the class chips live in the list header)
+    await settle(t, 400);
 
     // ── 403 state (students endpoint) ──
     await stub(t, '/__stub/mode?feature=students&value=403');
