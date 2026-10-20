@@ -60,7 +60,7 @@ class MessagesScreen extends GetView<MessagesController> {
         ],
       );
     });
-    return embedded ? body : Scaffold(appBar: AppBar(title: const Text('Messages')), body: body);
+    return embedded ? body : EmScaffold(appBar: EmAppBar(title: 'Messages'), body: body);
   }
 }
 

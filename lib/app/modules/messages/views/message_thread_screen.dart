@@ -10,6 +10,7 @@ import '../../../components/custom_text.dart';
 import '../../../utils/toast_util.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/chat_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// One conversation (`/messages/:threadId`). The controller is created here, tagged by thread id, and removed with the screen, so opening
 /// another thread never shows the previous one's messages. A controller registered beforehand (tests) is reused.
@@ -107,24 +108,36 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Obx(() {
+    return EmScaffold(
+      appBar: EmAppBar(
+        titleWidget: Obx(() {
           final t = c.thread;
-          return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            CustomText(key: const Key('chat_title'), text: t == null || t.guardianName.isEmpty ? 'Conversation' : t.guardianName, color: AppColors.ink, fontSize: 16, fontWeight: FontWeight.w800, maxLines: 1, overflow: TextOverflow.ellipsis),
+          return Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(key: const Key('chat_title'), t == null || t.guardianName.isEmpty ? 'Conversation' : t.guardianName, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: EmType.heading.copyWith(color: EmColors.ink)),
             if (t != null && (t.studentName.isNotEmpty || t.subject.isNotEmpty))
-              CustomText(text: [if (t.studentName.isNotEmpty) 're ${t.studentName}', if (t.subject.isNotEmpty) t.subject].join(' · '), color: AppColors.muted, fontSize: 11, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text([if (t.studentName.isNotEmpty) 're ${t.studentName}', if (t.subject.isNotEmpty) t.subject].join(' · '), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
           ]);
         }),
         actions: [
           Obx(() => c.canCompose
-              ? PopupMenuButton<String>(
-                  key: const Key('chat_menu'),
-                  onSelected: (v) {
-                    if (v == 'close') _confirmClose();
-                  },
-                  itemBuilder: (_) => const [PopupMenuItem(value: 'close', key: Key('chat_close'), child: Text('Close conversation'))],
+              ? Builder(
+                  builder: (btn) => EmIconCircleButton(
+                    key: const Key('chat_menu'),
+                    icon: Icons.more_horiz_rounded,
+                    semanticLabel: 'More options',
+                    tooltip: 'More options',
+                    onTap: () async {
+                      final box = btn.findRenderObject() as RenderBox;
+                      final overlay = Overlay.of(btn).context.findRenderObject() as RenderBox;
+                      final rect = RelativeRect.fromRect(box.localToGlobal(Offset.zero, ancestor: overlay) & box.size, Offset.zero & overlay.size);
+                      final v = await showMenu<String>(
+                        context: btn,
+                        position: rect,
+                        items: const [PopupMenuItem(value: 'close', key: Key('chat_close'), child: Text('Close conversation'))],
+                      );
+                      if (v == 'close') _confirmClose();
+                    },
+                  ),
                 )
               : const SizedBox.shrink()),
         ],

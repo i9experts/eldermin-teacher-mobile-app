@@ -13,6 +13,7 @@ import '../../home/models/section_state.dart';
 import '../controllers/ptm_detail_controller.dart';
 import 'ptm_action_sheets.dart';
 import 'widgets/ptm_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// One meeting (`/ptm/:id`). The controller is created here, tagged by id (a controller registered beforehand is reused, tests).
 class PtmDetailScreen extends StatefulWidget {
@@ -65,8 +66,8 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Meeting')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Meeting'),
       body: Obx(() {
         if (c.notFound.value) {
           return const AppEmptyView(key: Key('ptm_not_found'), icon: Icons.search_off_rounded, title: 'Meeting not found', subtitle: 'It may have been removed.');

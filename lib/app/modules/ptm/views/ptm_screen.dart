@@ -8,6 +8,7 @@ import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/ptm_controller.dart';
 import 'widgets/ptm_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Parent meetings (`/ptm`): Upcoming / Today / Past / Cancelled tabs of MY meetings.
 class PtmScreen extends GetView<PtmController> {
@@ -19,8 +20,8 @@ class PtmScreen extends GetView<PtmController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Parent meetings')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Parent meetings'),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('ptm_new'),
         onPressed: () => Get.toNamed(Routes.ptmNew),

@@ -1,5 +1,6 @@
 // ignore_for_file: invalid_use_of_protected_member
 import 'dart:async';
+import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:eldermin_teacher_app/app/modules/home/controllers/home_badges_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/messages/controllers/chat_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/messages/controllers/messages_controller.dart';
@@ -448,8 +449,8 @@ void main() {
       expect(find.byKey(const Key('notif_unread_n3')), findsNothing);
       expect(badges.notificationUnread.value, 0);
       expect(c.unreadCount.value, 0);
-      final button = t.widget<TextButton>(find.byKey(const Key('notif_mark_all')));
-      expect(button.onPressed, isNull);
+      final button = t.widget<EmIconCircleButton>(find.byKey(const Key('notif_mark_all'))); // D5: the text action became an icon circle
+      expect(button.onTap, isNull);
     });
 
     testWidgets('tapping a message notification marks it read and opens the thread; an unknown type stays on the inbox', (t) async {

@@ -8,6 +8,7 @@ import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/events_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// School events (`/events`, read only): Upcoming and Past. No tickets, orders, attendees or fees.
 class EventsScreen extends GetView<EventsController> {
@@ -16,8 +17,8 @@ class EventsScreen extends GetView<EventsController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Events')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Events'),
       body: Obx(() => ScreenStateView<List<SchoolEvent>>(
             state: c.state.value,
             showServerForbidden: true,

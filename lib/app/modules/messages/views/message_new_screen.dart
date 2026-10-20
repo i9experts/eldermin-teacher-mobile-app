@@ -13,6 +13,7 @@ import '../../homework/views/widgets/homework_widgets.dart';
 import '../../home/models/section_state.dart';
 import '../../students/views/widgets/student_widgets.dart';
 import '../controllers/new_thread_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// Start a conversation (`/messages/new`): student -> guardian -> subject + first message.
 class MessageNewScreen extends GetView<NewThreadController> {
@@ -36,8 +37,8 @@ class MessageNewScreen extends GetView<NewThreadController> {
         }
         Get.back();
       },
-      child: Scaffold(
-        appBar: AppBar(title: const CustomText(text: 'New message', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+      child: EmScaffold(
+        appBar: EmAppBar(title: 'New message'),
         body: Obx(() {
           if (c.classes.isEmpty) {
             return const AppEmptyView(key: Key('new_no_classes'), icon: Icons.school_outlined, title: "You aren't assigned to any class yet", subtitle: 'You can message the guardians of students in your classes.');

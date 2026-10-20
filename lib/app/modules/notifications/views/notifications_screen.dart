@@ -9,6 +9,7 @@ import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/controllers/home_shell_controller.dart';
 import '../controllers/notifications_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// Notifications inbox (`/notifications`): grouped by day, unread dot, tap = mark read + open what it is about. Infinite scroll by cursor.
 class NotificationsScreen extends GetView<NotificationsController> {
@@ -18,16 +19,18 @@ class NotificationsScreen extends GetView<NotificationsController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifications'),
+    return EmScaffold(
+      appBar: EmAppBar(
+        title: 'Notifications',
         actions: [
           Obx(() {
             final enabled = (c.unreadCount.value ?? 0) > 0 && !c.markingAll.value && c.state.value.hasData;
-            return TextButton(
+            return EmIconCircleButton(
               key: const Key('notif_mark_all'),
-              onPressed: enabled ? () => _markAll(context) : null,
-              child: Text('Mark all read', style: TextStyle(color: enabled ? AppColors.ink : AppColors.faint, fontWeight: FontWeight.w700, fontSize: 12)),
+              icon: Icons.done_all_rounded,
+              semanticLabel: 'Mark all read',
+              tooltip: 'Mark all read',
+              onTap: enabled ? () => _markAll(context) : null,
             );
           }),
         ],

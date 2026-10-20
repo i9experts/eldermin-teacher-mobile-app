@@ -15,6 +15,7 @@ import '../controllers/calendar_controller.dart';
 import '../controllers/circulars_controller.dart';
 import 'calendar_widgets.dart';
 import 'circular_sheet.dart';
+import '../../../../core/design/design.dart';
 
 /// School calendar (`/calendar`, read only): Calendar tab (month grid or agenda + the selected day's list) and Circulars tab.
 class CalendarScreen extends StatelessWidget {
@@ -25,9 +26,9 @@ class CalendarScreen extends StatelessWidget {
     final circ = Get.find<CircularsController>();
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('School calendar'),
+      child: EmScaffold(
+        appBar: EmAppBar(
+          title: 'School calendar',
           bottom: TabBar(
             indicatorColor: AppColors.ink,
             labelColor: AppColors.ink,

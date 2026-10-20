@@ -12,6 +12,7 @@ import '../../homework/views/widgets/homework_widgets.dart';
 import '../../students/views/widgets/student_widgets.dart';
 import '../controllers/ptm_create_controller.dart';
 import 'widgets/ptm_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Schedule a meeting (`/ptm/new`): student of my classes, date, start and end time, discussion points.
 class PtmNewScreen extends GetView<PtmCreateController> {
@@ -35,8 +36,8 @@ class PtmNewScreen extends GetView<PtmCreateController> {
         }
         Get.back();
       },
-      child: Scaffold(
-        appBar: AppBar(title: const Text('New meeting')),
+      child: EmScaffold(
+        appBar: EmAppBar(title: 'New meeting'),
         body: Obx(() {
           if (c.classes.isEmpty) {
             return const AppEmptyView(key: Key('ptm_new_no_classes'), icon: Icons.school_outlined, title: "You aren't assigned to any class yet", subtitle: 'You can schedule meetings about students in your classes.');

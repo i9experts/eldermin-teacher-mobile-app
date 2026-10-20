@@ -8,6 +8,7 @@ import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/custom_text.dart';
 import '../../../components/external_link.dart';
 import '../controllers/events_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// Event detail (`/events/:id`, read only): when, where, sessions, description. Nothing about tickets, attendees or fees.
 class EventDetailScreen extends GetView<EventDetailController> {
@@ -16,8 +17,8 @@ class EventDetailScreen extends GetView<EventDetailController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Event')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Event'),
       body: Obx(() => ScreenStateView<SchoolEvent>(
             state: c.state.value,
             showServerForbidden: true,
