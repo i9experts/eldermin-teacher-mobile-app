@@ -23,6 +23,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_harness.dart';
+import '../support/design_harness.dart' show loadDesignFonts;
+import '../support/layout_probe.dart';
 import '../support/fake_classroom_repositories.dart';
 import '../support/fake_phase7b_repositories.dart';
 
@@ -35,6 +37,8 @@ void main() {
   late AuthController auth;
   final now = DateTime(2026, 10, 8, 13, 0);
 
+  setUpAll(loadDesignFonts); // real glyph widths (the default Ahem test font fakes overflows)
+
   setUp(() {
     Get.reset();
     Get.testMode = true;
@@ -43,6 +47,7 @@ void main() {
     lv = FakeLeaveRepository();
   });
   tearDown(Get.reset);
+  tearDown(ProbeEnv.reset);
 
   Future<void> signIn(WidgetTester t) async {
     final h = (await t.runAsync(() async {
@@ -55,12 +60,12 @@ void main() {
   }
 
   Future<void> show(WidgetTester t, Widget home) async {
-    await t.binding.setSurfaceSize(const Size(430, 1600));
+    await t.binding.setSurfaceSize(probeSize(const Size(430, 1600)));
     addTearDown(() => t.binding.setSurfaceSize(null));
     Widget stub(String name) => Scaffold(body: Text('went:$name'));
     await t.pumpWidget(GetMaterialApp(
       theme: AppTheme.light,
-      home: home,
+      home: probeHome(home),
       getPages: [for (final r in Routes.all) GetPage(name: r, page: () => stub(r))],
     ));
     await t.pump();

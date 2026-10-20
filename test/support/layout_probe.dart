@@ -50,11 +50,21 @@ void expectInsideScreen(WidgetTester t, Finder f, double width) {
 
 /// Probe environment for test files whose boot helpers are shared with ordinary tests: a probe test sets it, [probeSize] / [probeHome]
 /// apply it inside the existing helper, and [ProbeEnv.reset] (call it in tearDown) restores the defaults.
+///
+/// The whole existing widget suite can also be replayed in one environment from the command line (every screen state the tests build is then
+/// laid out at that width / scale / direction, and a layout overflow fails the test):
+///   flutter test test/widget --dart-define=PROBE_W=320 --dart-define=PROBE_SCALE=1.3 --dart-define=PROBE_DIR=rtl
+const _envWRaw = int.fromEnvironment('PROBE_W', defaultValue: 0);
+const _envScaleRaw = String.fromEnvironment('PROBE_SCALE', defaultValue: '1');
+final double _envW = _envWRaw.toDouble();
+final double _envScale = double.tryParse(_envScaleRaw) ?? 1.0;
+const _envDir = String.fromEnvironment('PROBE_DIR', defaultValue: 'ltr');
+
 class ProbeEnv {
   ProbeEnv._();
-  static double? width;
-  static double scale = 1.0;
-  static TextDirection dir = TextDirection.ltr;
+  static double? width = _envW > 0 ? _envW : null;
+  static double scale = _envScale;
+  static TextDirection dir = _envDir == 'rtl' ? TextDirection.rtl : TextDirection.ltr;
 
   static void set(double w, double s, TextDirection d) {
     width = w;
@@ -63,9 +73,9 @@ class ProbeEnv {
   }
 
   static void reset() {
-    width = null;
-    scale = 1.0;
-    dir = TextDirection.ltr;
+    width = _envW > 0 ? _envW : null;
+    scale = _envScale;
+    dir = _envDir == 'rtl' ? TextDirection.rtl : TextDirection.ltr;
   }
 }
 

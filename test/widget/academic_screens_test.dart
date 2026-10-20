@@ -23,6 +23,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_harness.dart';
+import '../support/design_harness.dart' show loadDesignFonts;
+import '../support/layout_probe.dart';
 import '../support/fake_academic_repositories.dart';
 
 final now = DateTime(2026, 10, 5, 9, 30);
@@ -33,6 +35,8 @@ void main() {
   late FakeLessonPlanRepository lp;
   late FakeSyllabusRepository sy;
 
+  setUpAll(loadDesignFonts); // real glyph widths (the default Ahem test font fakes overflows)
+
   setUp(() {
     Get.reset();
     Get.testMode = true;
@@ -40,6 +44,7 @@ void main() {
     sy = FakeSyllabusRepository();
   });
   tearDown(Get.reset);
+  tearDown(ProbeEnv.reset);
 
   Future<dynamic> signIn(WidgetTester t, {List<Map<String, Object?>> assignments = const [cls5a], List<String>? permissions}) async {
     return (await t.runAsync(() async {
@@ -51,10 +56,10 @@ void main() {
   }
 
   Future<void> open(WidgetTester t, Widget screen, {Size size = const Size(430, 4000)}) async {
-    await t.binding.setSurfaceSize(size);
+    await t.binding.setSurfaceSize(probeSize(size));
     addTearDown(() => t.binding.setSurfaceSize(null));
     await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: const Scaffold(body: Text('root'))));
-    unawaited(Get.to(() => screen));
+    unawaited(Get.to(() => probeHome(screen)));
     await t.pump();
     await t.pump(const Duration(milliseconds: 400));
   }

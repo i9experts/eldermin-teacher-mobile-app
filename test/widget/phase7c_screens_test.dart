@@ -39,6 +39,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../support/auth_harness.dart';
+import '../support/design_harness.dart' show loadDesignFonts;
+import '../support/layout_probe.dart';
 import '../support/fake_classroom_repositories.dart';
 import '../support/fake_phase7b_repositories.dart';
 import '../support/fake_phase7c_repositories.dart';
@@ -51,6 +53,8 @@ Circular circ(String id, String title, {bool ack = false, bool urgent = false, S
 SchoolEvent ev(String id, String title, {List<Map<String, Object?>>? sessions, String status = 'published', String description = ''}) => SchoolEvent.tryParse(eventRow(id, title, sessions: sessions, status: status, description: description))!;
 
 void main() {
+  setUpAll(loadDesignFonts); // real glyph widths (the default Ahem test font fakes overflows)
+
   setUp(() {
     Get.reset();
     Get.testMode = true;
@@ -58,9 +62,10 @@ void main() {
     ExternalLinks.launcher = (u) async => true;
   });
   tearDown(Get.reset);
+  tearDown(ProbeEnv.reset);
 
   Future<void> open(WidgetTester t, Widget screen, {Size size = const Size(430, 2400)}) async {
-    await t.binding.setSurfaceSize(size);
+    await t.binding.setSurfaceSize(probeSize(size));
     addTearDown(() => t.binding.setSurfaceSize(null));
     Widget stub(String name) => Scaffold(body: Text('went:$name'));
     await t.pumpWidget(GetMaterialApp(
@@ -68,7 +73,7 @@ void main() {
       home: const Scaffold(body: Text('root')),
       getPages: [for (final r in Routes.all) GetPage(name: r, page: () => stub(r))],
     ));
-    unawaited(Get.to(() => screen));
+    unawaited(Get.to(() => probeHome(screen)));
     await t.pump();
     await t.pump(const Duration(milliseconds: 400));
   }
