@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/models/assessments/assessment_models.dart';
-import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/design/design.dart';
+import '../../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../../core/utils/classroom_format.dart';
 import '../../../../../core/widgets/app_widgets.dart';
-import '../../../../components/custom_text.dart';
 import '../../controllers/assessments_controller.dart';
 
 /// Status tags of an assessment (status + published flag + online delivery).
@@ -32,7 +32,7 @@ class AssessmentTags extends StatelessWidget {
     }
     if (a.isResultPublished) tags.add(const AppTag('RESULTS PUBLISHED', style: TagStyle.green));
     if (a.isOnline) tags.add(const AppTag('ONLINE QUIZ', style: TagStyle.info));
-    return Wrap(spacing: 4, runSpacing: 4, children: tags);
+    return Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, children: tags);
   }
 }
 
@@ -53,90 +53,57 @@ class AssessmentTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = assessment;
+    final quiet = EmType.caption.copyWith(color: EmColors.textSecondary);
     return AppCard(
       key: ValueKey('asm_${a.id}'),
       onTap: onTap,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        CustomText(text: a.title.isEmpty ? '(Untitled)' : a.title, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 14, maxLines: 2, overflow: TextOverflow.ellipsis),
-        const SizedBox(height: 3),
-        CustomText(text: [assessmentTypeLabel(a.type), a.classLabel, if (a.term.isNotEmpty) a.term].join(' · '), color: AppColors.muted, fontSize: 11.5),
-        const SizedBox(height: 2),
-        CustomText(text: assessmentDateText(a), color: AppColors.muted, fontSize: 11.5),
-        const SizedBox(height: 8),
+        Text(a.title.isEmpty ? '(Untitled)' : a.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink)),
+        const SizedBox(height: EmSpacing.s4),
+        Text([assessmentTypeLabel(a.type), a.classLabel, if (a.term.isNotEmpty) a.term].join(' · '), style: quiet),
+        Text(assessmentDateText(a), style: quiet),
+        const SizedBox(height: EmSpacing.s8),
         AssessmentTags(a: a),
         if (a.status == AssessmentStatus.draft) ...[
-          const SizedBox(height: 8),
-          CustomText(key: ValueKey('asm_draft_note_${a.id}'), text: MarksAccess.draft.explanation, color: AppColors.muted, fontSize: 11.5),
+          const SizedBox(height: EmSpacing.s8),
+          Text(MarksAccess.draft.explanation, key: ValueKey('asm_draft_note_${a.id}'), style: quiet),
         ] else if (mySubjects.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: EmSpacing.s8),
           for (final s in a.subjects.where((x) => mySubjects.contains(x.subject)))
             Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(top: EmSpacing.s2),
               child: Row(children: [
-                const Icon(Icons.edit_note_rounded, size: 15, color: AppColors.blue),
-                const SizedBox(width: 6),
-                Expanded(child: CustomText(text: '${s.subject} · out of ${marksText(s.totalMarks)}', color: AppColors.black, fontSize: 12, fontWeight: FontWeight.w600)),
+                const ExcludeSemantics(child: Icon(Icons.edit_note_rounded, size: 18, color: EmColors.primary)),
+                const SizedBox(width: EmSpacing.s8),
+                Expanded(child: Text('${s.subject} · out of ${marksText(s.totalMarks)}', style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600))),
               ]),
             ),
         ] else ...[
-          const SizedBox(height: 6),
-          const CustomText(text: 'View only · you are the class teacher', color: AppColors.muted, fontSize: 11.5),
+          const SizedBox(height: EmSpacing.s8),
+          Text('View only · you are the class teacher', style: quiet),
         ],
       ]),
     );
   }
 }
 
-/// A blue explanation box for a hard block (not my subject / online quiz).
+/// An explanation box for a hard block (not my subject / online quiz): info tone, info glyph.
 class AccessNote extends StatelessWidget {
   final MarksAccess access;
   final Key? noteKey;
   const AccessNote({super.key, required this.access, this.noteKey});
 
   @override
-  Widget build(BuildContext context) => _NoteBox(noteKey: noteKey, text: access.explanation, warning: false);
+  Widget build(BuildContext context) => EmInfoBanner(key: noteKey, tone: EmTone.info, text: access.explanation);
 }
 
-/// The red lock banner: marks cannot be changed (results published / assessment cancelled, or the server said so with 403).
+/// The lock banner: marks cannot be changed (results published / assessment cancelled, or the server said so with 403). A lock glyph and
+/// the explanation in words, in the warning tone: a locked sheet is never signalled by colour alone.
 class LockBanner extends StatelessWidget {
   final String message;
   final Key? noteKey;
   const LockBanner({super.key, required this.message, this.noteKey});
 
   @override
-  Widget build(BuildContext context) => Container(
-        key: noteKey,
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppColors.amberBg, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: AppColors.amberText)),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Icon(Icons.lock_outline_rounded, size: 18, color: AppColors.amberText),
-          const SizedBox(width: 8),
-          Expanded(child: CustomText(text: message, color: AppColors.amberText, fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w700)),
-        ]),
-      );
-}
-
-class _NoteBox extends StatelessWidget {
-  final Key? noteKey;
-  final String text;
-  final bool warning;
-  const _NoteBox({this.noteKey, required this.text, this.warning = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: noteKey,
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: warning ? AppColors.amberBg : AppColors.pale, borderRadius: BorderRadius.circular(AppRadius.md)),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(warning ? Icons.warning_amber_rounded : Icons.info_outline_rounded, size: 18, color: warning ? AppColors.amberText : AppColors.blue),
-        const SizedBox(width: 8),
-        Expanded(child: CustomText(text: text, color: warning ? AppColors.amberText : AppColors.blue, fontSize: 12.5, height: 1.35)),
-      ]),
-    );
-  }
+  Widget build(BuildContext context) => EmInfoBanner(key: noteKey, tone: EmTone.warning, icon: Icons.lock_outline_rounded, text: message);
 }

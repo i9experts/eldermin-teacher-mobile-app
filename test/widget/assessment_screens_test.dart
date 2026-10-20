@@ -10,7 +10,6 @@ import 'package:eldermin_teacher_app/app/modules/assessments/views/assessment_re
 import 'package:eldermin_teacher_app/app/modules/assessments/views/assessments_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/assessments/views/quiz_attempt_detail_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/assessments/views/quiz_attempts_screen.dart';
-import 'package:eldermin_teacher_app/app/components/custom_text.dart';
 import 'package:eldermin_teacher_app/core/models/assessments/assessment_models.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/services/assessment_repository.dart';
@@ -353,13 +352,13 @@ void main() {
       await t.tap(find.byKey(const Key('marks_save_button')));
       await settle(t);
       expect(find.text('Before you save'), findsOneWidget);
-      expect(t.widget<CustomText>(find.byKey(const Key('sum_entered'))).text, '2');
-      expect(t.widget<CustomText>(find.byKey(const Key('sum_absent'))).text, '1');
-      expect(t.widget<CustomText>(find.byKey(const Key('sum_exempt'))).text, '1');
-      expect(t.widget<CustomText>(find.byKey(const Key('sum_missing'))).text, '1');
-      expect(t.widget<CustomText>(find.byKey(const Key('sum_avg'))).text, '35');
-      expect(t.widget<CustomText>(find.byKey(const Key('sum_min'))).text, '30');
-      expect(t.widget<CustomText>(find.byKey(const Key('sum_max'))).text, '40');
+      expect(t.widget<Text>(find.byKey(const Key('sum_entered'))).data, '2');
+      expect(t.widget<Text>(find.byKey(const Key('sum_absent'))).data, '1');
+      expect(t.widget<Text>(find.byKey(const Key('sum_exempt'))).data, '1');
+      expect(t.widget<Text>(find.byKey(const Key('sum_missing'))).data, '1');
+      expect(t.widget<Text>(find.byKey(const Key('sum_avg'))).data, '35');
+      expect(t.widget<Text>(find.byKey(const Key('sum_min'))).data, '30');
+      expect(t.widget<Text>(find.byKey(const Key('sum_max'))).data, '40');
       expect(find.textContaining('This saves 3 students (3 new, 0 changed)'), findsOneWidget);
       await t.tap(find.byKey(const Key('marks_cancel_save')));
       await settle(t);

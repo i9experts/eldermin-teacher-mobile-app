@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/assessment_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../utils/toast_util.dart';
 import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
@@ -40,12 +39,12 @@ class AssessmentReportRemarksScreen extends GetView<ReportRemarksController> {
       header: [
         if (c.candidates.length > 1)
           Padding(
-            padding: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.only(bottom: EmSpacing.row),
             child: FilterChipsRow(chips: [for (final a in c.candidates) (a.title, -1, a.id == c.selectedId.value, () => c.select(a.id), 'asm_${a.id}')]),
           )
         else if (c.candidates.length == 1)
-          Padding(padding: const EdgeInsets.only(bottom: 10), child: CustomText(text: c.candidates.first.title, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 15)),
-        if (c.truncated.value) const Padding(padding: EdgeInsets.only(bottom: 10), child: CustomText(key: Key('remarks_truncated'), text: 'Some report cards may not be shown.', color: AppColors.amberText, fontSize: 12)),
+          Padding(padding: const EdgeInsets.only(bottom: EmSpacing.row), child: Text(c.candidates.first.title, style: EmType.heading.copyWith(color: EmColors.ink))),
+        if (c.truncated.value) const EmInfoBanner(key: Key('remarks_truncated'), tone: EmTone.warning, text: 'Some report cards may not be shown.'),
       ],
       builder: (cards) => [for (final card in cards) _CardTile(key: ValueKey('rc_${card.id}'), card: card, c: c, saving: saving.contains(card.id))],
     );
@@ -98,22 +97,22 @@ class _CardTileState extends State<_CardTile> {
     final card = widget.card;
     final editable = widget.c.canEdit(card);
     final changed = text.text.trim() != card.classTeacherRemarks.trim();
+    final quiet = EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400);
     return AppCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: CustomText(text: '${card.rollNumber.isEmpty ? '' : '${card.rollNumber}. '}${card.studentName}', fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 14)),
-          if (card.published) const AppTag('PUBLISHED', style: TagStyle.green),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Text('${card.rollNumber.isEmpty ? '' : '${card.rollNumber}. '}${card.studentName}', style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
+          if (card.published) ...[const SizedBox(width: EmSpacing.s8), const AppTag('PUBLISHED', style: TagStyle.green)],
         ]),
-        const SizedBox(height: 3),
-        CustomText(
-            text: [
+        const SizedBox(height: EmSpacing.s4),
+        Text(
+            [
               if (card.overallPercentage != null) '${marksText(card.overallPercentage!)}%',
               if (card.overallGrade.isNotEmpty) 'Grade ${card.overallGrade}',
               if (card.classPosition != null) 'Position ${card.classPosition}${card.totalStudents != null ? ' of ${card.totalStudents}' : ''}',
             ].join(' · '),
-            color: AppColors.muted,
-            fontSize: 12),
-        const SizedBox(height: 10),
+            style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+        const SizedBox(height: EmSpacing.row),
         if (editable)
           TextField(
             key: Key('remarks_input_${card.id}'),
@@ -122,25 +121,42 @@ class _CardTileState extends State<_CardTile> {
             minLines: 2,
             maxLength: ReportRemarksController.maxLength,
             onChanged: (_) => setState(() => savedOk = null),
-            decoration: InputDecoration(hintText: 'Class teacher remarks', border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm))),
+            style: EmType.body.copyWith(color: EmColors.ink),
+            decoration: const InputDecoration(hintText: 'Class teacher remarks'),
           )
         else
-          CustomText(key: Key('remarks_read_${card.id}'), text: card.classTeacherRemarks.isEmpty ? 'No class teacher remarks.' : card.classTeacherRemarks, color: card.classTeacherRemarks.isEmpty ? AppColors.muted : AppColors.black, fontSize: 12.5, height: 1.4),
-        if (card.published && !editable) const Padding(padding: EdgeInsets.only(top: 6), child: CustomText(text: 'Published report cards are read-only.', color: AppColors.muted, fontSize: 11.5)),
+          Text(card.classTeacherRemarks.isEmpty ? 'No class teacher remarks.' : card.classTeacherRemarks, key: Key('remarks_read_${card.id}'), style: card.classTeacherRemarks.isEmpty ? quiet : quiet.copyWith(color: EmColors.ink, height: 1.4)),
+        if (card.published && !editable)
+          Padding(
+            padding: const EdgeInsets.only(top: EmSpacing.s8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const ExcludeSemantics(child: Icon(Icons.lock_outline_rounded, size: 16, color: EmColors.onWarningContainer)),
+              const SizedBox(width: EmSpacing.s4),
+              Expanded(child: Text('Published report cards are read-only.', style: EmType.caption.copyWith(color: EmColors.onWarningContainer))),
+            ]),
+          ),
         if (card.principalRemarks.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          CustomText(text: 'Principal: ${card.principalRemarks}', color: AppColors.muted, fontSize: 12, height: 1.4),
+          const SizedBox(height: EmSpacing.s8),
+          Text('Principal: ${card.principalRemarks}', style: quiet.copyWith(height: 1.4)),
         ],
-        if (error != null) Padding(padding: const EdgeInsets.only(top: 6), child: CustomText(key: Key('remarks_error_${card.id}'), text: error!, color: AppColors.redText, fontSize: 12, fontWeight: FontWeight.w600)),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: EmSpacing.s8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const ExcludeSemantics(child: Icon(Icons.error_outline_rounded, size: 16, color: EmColors.error)),
+              const SizedBox(width: EmSpacing.s4),
+              Expanded(child: Text(error!, key: Key('remarks_error_${card.id}'), style: EmType.caption.copyWith(color: EmColors.error, fontWeight: FontWeight.w600))),
+            ]),
+          ),
         if (editable)
           Align(
-            alignment: Alignment.centerRight,
+            alignment: AlignmentDirectional.centerEnd,
             child: TextButton(
               key: Key('remarks_save_${card.id}'),
               onPressed: widget.saving || !changed ? null : _save,
               child: widget.saving
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : CustomText(text: savedOk == true && !changed ? 'Saved' : 'Save remarks', color: changed ? AppColors.blue : AppColors.muted, fontWeight: FontWeight.w800),
+                  : Text(savedOk == true && !changed ? 'Saved' : 'Save remarks', style: EmType.label.copyWith(color: changed ? EmColors.primary : EmColors.textSecondary)),
             ),
           ),
       ]),

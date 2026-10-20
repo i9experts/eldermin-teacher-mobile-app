@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/assessment_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../../utils/toast_util.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show ErrorBanner;
 import '../../lesson_plans/views/widgets/lesson_plan_widgets.dart' show NoteBox;
@@ -87,22 +86,19 @@ class QuizAttemptDetailScreen extends GetView<QuizAttemptDetailController> {
   List<Widget> _content(QuizAttempt a) {
     final c = controller;
     return [
-      CustomText(text: a.studentName, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 17),
-      const SizedBox(height: 3),
-      CustomText(text: [a.assessmentTitle, a.subject, a.classLabel].where((e) => e.isNotEmpty).join(' · '), color: AppColors.muted, fontSize: 12),
-      const SizedBox(height: 10),
+      Text(a.studentName, style: EmType.title.copyWith(color: EmColors.ink)),
+      EmCaptionLine([a.assessmentTitle, a.subject, a.classLabel].where((e) => e.isNotEmpty).join(' · ')),
       if (c.lockMessage.value != null)
         LockBanner(noteKey: const Key('qa_lock_banner'), message: c.lockMessage.value!)
       else if (a.isGraded)
-        NoteBox(boxKey: const Key('qa_graded_note'), icon: Icons.lock_outline_rounded, title: 'Already graded: ${marksText(a.obtainedMarks ?? 0)} out of ${marksText(a.totalMarks)}', body: "Grading again would overwrite the student's mark entry, so a graded attempt is read-only here.", fg: AppColors.amberText, bg: AppColors.amberBg)
+        NoteBox(boxKey: const Key('qa_graded_note'), icon: Icons.lock_outline_rounded, title: 'Already graded: ${marksText(a.obtainedMarks ?? 0)} out of ${marksText(a.totalMarks)}', body: "Grading again would overwrite the student's mark entry, so a graded attempt is read-only here.", tone: EmTone.warning)
       else
         NoteBox(
             boxKey: const Key('qa_effect_note'),
             icon: Icons.info_outline_rounded,
             title: 'How marking works',
             body: "Multiple-choice answers were marked automatically (${marksText(a.autoGradedMarks)} so far). Give each written answer a mark from 0 up to its maximum. Once every written answer is marked, the total is recorded as the student's mark for this subject and replaces any mark already there.",
-            fg: AppColors.blue,
-            bg: AppColors.pale),
+            tone: EmTone.info),
       if (c.failure.value != null) ErrorBanner(bannerKey: const Key('qa_error'), message: c.failure.value!.message, onRetry: c.saving.value || !c.failure.value!.canRetry ? null : _submit),
       for (var i = 0; i < a.answers.length; i++) _answer(i + 1, a.answers[i]),
     ];
@@ -113,43 +109,51 @@ class QuizAttemptDetailScreen extends GetView<QuizAttemptDetailController> {
     final q = ans.question;
     final manual = ans.needsManualGrading;
     final error = c.showErrors.value || (c.inputs[ans.questionId] ?? '').isNotEmpty ? c.errorFor(ans.questionId) : null;
+    final quiet = EmType.caption.copyWith(color: EmColors.textSecondary);
+    final body = EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400, height: 1.5);
     return AppCard(
       key: ValueKey('qa_answer_${ans.questionId}'),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: CustomText(text: 'Question $n${q == null ? '' : ' · ${marksText(q.marks)} marks'}', color: AppColors.muted, fontSize: 11.5, fontWeight: FontWeight.w700)),
-          if (!manual) AppTag(ans.isCorrect == true ? 'CORRECT' : 'INCORRECT', style: ans.isCorrect == true ? TagStyle.green : TagStyle.red),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Text('Question $n${q == null ? '' : ' · ${marksText(q.marks)} marks'}', style: quiet.copyWith(fontWeight: FontWeight.w600))),
+          if (!manual) ...[const SizedBox(width: EmSpacing.s8), AppTag(ans.isCorrect == true ? 'CORRECT' : 'INCORRECT', style: ans.isCorrect == true ? TagStyle.green : TagStyle.red)],
         ]),
-        const SizedBox(height: 4),
-        CustomText(text: q?.text ?? '(Question not available)', fontWeight: FontWeight.w700, color: AppColors.black, fontSize: 13.5, height: 1.35),
-        const SizedBox(height: 8),
+        const SizedBox(height: EmSpacing.s4),
+        Text(q?.text ?? '(Question not available)', style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600, height: 1.4)),
+        const SizedBox(height: EmSpacing.s8),
         if (q != null && q.type == 'mcq')
           for (var i = 0; i < q.options.length; i++)
-            CustomText(
-                text: '${i == ans.selectedOptionIndex ? '> ' : '   '}${String.fromCharCode(65 + i)}. ${q.options[i].text}${q.options[i].isCorrect ? '  (correct)' : ''}',
-                color: i == ans.selectedOptionIndex ? AppColors.primaryColor : AppColors.muted,
-                fontWeight: i == ans.selectedOptionIndex ? FontWeight.w800 : FontWeight.w400,
-                fontSize: 12.5)
+            // the chosen option is marked with '>' and bold, the correct one says "(correct)": never colour alone
+            Text(
+                '${i == ans.selectedOptionIndex ? '> ' : '   '}${String.fromCharCode(65 + i)}. ${q.options[i].text}${q.options[i].isCorrect ? '  (correct)' : ''}',
+                style: EmType.body.copyWith(color: i == ans.selectedOptionIndex ? EmColors.ink : EmColors.textSecondary, fontWeight: i == ans.selectedOptionIndex ? FontWeight.w700 : FontWeight.w400))
         else ...[
-          const CustomText(text: "Student's answer", color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w700),
-          const SizedBox(height: 2),
-          CustomText(text: ans.textAnswer.isEmpty ? '(No answer)' : ans.textAnswer, color: AppColors.black, fontSize: 13, height: 1.4),
+          Text("Student's answer", style: quiet.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: EmSpacing.s2),
+          Text(ans.textAnswer.isEmpty ? '(No answer)' : ans.textAnswer, style: body),
           if (q != null && q.correctAnswer.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            CustomText(text: 'Model answer: ${q.correctAnswer}', color: AppColors.muted, fontSize: 12, height: 1.35),
+            const SizedBox(height: EmSpacing.s8),
+            Text('Model answer: ${q.correctAnswer}', style: quiet.copyWith(height: 1.4)),
           ],
-          if (q != null && q.explanation.isNotEmpty) CustomText(text: q.explanation, color: AppColors.muted, fontSize: 12, height: 1.35),
+          if (q != null && q.explanation.isNotEmpty) Text(q.explanation, style: quiet.copyWith(height: 1.4)),
         ],
         if (manual) ...[
-          const SizedBox(height: 10),
-          Row(children: [
-            SizedBox(width: 110, child: _MarkInput(key: Key('qa_mark_${ans.questionId}'), qid: ans.questionId, c: c, enabled: c.editable, hasError: error != null)),
-            const SizedBox(width: 8),
-            Expanded(child: CustomText(text: q == null ? '' : 'out of ${marksText(q.marks)}', color: AppColors.muted, fontSize: 12)),
+          const SizedBox(height: EmSpacing.row),
+          Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            SizedBox(width: 128, child: _MarkInput(key: Key('qa_mark_${ans.questionId}'), qid: ans.questionId, c: c, enabled: c.editable, hasError: error != null)),
+            Text(q == null ? '' : 'out of ${marksText(q.marks)}', style: EmType.body.copyWith(color: EmColors.textSecondary)),
           ]),
-          if (error != null) Padding(padding: const EdgeInsets.only(top: 6), child: CustomText(key: Key('qa_mark_error_${ans.questionId}'), text: error, color: AppColors.redText, fontSize: 11.5, fontWeight: FontWeight.w600)),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: EmSpacing.s8),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const ExcludeSemantics(child: Icon(Icons.error_outline_rounded, size: 16, color: EmColors.error)),
+                const SizedBox(width: EmSpacing.s4),
+                Expanded(child: Text(error, key: Key('qa_mark_error_${ans.questionId}'), style: quiet.copyWith(color: EmColors.error, fontWeight: FontWeight.w600))),
+              ]),
+            ),
         ] else if (ans.marksAwarded != null)
-          Padding(padding: const EdgeInsets.only(top: 6), child: CustomText(text: '${marksText(ans.marksAwarded!)} marks (automatic)', color: AppColors.muted, fontSize: 12)),
+          Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: Text('${marksText(ans.marksAwarded!)} marks (automatic)', style: quiet)),
       ]),
     );
   }
@@ -157,24 +161,18 @@ class QuizAttemptDetailScreen extends GetView<QuizAttemptDetailController> {
   Widget _bottom() {
     final c = controller;
     final total = c.previewTotal;
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-        decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.line))),
-        child: Row(children: [
-          Expanded(child: CustomText(key: const Key('qa_progress'), text: total != null ? 'Total ${marksText(total)} / ${marksText(c.attempt?.totalMarks ?? 0)}' : '${c.filledCount} of ${c.manualCount} marked', color: AppColors.primaryColor, fontWeight: FontWeight.w700, fontSize: 12.5)),
-          const SizedBox(width: 12),
-          SizedBox(
-            height: 44,
-            child: ElevatedButton(
-              key: const Key('qa_submit'),
-              onPressed: c.saving.value || !c.hasChanges ? null : _submit,
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor, foregroundColor: Colors.white, disabledBackgroundColor: AppColors.buttonDisableColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md))),
-              child: c.saving.value ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const CustomText(text: 'Save marks', color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
-            ),
-          ),
-        ]),
+    return DecoratedBox(
+      decoration: BoxDecoration(color: EmColors.surface, boxShadow: EmShadows.soft),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: EmSpacing.screenH, vertical: EmSpacing.s12),
+          child: Row(children: [
+            Expanded(child: Text(total != null ? 'Total ${marksText(total)} / ${marksText(c.attempt?.totalMarks ?? 0)}' : '${c.filledCount} of ${c.manualCount} marked', key: const Key('qa_progress'), style: EmType.label.copyWith(color: EmColors.ink))),
+            const SizedBox(width: EmSpacing.row),
+            EmPrimaryButton(key: const Key('qa_submit'), expand: false, loading: c.saving.value, label: 'Save marks', onPressed: c.saving.value || !c.hasChanges ? null : _submit),
+          ]),
+        ),
       ),
     );
   }
@@ -200,19 +198,17 @@ class _MarkInputState extends State<_MarkInput> {
     super.dispose();
   }
 
+  OutlineInputBorder _border() => OutlineInputBorder(borderRadius: EmRadius.smAll, borderSide: BorderSide(color: widget.hasError ? EmColors.error : EmColors.border));
+
   @override
   Widget build(BuildContext context) => TextField(
         controller: t,
         enabled: widget.enabled,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+        textInputAction: TextInputAction.next,
         onChanged: (v) => widget.c.setMark(widget.qid, v),
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: 'Marks',
-          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: BorderSide(color: widget.hasError ? AppColors.redText : AppColors.line)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.sm), borderSide: BorderSide(color: widget.hasError ? AppColors.redText : AppColors.line)),
-        ),
+        style: EmType.valueSmall.copyWith(color: EmColors.ink),
+        decoration: InputDecoration(isDense: true, hintText: 'Marks', border: _border(), enabledBorder: _border(), focusedBorder: widget.hasError ? _border() : null),
       );
 }

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/assessment_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/assessments_controller.dart';
@@ -40,29 +39,26 @@ class AssessmentDetailScreen extends GetView<AssessmentDetailController> {
 
   List<Widget> _content(Assessment a) {
     final mySubjects = list.subjectsOf(a);
+    final quiet = EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400);
     return [
-      CustomText(text: a.title, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 18),
-      const SizedBox(height: 4),
-      CustomText(text: [assessmentTypeLabel(a.type), a.classLabel, if (a.term.isNotEmpty) a.term, if (a.academicYear.isNotEmpty) a.academicYear].join(' · '), color: AppColors.muted, fontSize: 12),
-      const SizedBox(height: 2),
-      CustomText(text: assessmentDateText(a), color: AppColors.muted, fontSize: 12),
-      const SizedBox(height: 8),
+      Text(a.title, style: EmType.title.copyWith(color: EmColors.ink)),
+      const SizedBox(height: EmSpacing.s4),
+      Text([assessmentTypeLabel(a.type), a.classLabel, if (a.term.isNotEmpty) a.term, if (a.academicYear.isNotEmpty) a.academicYear].join(' · '), style: quiet),
+      Text(assessmentDateText(a), style: quiet),
+      const SizedBox(height: EmSpacing.s8),
       AssessmentTags(a: a),
-      if (a.description.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: CustomText(text: a.description, color: AppColors.black, fontSize: 12.5, height: 1.4)),
-      const SizedBox(height: 14),
-      const SubHeading('Subjects'),
+      if (a.description.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.row), child: Text(a.description, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400, height: 1.5))),
+      const SizedBox(height: EmSpacing.s8),
+      const SectionRow(title: 'Subjects'),
       for (final s in a.subjects) _subjectCard(a, s, mySubjects.contains(s.subject)),
       if (list.canWriteRemarks(a)) ...[
-        const SizedBox(height: 4),
-        AppCard(
+        const SizedBox(height: EmSpacing.s4),
+        EmListRow(
           key: const Key('asm_detail_remarks'),
+          icon: Icons.rate_review_outlined,
+          title: 'Report card remarks for your class',
+          trailing: const Icon(Icons.chevron_right_rounded, color: EmColors.textSecondary),
           onTap: () => Get.toNamed(Routes.assessmentReportRemarksOf(a.id)),
-          child: const Row(children: [
-            Icon(Icons.rate_review_outlined, color: AppColors.primaryColor),
-            SizedBox(width: 10),
-            Expanded(child: CustomText(text: 'Report card remarks for your class', fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 13)),
-            Icon(Icons.chevron_right_rounded, color: AppColors.muted),
-          ]),
         ),
       ],
     ];
@@ -72,28 +68,34 @@ class AssessmentDetailScreen extends GetView<AssessmentDetailController> {
     final access = list.accessFor(a, s);
     final when = [if (s.date != null) shortDay(s.date!), if (s.startTime.isNotEmpty) s.startTime, if (s.duration != null) '${s.duration} min', if (s.venue.isNotEmpty) s.venue].join(' · ');
     final sections = list.myClasses;
+    final quiet = EmType.caption.copyWith(color: EmColors.textSecondary);
     return AppCard(
       key: ValueKey('asm_subject_${s.subject}'),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: CustomText(text: s.subject, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 14)),
-          if (mine) const AppTag('YOUR SUBJECT', style: TagStyle.info),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Text(s.subject, style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
+          if (mine) ...[const SizedBox(width: EmSpacing.s8), const AppTag('YOUR SUBJECT', style: TagStyle.info)],
         ]),
-        const SizedBox(height: 3),
-        CustomText(text: 'Out of ${marksText(s.totalMarks)} · pass ${marksText(s.passingMarks)}', color: AppColors.muted, fontSize: 12),
-        if (when.isNotEmpty) CustomText(text: when, color: AppColors.muted, fontSize: 12),
-        if (s.examiner.isNotEmpty) CustomText(text: 'Examiner: ${s.examiner}', color: AppColors.muted, fontSize: 12),
+        const SizedBox(height: EmSpacing.s4),
+        Text('Out of ${marksText(s.totalMarks)} · pass ${marksText(s.passingMarks)}', style: quiet),
+        if (when.isNotEmpty) Text(when, style: quiet),
+        if (s.examiner.isNotEmpty) Text('Examiner: ${s.examiner}', style: quiet),
         if (mine || sections.any((c) => c.isClassTeacherClass)) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: EmSpacing.s8),
           if (access.canEdit)
             _action(Key('asm_marks_${s.subject}'), Icons.edit_note_rounded, 'Enter marks', () => Get.toNamed(Routes.assessmentMarksOf(a.id, subject: s.subject)))
           else if (access == MarksAccess.draft)
-            CustomText(key: Key('asm_draft_${s.subject}'), text: access.explanation, color: AppColors.muted, fontSize: 12, height: 1.35)
+            Text(access.explanation, key: Key('asm_draft_${s.subject}'), style: quiet.copyWith(height: 1.4))
           else ...[
             if (access == MarksAccess.onlineQuiz)
               _action(Key('asm_quiz_${s.subject}'), Icons.quiz_outlined, 'Review online quiz answers', () => Get.toNamed(Routes.quizAttempts))
             else
-              CustomText(key: Key('asm_locked_${s.subject}'), text: access == MarksAccess.locked ? (marksLockMessage(a) ?? access.explanation) : access.explanation, color: AppColors.muted, fontSize: 12, height: 1.35),
+              // a locked subject says so with a lock glyph and words (never colour alone)
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const ExcludeSemantics(child: Icon(Icons.lock_outline_rounded, size: 18, color: EmColors.onWarningContainer)),
+                const SizedBox(width: EmSpacing.s8),
+                Expanded(child: Text(access == MarksAccess.locked ? (marksLockMessage(a) ?? access.explanation) : access.explanation, key: Key('asm_locked_${s.subject}'), style: quiet.copyWith(height: 1.4))),
+              ]),
             _action(Key('asm_view_${s.subject}'), Icons.visibility_outlined, 'View marks', () => Get.toNamed(Routes.assessmentMarksOf(a.id, subject: s.subject))),
           ],
         ],
@@ -101,17 +103,18 @@ class AssessmentDetailScreen extends GetView<AssessmentDetailController> {
     );
   }
 
+  /// A tappable action row of a subject card (48dp, label wraps rather than clips).
   Widget _action(Key key, IconData icon, String label, VoidCallback onTap) => InkWell(
         key: key,
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+        borderRadius: EmRadius.smAll,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: EmSpacing.minTouch),
           child: Row(children: [
-            Icon(icon, size: 18, color: AppColors.blue),
-            const SizedBox(width: 8),
-            Expanded(child: CustomText(text: label, color: AppColors.blue, fontWeight: FontWeight.w800, fontSize: 13)),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+            ExcludeSemantics(child: Icon(icon, size: 20, color: EmColors.primary)),
+            const SizedBox(width: EmSpacing.s8),
+            Expanded(child: Text(label, style: EmType.label.copyWith(color: EmColors.primary))),
+            const ExcludeSemantics(child: Icon(Icons.chevron_right_rounded, color: EmColors.textSecondary)),
           ]),
         ),
       );
