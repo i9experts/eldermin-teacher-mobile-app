@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/reference_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../controllers/curriculum_controller.dart';
 import '../../../../core/design/design.dart';
 
@@ -31,35 +30,38 @@ class CurriculumDetailScreen extends GetView<CurriculumDetailController> {
 
   List<Widget> _content(Curriculum k) {
     final strands = k.byStrand;
+    final quiet = EmType.caption.copyWith(color: EmColors.textSecondary);
+    final body = EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400, height: 1.5);
     return [
-      CustomText(text: k.name.isEmpty ? k.subjectName : k.name, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 18),
-      const SizedBox(height: 4),
-      CustomText(text: [k.gradeLevel, k.subjectName, k.academicYearLabel, k.framework].where((e) => e.isNotEmpty).join(' · '), color: AppColors.muted, fontSize: 12),
-      const SizedBox(height: 14),
+      Text(k.name.isEmpty ? k.subjectName : k.name, style: EmType.title.copyWith(color: EmColors.ink)),
+      const SizedBox(height: EmSpacing.s4),
+      EmCaptionLine([k.gradeLevel, k.subjectName, k.academicYearLabel, k.framework].where((e) => e.isNotEmpty).join(' · ')),
       if (k.slos.isEmpty) const AppEmptyView(key: Key('cur_no_slos'), icon: Icons.list_alt_outlined, title: 'No learning outcomes listed yet'),
       for (final e in strands.entries) ...[
-        SubHeading('${e.key} (${e.value.length})'),
+        SectionRow(title: '${e.key} (${e.value.length})'),
         for (final s in e.value)
           AppCard(
             key: ValueKey('slo_${s.code}'),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(child: CustomText(text: s.code.isEmpty ? 'SLO' : s.code, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 12.5)),
-                if (s.bloomsLevel.isNotEmpty) AppTag(s.bloomsLevel.toUpperCase(), style: TagStyle.info),
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: Text(s.code.isEmpty ? 'SLO' : s.code, style: EmType.label.copyWith(color: EmColors.ink))),
+                if (s.bloomsLevel.isNotEmpty) ...[const SizedBox(width: EmSpacing.s8), AppTag(s.bloomsLevel.toUpperCase(), style: TagStyle.info)],
               ]),
-              const SizedBox(height: 4),
-              CustomText(text: s.description, color: AppColors.black, fontSize: 13, height: 1.4),
-              if (s.isAssessed) Padding(padding: const EdgeInsets.only(top: 4), child: CustomText(text: s.assessmentType.isEmpty ? 'Assessed' : 'Assessed: ${s.assessmentType}', color: AppColors.muted, fontSize: 11.5)),
+              const SizedBox(height: EmSpacing.s4),
+              Text(s.description, style: body),
+              if (s.isAssessed) Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: Text(s.assessmentType.isEmpty ? 'Assessed' : 'Assessed: ${s.assessmentType}', style: quiet)),
             ]),
           ),
       ],
       if (k.standards.isNotEmpty) ...[
-        const SubHeading('Standards'),
+        const SectionRow(title: 'Standards'),
         for (final m in k.standards)
-          AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            CustomText(text: [m.standard, m.code].where((e) => e.isNotEmpty).join(' · '), fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 12.5),
-            if (m.description.isNotEmpty) CustomText(text: m.description, color: AppColors.black, fontSize: 12.5, height: 1.4),
-          ])),
+          AppCard(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text([m.standard, m.code].where((e) => e.isNotEmpty).join(' · '), style: EmType.label.copyWith(color: EmColors.ink)),
+              if (m.description.isNotEmpty) Text(m.description, style: body),
+            ]),
+          ),
       ],
     ];
   }

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/reference_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
@@ -33,15 +32,15 @@ class CurriculumScreen extends GetView<CurriculumController> {
           emptyTitle: 'No curriculum for your grades yet',
           emptySubtitle: 'Your school publishes a curriculum per grade and subject. Once one exists for a grade you teach, it appears here.',
           header: [
-            ScreenHeader(title: 'Curriculum', caption: state.hasData ? '${visible.length} for your classes' : 'Learning outcomes by grade'),
+            EmCaptionLine(state.hasData ? '${visible.length} for your classes' : 'Learning outcomes by grade'),
             if (state.hasData) ...[
               FilterChipsRow(chips: [for (final s in CurriculumScope.values) (s.label, c.countFor(s), s == scope, () => c.setScope(s), s.name)]),
-              const SizedBox(height: 10),
+              const SizedBox(height: EmSpacing.row),
             ],
           ],
           builder: (_) {
             if (visible.isEmpty) {
-              return [const Padding(padding: EdgeInsets.only(top: 24), child: AppEmptyView(key: Key('cur_filter_empty'), icon: Icons.filter_alt_off_outlined, title: 'No curriculum for your subjects', subtitle: 'Try "All my grades".'))];
+              return [const Padding(padding: EdgeInsets.only(top: EmSpacing.s24), child: AppEmptyView(key: Key('cur_filter_empty'), icon: Icons.filter_alt_off_outlined, title: 'No curriculum for your subjects', subtitle: 'Try "All my grades".'))];
             }
             return [for (final k in visible) _tile(k, c.forMySubject(k))];
           },
@@ -50,17 +49,20 @@ class CurriculumScreen extends GetView<CurriculumController> {
     );
   }
 
-  Widget _tile(Curriculum k, bool mine) => AppCard(
-        key: ValueKey('cur_${k.id}'),
-        onTap: () => Get.toNamed(Routes.curriculumDetailOf(k.id)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(child: CustomText(text: k.name.isEmpty ? k.subjectName : k.name, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 14, maxLines: 2, overflow: TextOverflow.ellipsis)),
-            if (mine) const AppTag('YOUR SUBJECT', style: TagStyle.info),
-          ]),
-          const SizedBox(height: 3),
-          CustomText(text: [k.gradeLevel, k.subjectName, if (k.academicYearLabel.isNotEmpty) k.academicYearLabel].where((e) => e.isNotEmpty).join(' · '), color: AppColors.muted, fontSize: 12),
-          CustomText(text: '${k.slos.length} learning ${k.slos.length == 1 ? 'outcome' : 'outcomes'}${k.framework.isEmpty ? '' : ' · ${k.framework}'}', color: AppColors.muted, fontSize: 12),
+  Widget _tile(Curriculum k, bool mine) {
+    final quiet = EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400);
+    return AppCard(
+      key: ValueKey('cur_${k.id}'),
+      onTap: () => Get.toNamed(Routes.curriculumDetailOf(k.id)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Text(k.name.isEmpty ? k.subjectName : k.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
+          if (mine) ...[const SizedBox(width: EmSpacing.s8), const AppTag('YOUR SUBJECT', style: TagStyle.info)],
         ]),
-      );
+        const SizedBox(height: EmSpacing.s4),
+        Text([k.gradeLevel, k.subjectName, if (k.academicYearLabel.isNotEmpty) k.academicYearLabel].where((e) => e.isNotEmpty).join(' · '), style: quiet),
+        Text('${k.slos.length} learning ${k.slos.length == 1 ? 'outcome' : 'outcomes'}${k.framework.isEmpty ? '' : ' · ${k.framework}'}', style: quiet),
+      ]),
+    );
+  }
 }

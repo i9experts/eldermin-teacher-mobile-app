@@ -2,10 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/reference_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
 import '../controllers/library_controller.dart';
@@ -68,41 +67,32 @@ class _LibraryScreenState extends State<LibraryScreen> {
           emptyTitle: c.filtersActive ? 'No books match' : 'The catalogue is empty',
           emptySubtitle: c.filtersActive ? 'Search matches whole words (try "fractions", not "fract"). Clear the filters to see everything.' : 'No books have been added to your library yet.',
           header: [
-            ScreenHeader(title: 'Library', caption: totalCount == null ? 'Search the catalogue' : '$totalCount ${totalCount == 1 ? 'book' : 'books'}'),
+            EmCaptionLine(totalCount == null ? 'Search the catalogue' : '$totalCount ${totalCount == 1 ? 'book' : 'books'}'),
             if (c.canView && state.status != SectionStatus.forbidden) ...[
-              TextField(
-                key: const Key('lib_search'),
+              EmSearchPill(
+                fieldKey: const Key('lib_search'),
                 controller: text,
-                textInputAction: TextInputAction.search,
+                hint: 'Title, author or ISBN',
                 onChanged: _typed,
                 onSubmitted: (v) {
                   _debounce?.cancel();
                   c.setQuery(v);
                 },
-                decoration: InputDecoration(
-                  hintText: 'Title, author or ISBN',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  isDense: true,
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: const BorderSide(color: AppColors.line)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: const BorderSide(color: AppColors.line)),
-                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: EmSpacing.row),
               FilterChipsRow(chips: [
                 ('Available now', -1, avail, () => c.toggleAvailable(!avail), 'available'),
                 for (final k in const ['textbook', 'science', 'fiction', 'islamic', 'reference'])
                   (bookCategoryLabel(k), -1, cat == k, () => c.setCategory(cat == k ? '' : k), 'cat_$k'),
               ]),
-              const SizedBox(height: 10),
+              const SizedBox(height: EmSpacing.row),
             ],
           ],
           builder: (books) => [
             for (final b in books) _BookTile(key: ValueKey('book_${b.id}'), book: b),
-            if (loadingMore) const Padding(padding: EdgeInsets.all(12), child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
-            if (moreErr != null) TextButton(key: const Key('lib_more_retry'), onPressed: c.loadMore, child: CustomText(text: moreErr, color: AppColors.redText)),
-            if (more && !loadingMore && moreErr == null) const SizedBox(height: 24),
+            if (loadingMore) const Padding(padding: EdgeInsets.all(EmSpacing.s12), child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+            if (moreErr != null) TextButton(key: const Key('lib_more_retry'), onPressed: c.loadMore, child: Text(moreErr, textAlign: TextAlign.center, style: EmType.label.copyWith(color: EmColors.error))),
+            if (more && !loadingMore && moreErr == null) const SizedBox(height: EmSpacing.s24),
           ],
         );
       }),
@@ -118,18 +108,19 @@ class _BookTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final b = book;
     final where = [if (b.location.isNotEmpty) b.location, if (b.shelfNo.isNotEmpty) 'shelf ${b.shelfNo}', if (b.callNumber.isNotEmpty) b.callNumber].join(' · ');
+    final quiet = EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400);
     return AppCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: CustomText(text: b.title, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 14, maxLines: 2, overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 8),
+          Expanded(child: Text(b.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
+          const SizedBox(width: EmSpacing.s8),
           AppTag(b.isAvailable ? '${b.availableCopies} OF ${b.totalCopies} AVAILABLE' : 'ALL ISSUED', style: b.isAvailable ? TagStyle.green : TagStyle.amber),
         ]),
-        const SizedBox(height: 3),
-        CustomText(text: [b.author, if (b.publishYear != null) '${b.publishYear}'].where((e) => e.isNotEmpty).join(' · '), color: AppColors.muted, fontSize: 12),
-        CustomText(text: [bookCategoryLabel(b.category), if (b.language.isNotEmpty) b.language, if (b.edition.isNotEmpty) '${b.edition} ed.'].join(' · '), color: AppColors.muted, fontSize: 12),
-        if (where.isNotEmpty) CustomText(text: where, color: AppColors.muted, fontSize: 12),
-        if (b.gradeLevels.isNotEmpty) CustomText(text: 'For ${b.gradeLevels.join(', ')}', color: AppColors.muted, fontSize: 12),
+        const SizedBox(height: EmSpacing.s4),
+        Text([b.author, if (b.publishYear != null) '${b.publishYear}'].where((e) => e.isNotEmpty).join(' · '), style: quiet),
+        Text([bookCategoryLabel(b.category), if (b.language.isNotEmpty) b.language, if (b.edition.isNotEmpty) '${b.edition} ed.'].join(' · '), style: quiet),
+        if (where.isNotEmpty) Text(where, style: quiet),
+        if (b.gradeLevels.isNotEmpty) Text('For ${b.gradeLevels.join(', ')}', style: quiet),
       ]),
     );
   }
