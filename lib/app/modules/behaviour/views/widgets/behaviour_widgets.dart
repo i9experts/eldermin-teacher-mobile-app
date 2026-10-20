@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/design/design.dart';
 import '../../../../../core/models/behaviour/behaviour_models.dart';
-import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../../core/utils/classroom_format.dart';
 import '../../../../../core/widgets/app_widgets.dart';
-import '../../../../components/custom_text.dart';
 
-Color kindColor(BehaviourKind? k) => switch (k) {
-      BehaviourKind.merit => AppColors.greenText,
-      BehaviourKind.demerit => AppColors.redText,
-      _ => AppColors.muted,
+/// Merit = success tone, concern = error tone, note = neutral. Each kind also has its own glyph ([kindIcon]) and label.
+EmTone kindTone(BehaviourKind? k) => switch (k) {
+      BehaviourKind.merit => EmTone.success,
+      BehaviourKind.demerit => EmTone.error,
+      _ => EmTone.neutral,
     };
 
-Color kindBg(BehaviourKind? k) => switch (k) {
-      BehaviourKind.merit => AppColors.greenBg,
-      BehaviourKind.demerit => AppColors.redBg,
-      _ => AppColors.pale,
-    };
+Color kindColor(BehaviourKind? k) => kindTone(k).foreground;
+
+Color kindBg(BehaviourKind? k) => kindTone(k).background;
 
 IconData kindIcon(BehaviourKind? k) => switch (k) {
       BehaviourKind.merit => Icons.emoji_events_rounded,
@@ -37,35 +36,42 @@ class BehaviourTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = record;
     final k = r.kind;
-    return AppCard(
+    final meta = [if (r.day != null) shortDay(r.day!), if (r.classLabel.isNotEmpty && showStudent) r.classLabel, mine ? 'You' : r.reportedBy].where((e) => e.isNotEmpty).join(' · ');
+    return Padding(
       key: ValueKey('rec_${r.id}'),
-      onTap: onTap,
-      padding: const EdgeInsets.all(12),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(color: kindBg(k), borderRadius: BorderRadius.circular(12)),
-          child: Icon(kindIcon(k), size: 20, color: kindColor(k)),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (showStudent)
-              CustomText(text: r.studentName.isEmpty ? 'Student' : r.studentName, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 13, maxLines: 1, overflow: TextOverflow.ellipsis),
-            CustomText(text: r.title.isEmpty ? categoryLabel(r.category) : r.title, fontWeight: showStudent ? FontWeight.w600 : FontWeight.w800, color: showStudent ? AppColors.black : AppColors.primaryColor, fontSize: 12.5, maxLines: 2, overflow: TextOverflow.ellipsis),
-            if (r.description.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 2), child: CustomText(text: r.description, color: AppColors.muted, fontSize: 11.5, maxLines: 2, overflow: TextOverflow.ellipsis)),
-            const SizedBox(height: 6),
-            Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
-              if (r.category.isNotEmpty) AppTag(categoryLabel(r.category).toUpperCase(), style: TagStyle.neutral),
-              if (k == BehaviourKind.demerit && (r.severity == 'high' || r.severity == 'critical')) AppTag(r.severity.toUpperCase(), style: TagStyle.red),
-              if (r.resolved) const AppTag('RESOLVED', style: TagStyle.green),
-              CustomText(text: [if (r.day != null) shortDay(r.day!), if (r.classLabel.isNotEmpty && showStudent) r.classLabel, mine ? 'You' : r.reportedBy].where((e) => e.isNotEmpty).join(' · '), color: AppColors.muted, fontSize: 10.5),
+      padding: const EdgeInsets.only(bottom: EmSpacing.row),
+      child: EmCard(
+        onTap: onTap,
+        padding: EmSpacing.cardPadCompact,
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(color: kindBg(k), shape: BoxShape.circle),
+            child: ExcludeSemantics(child: Icon(kindIcon(k), size: 22, color: kindColor(k))),
+          ),
+          const SizedBox(width: EmSpacing.row),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (showStudent) Text(r.studentName.isEmpty ? 'Student' : r.studentName, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink)),
+              Text(
+                r.title.isEmpty ? categoryLabel(r.category) : r.title,
+                style: showStudent ? EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400) : EmType.bodyLarge.copyWith(color: EmColors.ink),
+              ),
+              if (r.description.isNotEmpty)
+                Padding(padding: const EdgeInsets.only(top: EmSpacing.s2), child: Text(r.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
+              const SizedBox(height: EmSpacing.s8),
+              Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                if (r.category.isNotEmpty) AppTag(categoryLabel(r.category).toUpperCase(), style: TagStyle.neutral),
+                if (k == BehaviourKind.demerit && (r.severity == 'high' || r.severity == 'critical')) AppTag(r.severity.toUpperCase(), style: TagStyle.red),
+                if (r.resolved) const AppTag('RESOLVED', style: TagStyle.green),
+                if (meta.isNotEmpty) Text(meta, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+              ]),
             ]),
-          ]),
-        ),
-        if (r.points != 0) Padding(padding: const EdgeInsets.only(left: 8), child: CustomText(text: pointsText(r.points), fontWeight: FontWeight.w800, color: kindColor(k), fontSize: 14)),
-      ]),
+          ),
+          if (r.points != 0) Padding(padding: const EdgeInsetsDirectional.only(start: EmSpacing.s8), child: Text(pointsText(r.points), style: EmType.value.copyWith(color: kindColor(k)))),
+        ]),
+      ),
     );
   }
 }
@@ -76,16 +82,7 @@ class ParentVisibleNote extends StatelessWidget {
   const ParentVisibleNote({super.key, this.text = "Parents can see what you log here in their app."});
 
   @override
-  Widget build(BuildContext context) => Container(
-        key: const Key('parent_visible_note'),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: AppColors.amberBg, borderRadius: BorderRadius.circular(AppRadius.md)),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Icon(Icons.visibility_outlined, size: 16, color: AppColors.amberText),
-          const SizedBox(width: 8),
-          Expanded(child: CustomText(text: text, color: AppColors.amberText, fontSize: 11.5, fontWeight: FontWeight.w600, height: 1.35)),
-        ]),
-      );
+  Widget build(BuildContext context) => EmInfoBanner(key: const Key('parent_visible_note'), tone: EmTone.warning, icon: Icons.visibility_outlined, text: text);
 }
 
 class TarbiyahCard extends StatelessWidget {
@@ -104,23 +101,26 @@ class TarbiyahCard extends StatelessWidget {
       key: ValueKey('tarbiyah_${a.id}'),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: CustomText(text: a.period.isEmpty ? 'Assessment' : a.period, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 13)),
+          Expanded(child: Text(a.period.isEmpty ? 'Assessment' : a.period, style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
           if (a.ratingLabel.isNotEmpty) AppTag(a.ratingLabel.toUpperCase(), style: style),
         ]),
-        const SizedBox(height: 4),
-        CustomText(text: '${a.overallPercentage.round()}% overall${a.day == null ? '' : ' · ${fullDay(a.day!)}'}${a.assessedBy.isEmpty ? '' : ' · ${a.assessedBy}'}', color: AppColors.muted, fontSize: 11),
+        const SizedBox(height: EmSpacing.s4),
+        Text('${a.overallPercentage.round()}% overall${a.day == null ? '' : ' · ${fullDay(a.day!)}'}${a.assessedBy.isEmpty ? '' : ' · ${a.assessedBy}'}', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         if (a.traits.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: EmSpacing.s12),
           for (final t in a.traits)
             Padding(
-              padding: const EdgeInsets.only(bottom: 3),
+              padding: const EdgeInsets.only(bottom: EmSpacing.s4),
               child: Row(children: [
-                Expanded(child: CustomText(text: t.label, fontSize: 11.5)),
-                CustomText(text: markText(t.score), fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 12),
+                Expanded(child: Text(t.label, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400))),
+                Text(markText(t.score), style: EmType.valueSmall.copyWith(color: EmColors.ink)),
               ]),
             ),
         ],
-        if (a.teacherObservations.isNotEmpty) ...[const SizedBox(height: 6), CustomText(text: a.teacherObservations, color: AppColors.black, fontSize: 11.5, height: 1.35)],
+        if (a.teacherObservations.isNotEmpty) ...[
+          const SizedBox(height: EmSpacing.s8),
+          Text(a.teacherObservations, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400, height: 1.4)),
+        ],
       ]),
     );
   }

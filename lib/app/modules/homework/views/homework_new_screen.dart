@@ -94,27 +94,19 @@ class HomeworkNewScreen extends GetView<HomeworkFormController> {
         LabeledField(label: 'Description', controller: c.descriptionC, fieldKey: const Key('hw_desc_field'), maxLines: 3, hint: 'What should students do?'),
         LabeledField(label: 'Instructions', controller: c.instructionsC, fieldKey: const Key('hw_instr_field'), maxLines: 3, hint: 'Optional'),
         FormLabel('Due date *', error: errors['due']),
-        InkWell(
+        KeyedSubtree(
           key: const Key('hw_due_picker'),
-          borderRadius: EmRadius.mdAll,
-          onTap: () async {
-            final today = c.today;
-            final picked = await showAppDatePicker(context, initialDate: due ?? today, firstDate: c.isEditing ? DateTime(today.year - 1) : today, lastDate: DateTime(today.year + 2, 12, 31));
-            if (picked != null) c.setDueDay(picked);
-          },
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: EmSpacing.minTouch),
-            child: DecoratedBox(
-              decoration: BoxDecoration(color: EmColors.surface, borderRadius: EmRadius.mdAll, border: Border.all(color: errors['due'] == null ? EmColors.border : EmColors.error)),
-              child: Padding(
-                padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s16, vertical: EmSpacing.s12),
-                child: Row(children: [
-                  const ExcludeSemantics(child: Icon(Icons.event_rounded, size: 20, color: EmColors.primary)),
-                  const SizedBox(width: EmSpacing.s12),
-                  Expanded(child: Text(due == null ? 'Choose a date' : '${shortDay(due)} ${due.year}', style: EmType.body.copyWith(color: due == null ? EmColors.textTertiary : EmColors.ink))),
-                ]),
-              ),
-            ),
+          child: EmSelectField(
+            icon: Icons.event_rounded,
+            trailingIcon: null,
+            title: due == null ? null : '${shortDay(due)} ${due.year}',
+            placeholder: 'Choose a date',
+            hasError: errors['due'] != null,
+            onTap: () async {
+              final today = c.today;
+              final picked = await showAppDatePicker(context, initialDate: due ?? today, firstDate: c.isEditing ? DateTime(today.year - 1) : today, lastDate: DateTime(today.year + 2, 12, 31));
+              if (picked != null) c.setDueDay(picked);
+            },
           ),
         ),
         const SizedBox(height: EmSpacing.block),

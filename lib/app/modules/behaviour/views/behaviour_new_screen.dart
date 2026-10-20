@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/behaviour/behaviour_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_date_picker.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/shimmer_widgets.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../../utils/toast_util.dart';
 import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart';
@@ -24,7 +22,7 @@ class BehaviourNewScreen extends GetView<BehaviourLogController> {
 
   void _snack(BuildContext context, String m) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating, margin: const EdgeInsets.fromLTRB(16, 0, 16, 90)));
+    ..showSnackBar(SnackBar(content: Text(m), margin: EmSpacing.snackAboveBar));
 
   @override
   Widget build(BuildContext context) {
@@ -63,116 +61,80 @@ class BehaviourNewScreen extends GetView<BehaviourLogController> {
     final sev = c.severity.value;
     final mag = c.magnitude.value;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: EmSpacing.listPadding,
       children: [
         if (failure != null) ErrorBanner(bannerKey: const Key('beh_submit_error'), message: failure.message),
-        SegmentedControl(
-          options: [for (final k in BehaviourKind.values) k.label],
-          selectedIndex: BehaviourKind.values.indexOf(kind),
-          onChanged: (i) => c.setKind(BehaviourKind.values[i]),
+        EmSegmentedTabs<BehaviourKind>(
+          segments: [for (final k in BehaviourKind.values) EmSegment(k, k.label)],
+          selected: kind,
+          onChanged: c.setKind,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: EmSpacing.block),
         FormLabel('Student *', error: errors['student']),
-        InkWell(
+        KeyedSubtree(
           key: const Key('beh_student_picker'),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          onTap: () => _pickStudent(context),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: errors['student'] == null ? AppColors.line : AppColors.redText)),
-            child: Row(children: [
-              if (student != null) ...[StudentAvatar(student: student, size: 34), const SizedBox(width: 10)] else const Padding(padding: EdgeInsets.only(right: 10), child: Icon(Icons.person_search_rounded, color: AppColors.primaryColor)),
-              Expanded(
-                child: student == null
-                    ? const CustomText(text: 'Choose a student from your classes', color: AppColors.faint, fontSize: 13)
-                    : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        CustomText(key: const Key('beh_selected_student'), text: student.fullName, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 13),
-                        CustomText(text: [if (student.grade.isNotEmpty) '${student.grade}${student.section.isEmpty ? '' : ' - ${student.section}'}', if ((student.rollNumber ?? '').isNotEmpty) 'Roll ${student.rollNumber}'].join(' · '), color: AppColors.muted, fontSize: 11),
-                      ]),
-              ),
-              const Icon(Icons.expand_more_rounded, color: AppColors.muted),
-            ]),
+          child: EmSelectField(
+            leading: student == null ? const ExcludeSemantics(child: Icon(Icons.person_search_rounded, color: EmColors.primary)) : StudentAvatar(student: student, size: 36),
+            title: student?.fullName,
+            titleKey: const Key('beh_selected_student'),
+            subtitle: student == null ? null : [if (student.grade.isNotEmpty) '${student.grade}${student.section.isEmpty ? '' : ' - ${student.section}'}', if ((student.rollNumber ?? '').isNotEmpty) 'Roll ${student.rollNumber}'].join(' · '),
+            placeholder: 'Choose a student from your classes',
+            hasError: errors['student'] != null,
+            onTap: () => _pickStudent(context),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: EmSpacing.block),
         FormLabel('Category *', error: errors['category']),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          for (final k in c.categories)
-            InkWell(
-              key: Key('cat_$k'),
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              onTap: () => c.setCategory(k),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: cat == k ? kindColor(kind) : Colors.white,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  border: Border.all(color: cat == k ? kindColor(kind) : AppColors.line),
-                ),
-                child: CustomText(text: categoryLabel(k), color: cat == k ? Colors.white : AppColors.primaryColor, fontWeight: FontWeight.w700, fontSize: 11.5),
-              ),
-            ),
+        Wrap(spacing: EmSpacing.s8, children: [
+          for (final k in c.categories) EmChip(key: Key('cat_$k'), label: categoryLabel(k), selected: cat == k, onTap: () => c.setCategory(k)),
         ]),
-        const SizedBox(height: 14),
+        const SizedBox(height: EmSpacing.s8),
         LabeledField(label: 'Title', required: true, controller: c.titleC, fieldKey: const Key('beh_title'), hint: 'Short summary', error: errors['title'], onChanged: (_) => c.errors.remove('title')),
         LabeledField(label: 'What happened', required: true, controller: c.descriptionC, fieldKey: const Key('beh_description'), maxLines: 4, hint: 'Describe it briefly and factually', error: errors['description'], onChanged: (_) => c.errors.remove('description')),
         if (kind == BehaviourKind.demerit) ...[
           const FormLabel('Severity'),
           ChoiceWrap(labels: const ['low', 'medium', 'high', 'critical'], selected: sev, onSelect: c.setSeverity, keyPrefix: 'sev_'),
-          const SizedBox(height: 14),
+          const SizedBox(height: EmSpacing.block),
         ],
         if (kind != BehaviourKind.note) ...[
           FormLabel(kind == BehaviourKind.merit ? 'Merit points' : 'Demerit points'),
-          Wrap(spacing: 8, children: [
-            for (final m in BehaviourLogController.pointChoices)
-              ChoiceChip(
-                key: Key('pts_$m'),
-                label: Text(kind == BehaviourKind.merit ? '+$m' : '-$m'),
-                selected: mag == m,
-                onSelected: (_) => c.setMagnitude(m),
-              ),
+          Wrap(spacing: EmSpacing.s8, children: [
+            for (final m in BehaviourLogController.pointChoices) EmChip(key: Key('pts_$m'), label: kind == BehaviourKind.merit ? '+$m' : '-$m', selected: mag == m, onTap: () => c.setMagnitude(m)),
           ]),
-          const SizedBox(height: 14),
+          const SizedBox(height: EmSpacing.block),
         ],
         const FormLabel('Date'),
-        InkWell(
+        KeyedSubtree(
           key: const Key('beh_date_picker'),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          onTap: () async {
-            final today = c.today;
-            final picked = await showAppDatePicker(context, initialDate: day, firstDate: today.subtract(const Duration(days: 90)), lastDate: today);
-            if (picked != null) c.setDay(picked);
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: AppColors.line)),
-            child: Row(children: [
-              const Icon(Icons.event_rounded, size: 18, color: AppColors.primaryColor),
-              const SizedBox(width: 10),
-              CustomText(text: '${shortDay(day)} ${day.year}${day == c.today ? ' (today)' : ''}', fontWeight: FontWeight.w700, fontSize: 13),
-            ]),
+          child: EmSelectField(
+            icon: Icons.event_rounded,
+            trailingIcon: null,
+            title: '${shortDay(day)} ${day.year}${day == c.today ? ' (today)' : ''}',
+            onTap: () async {
+              final today = c.today;
+              final picked = await showAppDatePicker(context, initialDate: day, firstDate: today.subtract(const Duration(days: 90)), lastDate: today);
+              if (picked != null) c.setDay(picked);
+            },
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: EmSpacing.block),
         const ParentVisibleNote(text: "Parents can see this entry in their app as soon as you save it. Keep it factual and respectful. For safeguarding concerns use \"Raise a concern\" in More."),
       ],
     );
   }
 
   Widget _bottom(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-        decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.line))),
-        child: SizedBox(
-          width: double.infinity,
-          child: Obx(() => ElevatedButton(
+    return DecoratedBox(
+      decoration: BoxDecoration(color: EmColors.surface, boxShadow: EmShadows.soft),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: EmSpacing.screenH, vertical: EmSpacing.s12),
+          child: Obx(() => EmPrimaryButton(
                 key: const Key('beh_submit'),
+                loading: c.saving.value,
+                label: 'Save ${c.kind.value.label.toLowerCase()}',
                 onPressed: c.saving.value ? null : () => _submit(context),
-                child: c.saving.value
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : CustomText(text: 'Save ${c.kind.value.label.toLowerCase()}', color: Colors.white, fontWeight: FontWeight.w700),
               )),
         ),
       ),
@@ -209,28 +171,17 @@ class _PickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = controller;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      padding: const EdgeInsetsDirectional.fromSTEB(EmSpacing.screenH, EmSpacing.s8, EmSpacing.screenH, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const CustomText(text: 'Choose a student', fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primaryColor),
-        const SizedBox(height: 10),
+        Text('Choose a student', style: EmType.heading.copyWith(color: EmColors.ink)),
+        const SizedBox(height: EmSpacing.row),
         Obx(() {
           final cs = c.classes;
           final sel = c.pickerClass.value;
-          return cs.length > 1 ? Padding(padding: const EdgeInsets.only(bottom: 10), child: ClassPicker(classes: cs, selected: sel, onSelect: c.selectPickerClass)) : const SizedBox.shrink();
+          return cs.length > 1 ? Padding(padding: const EdgeInsets.only(bottom: EmSpacing.row), child: ClassPicker(classes: cs, selected: sel, onSelect: c.selectPickerClass)) : const SizedBox.shrink();
         }),
-        TextField(
-          key: const Key('beh_picker_search'),
-          onChanged: (v) => c.pickerQuery.value = v,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: 'Search by name or roll number',
-            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-            filled: true,
-            fillColor: AppColors.pale,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
-          ),
-        ),
-        const SizedBox(height: 10),
+        EmSearchPill(fieldKey: const Key('beh_picker_search'), hint: 'Search by name or roll number', onChanged: (v) => c.pickerQuery.value = v),
+        const SizedBox(height: EmSpacing.row),
         Expanded(
           child: Obx(() {
             final st = c.pickerState;

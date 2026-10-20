@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/behaviour/behaviour_models.dart';
 import '../../../../core/models/classroom/student_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/behaviour_student_controller.dart';
 import 'widgets/behaviour_widgets.dart';
 import '../../../../core/design/design.dart';
+
+final _quiet = EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400);
 
 /// One student's behaviour and Tarbiyah history (`/behaviour/student/:id`). Only for students in MY classes.
 class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
@@ -26,13 +26,12 @@ class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
         return s != null && c.canLog
             ? FloatingActionButton.extended(
                 key: const Key('beh_student_log'),
-                backgroundColor: AppColors.primaryColor,
                 onPressed: () async {
                   await Get.toNamed(Routes.behaviourNew, arguments: s);
                   c.load();
                 },
-                icon: const Icon(Icons.add_rounded, color: Colors.white),
-                label: const CustomText(text: 'Log behaviour', color: Colors.white, fontWeight: FontWeight.w700),
+                icon: const Icon(Icons.add_rounded),
+                label: Text('Log behaviour', style: EmType.label.copyWith(color: EmColors.onPrimary)),
               )
             : const SizedBox.shrink();
       }),
@@ -50,11 +49,11 @@ class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
           emptyIcon: Icons.lock_outline_rounded,
           emptyTitle: "This student isn't in one of your classes",
           emptySubtitle: 'You can only see behaviour for the students you teach.',
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+          padding: EmSpacing.listPaddingFab,
           builder: (s) => [
-            ScreenHeader(title: s.fullName, caption: [if (s.grade.isNotEmpty) '${s.grade}${s.section.isEmpty ? '' : ' - ${s.section}'}', if ((s.rollNumber ?? '').isNotEmpty) 'Roll ${s.rollNumber}'].join(' · ')),
+            Text(s.fullName, style: EmType.title.copyWith(color: EmColors.ink)),
+            EmCaptionLine([if (s.grade.isNotEmpty) '${s.grade}${s.section.isEmpty ? '' : ' - ${s.section}'}', if ((s.rollNumber ?? '').isNotEmpty) 'Roll ${s.rollNumber}'].join(' · ')),
             if (recs.hasData) StatsRow(items: [('${recs.data!.length}', 'Records', null), (pointsText(pts), 'Points', null)]),
-            if (recs.hasData) const SizedBox(height: 10),
             const SubHeading('Behaviour records'),
             ..._section<List<BehaviourRecord>>(
               recs,
@@ -80,15 +79,15 @@ class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
   List<Widget> _section<T>(SectionState<T> s, {required String emptyKey, required String emptyText, required VoidCallback retry, required List<Widget> Function(T) builder}) {
     switch (s.status) {
       case SectionStatus.loading:
-        return [const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: AppLoader())];
+        return [const Padding(padding: EdgeInsets.symmetric(vertical: EmSpacing.block), child: AppLoader())];
       case SectionStatus.data:
         return builder(s.data as T);
       case SectionStatus.empty:
-        return [AppCard(child: CustomText(key: Key(emptyKey), text: emptyText, color: AppColors.muted, fontSize: 12))];
+        return [AppCard(child: Text(emptyText, key: Key(emptyKey), style: _quiet))];
       case SectionStatus.forbidden:
-        return [const AppCard(child: CustomText(key: Key('section_forbidden'), text: "You don't have access to this.", color: AppColors.muted, fontSize: 12))];
+        return [AppCard(child: Text("You don't have access to this.", key: const Key('section_forbidden'), style: _quiet))];
       case SectionStatus.unavailable:
-        return [const AppCard(child: CustomText(key: Key('section_unavailable'), text: 'Not available on this server yet.', color: AppColors.muted, fontSize: 12))];
+        return [AppCard(child: Text('Not available on this server yet.', key: const Key('section_unavailable'), style: _quiet))];
       case SectionStatus.error:
         return [AppErrorView(message: s.message ?? 'Something went wrong', onRetry: retry)];
     }

@@ -19,6 +19,7 @@ export 'widgets/em_logomark.dart';
 export 'widgets/em_progress_ring.dart';
 export 'widgets/em_scaffold.dart';
 export 'widgets/em_search_pill.dart';
+export 'widgets/em_select_field.dart';
 export 'widgets/em_segmented_tabs.dart';
 export 'widgets/em_skeleton.dart';
 export 'widgets/em_stat_tile.dart';

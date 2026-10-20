@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/behaviour/behaviour_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../homework/views/widgets/homework_widgets.dart';
 import '../../home/models/section_state.dart';
@@ -37,10 +35,9 @@ class _BehaviourScreenState extends State<BehaviourScreen> {
       floatingActionButton: Obx(() => c.canView && c.canLog && c.classes.isNotEmpty && c.state.value.status != SectionStatus.forbidden
           ? FloatingActionButton.extended(
               key: const Key('beh_new_fab'),
-              backgroundColor: AppColors.primaryColor,
               onPressed: () => Get.toNamed(Routes.behaviourNew),
-              icon: const Icon(Icons.add_rounded, color: Colors.white),
-              label: const CustomText(text: 'Log behaviour', color: Colors.white, fontWeight: FontWeight.w700),
+              icon: const Icon(Icons.add_rounded),
+              label: Text('Log behaviour', style: EmType.label.copyWith(color: EmColors.onPrimary)),
             )
           : const SizedBox.shrink()),
       body: Obx(_body),
@@ -64,50 +61,34 @@ class _BehaviourScreenState extends State<BehaviourScreen> {
       emptyIcon: classes.isEmpty ? Icons.school_outlined : Icons.emoji_events_outlined,
       emptyTitle: classes.isEmpty ? "You aren't assigned to any class yet" : 'No behaviour recorded yet',
       emptySubtitle: classes.isEmpty ? 'Behaviour is logged for the students of your classes. Ask your school admin to assign you to a class.' : 'Tap "Log behaviour" to record a merit, a concern or a note.',
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      padding: EmSpacing.listPaddingFab,
       header: [
-        const ScreenHeader(title: 'Behaviour', caption: 'Merits, concerns and notes'),
-        if (c.canView) ...[
-          const ParentVisibleNote(text: 'Everything recorded here is visible to the student\'s parents in their app.'),
-          const SizedBox(height: 12),
-        ],
+        const EmCaptionLine('Merits, concerns and notes'),
+        if (c.canView) const ParentVisibleNote(text: 'Everything recorded here is visible to the student\'s parents in their app.'),
         if (state.hasData) ...[
-          SegmentedControl(
-            options: ['My entries ($myCount)', 'My classes ($total)'],
-            selectedIndex: scope == BehaviourScope.mine ? 0 : 1,
-            onChanged: (i) => c.setScope(i == 0 ? BehaviourScope.mine : BehaviourScope.classes),
+          EmSegmentedTabs<BehaviourScope>(
+            segments: [EmSegment(BehaviourScope.mine, 'My entries ($myCount)'), EmSegment(BehaviourScope.classes, 'My classes ($total)')],
+            selected: scope == BehaviourScope.mine ? BehaviourScope.mine : BehaviourScope.classes,
+            onChanged: c.setScope,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: EmSpacing.row),
           if (classes.length > 1)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: EmSpacing.row),
               child: FilterChipsRow(chips: [
                 ('All classes', -1, filter < 0, () => c.setClassFilter(-1), 'cls_all'),
                 for (var i = 0; i < classes.length; i++) (classes[i].label, -1, filter == i, () => c.setClassFilter(i), 'cls_$i'),
               ]),
             ),
-          TextField(
-            key: const Key('beh_search'),
-            controller: search,
-            onChanged: (v) => c.query.value = v,
-            decoration: InputDecoration(
-              isDense: true,
-              hintText: 'Search by student or title',
-              prefixIcon: const Icon(Icons.search_rounded, size: 20),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: const BorderSide(color: AppColors.line)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: const BorderSide(color: AppColors.line)),
-            ),
-          ),
-          const SizedBox(height: 12),
+          EmSearchPill(fieldKey: const Key('beh_search'), controller: search, hint: 'Search by student or title', onChanged: (v) => c.query.value = v),
+          const SizedBox(height: EmSpacing.row),
         ],
       ],
       builder: (_) {
         if (visible.isEmpty) {
           return [
             Padding(
-              padding: const EdgeInsets.only(top: 20),
+              padding: const EdgeInsets.only(top: EmSpacing.s24),
               child: AppEmptyView(
                 key: const Key('beh_filter_empty'),
                 icon: Icons.filter_alt_off_outlined,
