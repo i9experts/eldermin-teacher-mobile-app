@@ -18,6 +18,7 @@ import 'package:eldermin_teacher_app/core/models/academic/lesson_plan_models.dar
 import 'package:eldermin_teacher_app/core/models/academic/syllabus_models.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/services/attachment_picker.dart' show PickedAttachment;
+import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -405,7 +406,7 @@ void main() {
     testWidgets('idle: choose a file or paste a link; read button disabled until one is given; pdf is refused with advice', (t) async {
       final c = await boot(t);
       expect(find.byKey(const Key('lp_pick_file')), findsOneWidget);
-      expect(t.widget<ElevatedButton>(find.byKey(const Key('lp_parse'))).onPressed, isNull);
+      expect(t.widget<EmPrimaryButton>(find.byKey(const Key('lp_parse'))).onPressed, isNull);
       c.setPicked(const PickedAttachment(name: 'plan.pdf', path: '/tmp/plan.pdf', size: 10));
       await settle(t);
       expect(find.byKey(const Key('lp_pick_notice')), findsOneWidget);
@@ -413,7 +414,7 @@ void main() {
       await settle(t);
       expect(find.byKey(const Key('lp_picked')), findsOneWidget);
       expect(find.text('plan.docx'), findsOneWidget);
-      expect(t.widget<ElevatedButton>(find.byKey(const Key('lp_parse'))).onPressed, isNotNull);
+      expect(t.widget<EmPrimaryButton>(find.byKey(const Key('lp_parse'))).onPressed, isNotNull);
     });
 
     testWidgets('AI unavailable: a clean "couldn\'t read this file, fill it in yourself" state; no raw server text', (t) async {
@@ -441,7 +442,7 @@ void main() {
       await t.pump();
       expect(find.byKey(const Key('lp_parse_progress')), findsOneWidget);
       expect(find.text('Reading...'), findsOneWidget);
-      expect(t.widget<ElevatedButton>(find.byKey(const Key('lp_parse'))).onPressed, isNull);
+      expect(t.widget<EmPrimaryButton>(find.byKey(const Key('lp_parse'))).onPressed, isNull);
       gate.complete(const LessonPlanDraft(topic: 'T'));
       await settle(t);
     });

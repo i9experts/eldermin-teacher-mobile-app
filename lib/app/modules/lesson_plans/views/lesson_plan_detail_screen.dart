@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/academic/lesson_plan_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/toast_util.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show InfoLine;
@@ -42,11 +40,11 @@ class LessonPlanDetailScreen extends GetView<LessonPlanDetailController> {
 
   void _snack(BuildContext context, String m) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating));
+    ..showSnackBar(SnackBar(content: Text(m)));
 
   Widget _section(String title, String text, {Key? k}) => text.trim().isEmpty
       ? const SizedBox.shrink()
-      : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [SubHeading(title), AppCard(child: CustomText(key: k, text: text, fontSize: 12.5, height: 1.4))]);
+      : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [SectionRow(title: title), AppCard(child: Text(text, key: k, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400, height: 1.5)))]);
 
   List<Widget> _content(BuildContext context, LessonPlanRecord p, bool busy, String? failure) {
     final day = p.planDay;
@@ -55,14 +53,14 @@ class LessonPlanDetailScreen extends GetView<LessonPlanDetailController> {
     final method = kLessonMethodologies[p.teachingMethodology] ?? p.teachingMethodology;
     return [
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(child: CustomText(key: const Key('lp_topic'), text: p.topic.isEmpty ? '(No topic)' : p.topic, fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryColor, height: 1.2)),
-        const SizedBox(width: 8),
+        Expanded(child: Text(p.topic.isEmpty ? '(No topic)' : p.topic, key: const Key('lp_topic'), style: EmType.title.copyWith(color: EmColors.ink))),
+        const SizedBox(width: EmSpacing.s8),
         PlanStatusTag(p.status),
       ]),
-      const SizedBox(height: 4),
-      CustomText(text: [p.subject, p.classLabel].where((e) => e.isNotEmpty).join(' · '), color: AppColors.muted, fontSize: 12),
-      const SizedBox(height: 14),
-      if (failure != null) NoteBox(boxKey: const Key('lp_action_error'), icon: Icons.error_outline_rounded, title: failure, fg: AppColors.redText, bg: AppColors.redBg),
+      const SizedBox(height: EmSpacing.s4),
+      Text([p.subject, p.classLabel].where((e) => e.isNotEmpty).join(' · '), style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
+      const SizedBox(height: EmSpacing.block),
+      if (failure != null) NoteBox(boxKey: const Key('lp_action_error'), icon: Icons.error_outline_rounded, title: failure, tone: EmTone.error),
       // Shown ONLY for a rejected plan: the server keeps an old reason on a resubmitted one (raw $set, teaching.service.ts:191-207).
       if (p.status == LessonPlanStatus.rejected)
         NoteBox(
@@ -70,13 +68,12 @@ class LessonPlanDetailScreen extends GetView<LessonPlanDetailController> {
           icon: Icons.cancel_outlined,
           title: 'Rejected by your approver',
           body: reason == null || reason.isEmpty ? 'No reason was given.' : reason,
-          fg: AppColors.redText,
-          bg: AppColors.redBg,
+          tone: EmTone.error,
         ),
       if (p.status == LessonPlanStatus.approved && notes != null && notes.isNotEmpty)
-        NoteBox(boxKey: const Key('lp_approver_notes'), icon: Icons.check_circle_outline_rounded, title: 'Approver notes', body: notes, fg: AppColors.greenText, bg: AppColors.greenBg),
+        NoteBox(boxKey: const Key('lp_approver_notes'), icon: Icons.check_circle_outline_rounded, title: 'Approver notes', body: notes, tone: EmTone.success),
       if (p.status == LessonPlanStatus.submitted)
-        const NoteBox(boxKey: Key('lp_under_review'), icon: Icons.hourglass_top_rounded, title: 'Awaiting approval', body: "It can't be edited while it is under review.", fg: AppColors.blue, bg: AppColors.pale),
+        const NoteBox(boxKey: Key('lp_under_review'), icon: Icons.hourglass_top_rounded, title: 'Awaiting approval', body: "It can't be edited while it is under review.", tone: EmTone.info),
       AppCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           InfoLine(icon: Icons.event_rounded, text: day == null ? 'No date' : fullDay(day)),
@@ -87,11 +84,11 @@ class LessonPlanDetailScreen extends GetView<LessonPlanDetailController> {
       ),
       _section('Description', p.description),
       if (p.learningObjectives.isNotEmpty) ...[
-        const SubHeading('Learning objectives'),
+        const SectionRow(title: 'Learning objectives'),
         AppCard(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             for (var i = 0; i < p.learningObjectives.length; i++)
-              Padding(padding: const EdgeInsets.only(bottom: 6), child: CustomText(text: '${i + 1}. ${p.learningObjectives[i]}', fontSize: 12.5, height: 1.35)),
+              Padding(padding: const EdgeInsets.only(bottom: EmSpacing.s8), child: Text('${i + 1}. ${p.learningObjectives[i]}', style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400, height: 1.4))),
           ]),
         ),
       ],
@@ -99,38 +96,24 @@ class LessonPlanDetailScreen extends GetView<LessonPlanDetailController> {
       _section('Activities', p.activities),
       _section('Assessment', p.assessment),
       _section('Homework', p.homework),
-      const SizedBox(height: 14),
+      const SizedBox(height: EmSpacing.block),
       if (p.canSubmit) ...[
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            key: const Key('lp_submit'),
-            onPressed: busy ? null : () => _submit(context, p),
-            icon: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.send_rounded, size: 18),
-            label: const CustomText(text: 'Submit for approval', color: Colors.white, fontWeight: FontWeight.w700),
-          ),
-        ),
-        const SizedBox(height: 8),
+        EmPrimaryButton(key: const Key('lp_submit'), icon: Icons.send_rounded, loading: busy, label: 'Submit for approval', onPressed: busy ? null : () => _submit(context, p)),
+        const SizedBox(height: EmSpacing.s8),
       ],
       if (p.canEdit)
-        SizedBox(
-          width: double.infinity,
-          child: p.status == LessonPlanStatus.rejected
-              ? ElevatedButton.icon(
-                  key: const Key('lp_edit'),
-                  onPressed: busy ? null : () => _edit(p),
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const CustomText(text: 'Edit and resubmit', color: Colors.white, fontWeight: FontWeight.w700),
-                )
-              : OutlinedButton.icon(
-                  key: const Key('lp_edit'),
-                  onPressed: busy ? null : () => _edit(p),
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const CustomText(text: 'Edit', color: AppColors.primaryColor, fontWeight: FontWeight.w700),
-                ),
-        ),
+        p.status == LessonPlanStatus.rejected
+            ? EmPrimaryButton(key: const Key('lp_edit'), icon: Icons.edit_outlined, label: 'Edit and resubmit', onPressed: busy ? null : () => _edit(p))
+            : EmSecondaryButton(key: const Key('lp_edit'), expand: true, icon: Icons.edit_outlined, label: 'Edit', onPressed: busy ? null : () => _edit(p)),
       if (p.status == LessonPlanStatus.approved)
-        const Padding(padding: EdgeInsets.only(top: 6), child: CustomText(text: "An approved plan can't be edited here. Ask your coordinator if it needs to change.", color: AppColors.muted, fontSize: 11)),
+        Padding(
+          padding: const EdgeInsets.only(top: EmSpacing.s8),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const ExcludeSemantics(child: Icon(Icons.lock_outline_rounded, size: 16, color: EmColors.textSecondary)),
+            const SizedBox(width: EmSpacing.s4),
+            Expanded(child: Text("An approved plan can't be edited here. Ask your coordinator if it needs to change.", style: EmType.caption.copyWith(color: EmColors.textSecondary))),
+          ]),
+        ),
     ];
   }
 

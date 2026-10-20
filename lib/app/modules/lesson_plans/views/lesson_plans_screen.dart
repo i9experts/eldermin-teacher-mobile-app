@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/academic/lesson_plan_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
@@ -36,10 +34,9 @@ class LessonPlansScreen extends GetView<LessonPlansController> {
       floatingActionButton: Obx(() => controller.canView && controller.state.value.status != SectionStatus.forbidden
           ? FloatingActionButton.extended(
               key: const Key('lp_new_fab'),
-              backgroundColor: AppColors.primaryColor,
               onPressed: () => Get.toNamed(Routes.lessonPlanNew),
-              icon: const Icon(Icons.add_rounded, color: Colors.white),
-              label: const CustomText(text: 'New plan', color: Colors.white, fontWeight: FontWeight.w700),
+              icon: const Icon(Icons.add_rounded),
+              label: Text('New plan', style: EmType.label.copyWith(color: EmColors.onPrimary)),
             )
           : const SizedBox.shrink()),
       body: Obx(_body),
@@ -59,22 +56,21 @@ class LessonPlansScreen extends GetView<LessonPlansController> {
       emptyIcon: Icons.edit_note_rounded,
       emptyTitle: 'No lesson plans yet',
       emptySubtitle: 'Plans you create will appear here. Tap "New plan", or "Upload & parse" to start from a document.',
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      padding: EmSpacing.listPaddingFab,
       header: [
-        ScreenHeader(title: 'Lesson plans', caption: state.hasData ? '$all ${all == 1 ? 'plan' : 'plans'} · mine' : 'Your plans'),
+        EmCaptionLine(state.hasData ? '$all ${all == 1 ? 'plan' : 'plans'} · mine' : 'Your plans'),
         if (state.hasData) ...[
           FilterChipsRow(chips: [
             for (final f in LessonPlanFilter.values) (f.label, c.countFor(f), f == filter, () => c.setFilter(f), f.name),
           ]),
-          const SizedBox(height: 10),
+          const SizedBox(height: EmSpacing.row),
           if (c.maybeTruncated)
             const NoteBox(
               boxKey: Key('lp_truncated'),
               icon: Icons.info_outline_rounded,
               title: 'Showing your 100 newest plans',
               body: 'The server returns at most 100 plans per request, so older ones may not be listed here.',
-              fg: AppColors.amberText,
-              bg: AppColors.amberBg,
+              tone: EmTone.warning,
             ),
         ],
       ],
@@ -82,7 +78,7 @@ class LessonPlansScreen extends GetView<LessonPlansController> {
         if (visible.isEmpty) {
           return [
             Padding(
-              padding: const EdgeInsets.only(top: 24),
+              padding: const EdgeInsets.only(top: EmSpacing.s24),
               child: AppEmptyView(key: const Key('lp_filter_empty'), icon: Icons.filter_alt_off_outlined, title: 'No ${filter.label.toLowerCase()} plans'),
             ),
           ];

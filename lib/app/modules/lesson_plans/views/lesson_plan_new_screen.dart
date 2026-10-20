@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/academic/lesson_plan_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_date_picker.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../../utils/toast_util.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show ChoiceWrap, FormLabel, InfoLine, LabeledField;
 import '../../students/views/widgets/student_widgets.dart' show ClassPicker;
@@ -23,7 +21,7 @@ class LessonPlanNewScreen extends GetView<LessonPlanFormController> {
 
   void _snack(BuildContext context, String m) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating, margin: const EdgeInsets.fromLTRB(16, 0, 16, 100)));
+    ..showSnackBar(SnackBar(content: Text(m), margin: EmSpacing.snackAboveBar));
 
   @override
   Widget build(BuildContext context) {
@@ -70,17 +68,16 @@ class LessonPlanNewScreen extends GetView<LessonPlanFormController> {
     final hint = c.prefillHint.value;
     final rej = c.editing?.status == LessonPlanStatus.rejected ? c.editing!.rejectionReason : null;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: EmSpacing.listPadding,
       children: [
-        if (failure != null) NoteBox(boxKey: const Key('lp_submit_error'), icon: Icons.error_outline_rounded, title: failure.message, fg: AppColors.redText, bg: AppColors.redBg),
+        if (failure != null) NoteBox(boxKey: const Key('lp_submit_error'), icon: Icons.error_outline_rounded, title: failure.message, tone: EmTone.error),
         if (c.editing?.status == LessonPlanStatus.rejected)
           NoteBox(
             boxKey: const Key('lp_edit_rejection'),
             icon: Icons.cancel_outlined,
             title: 'Rejected by your approver',
             body: rej == null || rej.isEmpty ? 'No reason was given.' : rej,
-            fg: AppColors.redText,
-            bg: AppColors.redBg,
+            tone: EmTone.error,
           ),
         if (from != null)
           NoteBox(
@@ -88,93 +85,76 @@ class LessonPlanNewScreen extends GetView<LessonPlanFormController> {
             icon: Icons.auto_awesome_outlined,
             title: 'Prefilled from $from',
             body: 'This is an AI-assisted draft. Check every field before you save or submit. Nothing has been saved yet.',
-            fg: AppColors.blue,
-            bg: AppColors.pale,
+            tone: EmTone.info,
           ),
         if (warnings.isNotEmpty)
-          NoteBox(boxKey: const Key('lp_prefill_warnings'), icon: Icons.warning_amber_rounded, title: 'Notes from the reader', body: warnings.map((w) => '• $w').join('\n'), fg: AppColors.amberText, bg: AppColors.amberBg),
-        if (hint != null) Padding(padding: const EdgeInsets.only(bottom: 10), child: CustomText(key: const Key('lp_prefill_hint'), text: hint, color: AppColors.amberText, fontSize: 12, fontWeight: FontWeight.w700)),
+          NoteBox(boxKey: const Key('lp_prefill_warnings'), icon: Icons.warning_amber_rounded, title: 'Notes from the reader', body: warnings.map((w) => '• $w').join('\n'), tone: EmTone.warning),
+        if (hint != null) EmInfoBanner(key: const Key('lp_prefill_hint'), tone: EmTone.warning, text: hint),
         if (c.isEditing)
           AppCard(child: InfoLine(icon: Icons.groups_outlined, text: '${c.classLabel} · ${c.subjectLabel}'))
         else ...[
           FormLabel('Class *', error: errors['class']),
           ClassPicker(classes: c.classes, selected: selected, onSelect: c.selectClass),
-          const SizedBox(height: 12),
+          const SizedBox(height: EmSpacing.row),
           FormLabel('Subject *', error: errors['subject']),
           if (c.subjects.isEmpty)
-            const CustomText(text: 'Choose a class first.', color: AppColors.muted, fontSize: 12)
+            Text('Choose a class first.', style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))
           else
             ChoiceWrap(labels: c.subjects, selected: c.subject.value, onSelect: c.setSubject, keyPrefix: 'subject_'),
-          const SizedBox(height: 14),
+          const SizedBox(height: EmSpacing.block),
         ],
         LabeledField(label: 'Topic', required: true, controller: c.topicC, fieldKey: const Key('lp_topic_field'), hint: 'e.g. Adding fractions', error: errors['topic'], onChanged: (_) => c.errors.remove('topic')),
         FormLabel('Lesson date *', error: errors['date']),
-        InkWell(
+        KeyedSubtree(
           key: const Key('lp_date_picker'),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          onTap: () async {
-            final today = c.today;
-            final picked = await showAppDatePicker(context, initialDate: day ?? today, firstDate: DateTime(today.year - 1, today.month, today.day), lastDate: DateTime(today.year + 1, 12, 31));
-            if (picked != null) c.setPlanDay(picked);
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: errors['date'] == null ? AppColors.line : AppColors.redText)),
-            child: Row(children: [
-              const Icon(Icons.event_rounded, size: 18, color: AppColors.primaryColor),
-              const SizedBox(width: 10),
-              CustomText(text: day == null ? 'Choose a date' : '${shortDay(day)} ${day.year}', color: day == null ? AppColors.faint : AppColors.black, fontWeight: FontWeight.w700, fontSize: 13),
-            ]),
+          child: EmSelectField(
+            icon: Icons.event_rounded,
+            trailingIcon: null,
+            title: day == null ? null : '${shortDay(day)} ${day.year}',
+            placeholder: 'Choose a date',
+            hasError: errors['date'] != null,
+            onTap: () async {
+              final today = c.today;
+              final picked = await showAppDatePicker(context, initialDate: day ?? today, firstDate: DateTime(today.year - 1, today.month, today.day), lastDate: DateTime(today.year + 1, 12, 31));
+              if (picked != null) c.setPlanDay(picked);
+            },
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: EmSpacing.block),
         LabeledField(label: 'Duration (minutes)', controller: c.durationC, fieldKey: const Key('lp_duration_field'), keyboardType: TextInputType.number, hint: '40', error: errors['duration'], onChanged: (_) => c.errors.remove('duration')),
         LabeledField(label: 'Description', controller: c.descriptionC, fieldKey: const Key('lp_desc_field'), maxLines: 3, hint: 'A short summary of the lesson'),
         const FormLabel('Learning objectives'),
         for (var i = 0; i < objectives.length; i++)
           Padding(
             key: ValueKey('lp_obj_row_${objectives[i].id}'),
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: EmSpacing.s8),
             child: Row(children: [
-              CustomText(text: '${i + 1}.', color: AppColors.muted, fontSize: 12, fontWeight: FontWeight.w700),
-              const SizedBox(width: 8),
+              Text('${i + 1}.', style: EmType.label.copyWith(color: EmColors.textSecondary)),
+              const SizedBox(width: EmSpacing.s8),
               Expanded(
                 child: TextField(
                   key: ValueKey('lp_obj_${objectives[i].id}'),
                   controller: objectives[i].controller,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: 'Students will be able to...',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: const BorderSide(color: AppColors.line)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: const BorderSide(color: AppColors.line)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
+                  style: EmType.body.copyWith(color: EmColors.ink),
+                  decoration: const InputDecoration(isDense: true, hintText: 'Students will be able to...'),
                 ),
               ),
-              IconButton(key: ValueKey('lp_obj_remove_${objectives[i].id}'), onPressed: () => c.removeObjective(objectives[i].id), icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.muted)),
+              IconButton(key: ValueKey('lp_obj_remove_${objectives[i].id}'), tooltip: 'Remove objective', onPressed: () => c.removeObjective(objectives[i].id), icon: const Icon(Icons.close_rounded, size: 20, color: EmColors.textSecondary)),
             ]),
           ),
-        TextButton.icon(
-          key: const Key('lp_add_objective'),
-          onPressed: c.addObjective,
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const CustomText(text: 'Add objective', color: AppColors.primaryColor, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 6),
+        Align(alignment: AlignmentDirectional.centerStart, child: EmTextAction(key: const Key('lp_add_objective'), onPressed: c.addObjective, icon: Icons.add_rounded, label: 'Add objective')),
+        const SizedBox(height: EmSpacing.s4),
         const FormLabel('Teaching method'),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          for (final e in kLessonMethodologies.entries)
-            _Chip(key: Key('method_${e.key}'), label: e.value, on: method == e.key, onTap: () => c.setMethodology(e.key)),
+        Wrap(spacing: EmSpacing.s8, children: [
+          for (final e in kLessonMethodologies.entries) EmChip(key: Key('method_${e.key}'), label: e.value, selected: method == e.key, onTap: () => c.setMethodology(e.key)),
         ]),
-        const SizedBox(height: 14),
+        const SizedBox(height: EmSpacing.block),
         const FormLabel('Resources'),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          for (final r in kLessonResources) _Chip(key: Key('res_$r'), label: r, on: picked.contains(r), onTap: () => c.toggleResource(r), check: true),
+        Wrap(spacing: EmSpacing.s8, children: [
+          for (final r in kLessonResources) EmChip(key: Key('res_$r'), label: r, selected: picked.contains(r), icon: picked.contains(r) ? Icons.check_rounded : null, onTap: () => c.toggleResource(r)),
         ]),
-        const SizedBox(height: 10),
+        const SizedBox(height: EmSpacing.row),
         LabeledField(label: 'Other resources', controller: c.otherResourceC, fieldKey: const Key('lp_other_res_field'), hint: 'Separate with ;  e.g. paper strips; scissors'),
         LabeledField(label: 'Prior knowledge', controller: c.priorC, fieldKey: const Key('lp_prior_field'), maxLines: 2),
         LabeledField(label: 'Activities', controller: c.activitiesC, fieldKey: const Key('lp_activities_field'), maxLines: 3, hint: 'What will students do?'),
@@ -214,28 +194,6 @@ class LessonPlanNewScreen extends GetView<LessonPlanFormController> {
   }
 }
 
-class _Chip extends StatelessWidget {
-  final String label;
-  final bool on;
-  final VoidCallback onTap;
-  final bool check;
-  const _Chip({super.key, required this.label, required this.on, required this.onTap, this.check = false});
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: on ? AppColors.primaryColor : Colors.white, borderRadius: BorderRadius.circular(AppRadius.pill), border: Border.all(color: on ? AppColors.primaryColor : AppColors.line)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            if (check && on) const Padding(padding: EdgeInsets.only(right: 4), child: Icon(Icons.check_rounded, size: 14, color: Colors.white)),
-            CustomText(text: label, color: on ? Colors.white : AppColors.primaryColor, fontWeight: FontWeight.w700, fontSize: 12),
-          ]),
-        ),
-      );
-}
-
 class _BottomBar extends StatelessWidget {
   final LessonPlanFormController controller;
   final VoidCallback onDraft;
@@ -247,32 +205,19 @@ class _BottomBar extends StatelessWidget {
     return Obx(() {
       final c = controller;
       final saving = c.saving.value;
-      final e = c.editing;
-      final rejected = e?.status == LessonPlanStatus.rejected;
-      return SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.line))),
-          child: Row(children: [
-            Expanded(
-              child: OutlinedButton(
-                key: const Key('lp_save_draft'),
-                onPressed: saving ? null : onDraft,
-                child: CustomText(text: c.isEditing ? 'Save changes' : 'Save as draft', color: AppColors.primaryColor, fontWeight: FontWeight.w700),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: ElevatedButton(
-                key: const Key('lp_submit_approval'),
-                onPressed: saving ? null : onSubmit,
-                child: saving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : CustomText(text: rejected ? 'Save and resubmit' : 'Submit for approval', color: Colors.white, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ]),
+      final rejected = c.editing?.status == LessonPlanStatus.rejected;
+      return DecoratedBox(
+        decoration: BoxDecoration(color: EmColors.surface, boxShadow: EmShadows.soft),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: EmSpacing.screenH, vertical: EmSpacing.s12),
+            child: Row(children: [
+              Expanded(child: EmSecondaryButton(key: const Key('lp_save_draft'), expand: true, label: c.isEditing ? 'Save changes' : 'Save as draft', onPressed: saving ? null : onDraft)),
+              const SizedBox(width: EmSpacing.s12),
+              Expanded(child: EmPrimaryButton(key: const Key('lp_submit_approval'), loading: saving, label: rejected ? 'Save and resubmit' : 'Submit for approval', onPressed: saving ? null : onSubmit)),
+            ]),
+          ),
         ),
       );
     });
