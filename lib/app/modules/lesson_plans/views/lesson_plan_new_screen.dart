@@ -12,6 +12,7 @@ import '../../homework/views/widgets/homework_widgets.dart' show ChoiceWrap, For
 import '../../students/views/widgets/student_widgets.dart' show ClassPicker;
 import '../controllers/lesson_plan_form_controller.dart';
 import 'widgets/lesson_plan_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// New lesson plan (`/lesson-plans/new`), edit (`arguments: LessonPlanFormArgs(editing)`), or review of a parsed draft
 /// (`arguments: LessonPlanFormArgs(draft)`). Class and subject come from MY assignments. "Save as draft" or "Submit for approval".
@@ -37,14 +38,9 @@ class LessonPlanNewScreen extends GetView<LessonPlanFormController> {
         }
         Get.back();
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: CustomText(
-            text: c.isEditing ? (c.editing!.status == LessonPlanStatus.rejected ? 'Edit and resubmit' : 'Edit lesson plan') : 'New lesson plan',
-            color: AppColors.ink,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+      child: EmScaffold(
+        appBar: EmAppBar(
+          title: c.isEditing ? (c.editing!.status == LessonPlanStatus.rejected ? 'Edit and resubmit' : 'Edit lesson plan') : 'New lesson plan',
         ),
         body: Obx(() {
           if (!c.isEditing && c.classes.isEmpty) {

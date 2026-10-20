@@ -9,6 +9,7 @@ import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
 import '../controllers/curriculum_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// Curriculum (`/curriculum`): the learning outcomes (SLOs) framework for my grades. Read-only: creating, editing and adding SLOs are
 /// coordinator actions.
@@ -17,8 +18,8 @@ class CurriculumScreen extends GetView<CurriculumController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Curriculum', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Curriculum'),
       body: Obx(() {
         final c = controller;
         final state = c.state.value;

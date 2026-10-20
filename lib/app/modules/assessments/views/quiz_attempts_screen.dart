@@ -9,6 +9,7 @@ import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/quiz_controllers.dart';
+import '../../../../core/design/design.dart';
 
 /// Online quiz attempts waiting for a teacher (`/assessments/quiz-attempts`): written answers that need a mark, for my classes and subjects.
 class QuizAttemptsScreen extends GetView<QuizAttemptsController> {
@@ -16,8 +17,8 @@ class QuizAttemptsScreen extends GetView<QuizAttemptsController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Quiz grading', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Quiz grading'),
       body: Obx(() {
         final c = controller;
         final state = c.state.value;

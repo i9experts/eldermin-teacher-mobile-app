@@ -13,6 +13,7 @@ import '../../homework/views/widgets/homework_widgets.dart' show InfoLine;
 import '../controllers/lesson_plan_detail_controller.dart';
 import '../controllers/lesson_plan_form_controller.dart';
 import 'widgets/lesson_plan_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// One plan (`/lesson-plans/:id`): all fields, status, the rejection reason (ONLY when rejected) or approver notes (ONLY when approved),
 /// and the actions the status allows: submit, edit, edit and resubmit. Approving / rejecting is a coordinator action and is not offered.
@@ -21,8 +22,8 @@ class LessonPlanDetailScreen extends GetView<LessonPlanDetailController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Lesson plan', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Lesson plan'),
       body: Obx(() {
         final c = controller;
         final state = c.state.value;

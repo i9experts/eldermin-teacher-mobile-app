@@ -13,6 +13,7 @@ import '../../lesson_plans/views/widgets/lesson_plan_widgets.dart' show NoteBox;
 import '../controllers/syllabus_controller.dart';
 import '../controllers/syllabus_detail_controller.dart';
 import 'widgets/syllabus_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// One syllabus (`/syllabus/:id`): overall and per-unit / per-topic progress, tickable topics and sub-topics (optimistic, rolled back on
 /// failure), and each topic's lessons (read-only). Approve / publish / delete / design edits are coordinator actions and are not offered.
@@ -23,8 +24,8 @@ class SyllabusDetailScreen extends GetView<SyllabusDetailController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Syllabus', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Syllabus'),
       body: Obx(() {
         final c = controller;
         // The list controller owns the syllabus after the first load (ticks update it), so read it reactively; the detail state covers the

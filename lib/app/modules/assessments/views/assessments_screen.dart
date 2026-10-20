@@ -10,6 +10,7 @@ import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
 import '../controllers/assessments_controller.dart';
 import 'widgets/assessment_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// My assessments (`/assessments`): assessments of my classes, filtered by what needs me (marks open / upcoming / published). Creating,
 /// editing, starting, cancelling, deleting, verifying and publishing are admin actions and are not offered.
@@ -18,8 +19,8 @@ class AssessmentsScreen extends GetView<AssessmentsController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Assessments', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Assessments'),
       body: Obx(_body),
     );
   }

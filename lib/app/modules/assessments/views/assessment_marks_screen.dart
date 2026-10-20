@@ -13,6 +13,7 @@ import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show ErrorBanner, FilterChipsRow;
 import '../controllers/marks_entry_controller.dart';
 import 'widgets/assessment_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Marks entry grid (`/assessments/:id/marks?subject=&section=`). See [MarksEntryController] for the integrity rules the app enforces
 /// because the server does not (marks above the total, verified rows, assessment state).
@@ -99,8 +100,8 @@ class _MarksBodyState extends State<_MarksBody> {
         if (c.saving.value) return;
         if (await _confirmLeave()) Get.back();
       },
-      child: Scaffold(
-        appBar: AppBar(title: Obx(() => CustomText(text: c.editable ? 'Enter marks' : 'Marks', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700))),
+      child: EmScaffold(
+        appBar: EmAppBar(titleWidget: Obx(() => Text(c.editable ? 'Enter marks' : 'Marks', maxLines: 1, overflow: TextOverflow.ellipsis, style: EmType.heading.copyWith(color: EmColors.ink)))),
         body: Obx(() {
           c.revision.value;
           final state = c.state.value;

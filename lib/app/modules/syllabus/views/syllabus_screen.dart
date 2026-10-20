@@ -10,6 +10,7 @@ import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
 import '../controllers/syllabus_controller.dart';
 import 'widgets/syllabus_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// My syllabi (`/syllabus`): coverage progress per subject and class, a behind-schedule tag, and the weekly planner entry.
 class SyllabusScreen extends GetView<SyllabusController> {
@@ -17,8 +18,8 @@ class SyllabusScreen extends GetView<SyllabusController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Syllabus', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Syllabus'),
       body: Obx(_body),
     );
   }

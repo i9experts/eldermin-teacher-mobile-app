@@ -10,6 +10,7 @@ import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
 import '../controllers/lesson_plans_controller.dart';
 import 'widgets/lesson_plan_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// My lesson plans (`/lesson-plans`): status chips (with counts), rejection reasons on rejected plans, create and "Upload & parse".
 class LessonPlansScreen extends GetView<LessonPlansController> {
@@ -17,16 +18,17 @@ class LessonPlansScreen extends GetView<LessonPlansController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const CustomText(text: 'Lesson plans', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700),
+    return EmScaffold(
+      appBar: EmAppBar(
+        title: 'Lesson plans',
         actions: [
           Obx(() => controller.canView && controller.state.value.status != SectionStatus.forbidden
-              ? IconButton(
+              ? EmIconCircleButton(
                   key: const Key('lp_upload_action'),
+                  icon: Icons.upload_file_rounded,
+                  semanticLabel: 'Upload & parse',
                   tooltip: 'Upload & parse',
-                  onPressed: () => Get.toNamed(Routes.lessonPlanUpload),
-                  icon: const Icon(Icons.upload_file_rounded, color: AppColors.ink),
+                  onTap: () => Get.toNamed(Routes.lessonPlanUpload),
                 )
               : const SizedBox.shrink()),
         ],

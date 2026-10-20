@@ -6,6 +6,7 @@ import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/custom_text.dart';
 import '../controllers/curriculum_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// One curriculum (`/curriculum/:id`): SLOs grouped by strand and the standards mapping. Read-only.
 class CurriculumDetailScreen extends GetView<CurriculumDetailController> {
@@ -13,8 +14,8 @@ class CurriculumDetailScreen extends GetView<CurriculumDetailController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Curriculum', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Curriculum'),
       body: Obx(() {
         final c = controller;
         return ScreenStateView<Curriculum>(

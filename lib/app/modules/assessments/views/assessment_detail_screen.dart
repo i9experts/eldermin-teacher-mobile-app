@@ -10,6 +10,7 @@ import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/assessments_controller.dart';
 import 'widgets/assessment_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// One assessment (`/assessments/:id`): its subjects with total / pass marks, which ones I mark, and the entry points (marks grid, online
 /// quiz review, report-card remarks). No create / edit / status / delete / publish.
@@ -20,8 +21,8 @@ class AssessmentDetailScreen extends GetView<AssessmentDetailController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Assessment', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Assessment'),
       body: Obx(() {
         final c = controller;
         final fromList = list.byId(c.id);

@@ -9,6 +9,7 @@ import '../../../components/custom_text.dart';
 import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
 import '../controllers/library_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// Library catalogue (`/library`): search by title / author / ISBN (whole words) and see whether a copy is available. Read-only: issuing,
 /// returning, renewing, fines and reservations are librarian actions.
@@ -48,8 +49,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Library', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Library'),
       body: Obx(() {
         final state = c.state.value;
         final cat = c.category.value;

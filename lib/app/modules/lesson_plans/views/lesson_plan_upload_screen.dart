@@ -9,6 +9,7 @@ import '../../homework/views/widgets/homework_widgets.dart' show FormLabel;
 import '../controllers/lesson_plan_form_controller.dart';
 import '../controllers/lesson_plan_upload_controller.dart';
 import 'widgets/lesson_plan_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Upload & parse (`/lesson-plans/upload`): a Word / Excel / text file or a Google Doc link is read by the server into a DRAFT that fills
 /// the create form for review. Nothing is saved or submitted here.
@@ -19,8 +20,8 @@ class LessonPlanUploadScreen extends GetView<LessonPlanUploadController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Upload & parse', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Upload & parse'),
       body: Obx(() {
         final reading = c.phase.value == UploadPhase.reading;
         final file = c.picked.value;

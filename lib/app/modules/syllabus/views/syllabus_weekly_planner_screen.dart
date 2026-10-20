@@ -8,6 +8,7 @@ import '../../../components/custom_text.dart';
 import '../controllers/syllabus_controller.dart';
 import '../controllers/weekly_planner_controller.dart';
 import 'widgets/syllabus_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Weekly planner (`/syllabus/weekly-planner`): the sub-topics planned for a term week, per syllabus / class, tickable. The server answers
 /// the CURRENT week only; the arrows move through the other weeks using the planned weeks stored on each syllabus.
@@ -49,8 +50,8 @@ class _PlannerState extends State<SyllabusWeeklyPlannerScreen> with WidgetsBindi
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Weekly planner', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Weekly planner'),
       body: Obx(() {
         final state = c.state.value;
         final cards = c.cards;

@@ -9,6 +9,7 @@ import '../../../utils/toast_util.dart';
 import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
 import '../controllers/report_remarks_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// Report-card remarks (`/assessments/report-remarks?assessmentId=`): the class teacher's remark per student. Generating and publishing
 /// report cards are admin actions and are not offered; the principal's remarks are shown read-only; published cards are read-only.
@@ -17,8 +18,8 @@ class AssessmentReportRemarksScreen extends GetView<ReportRemarksController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Report card remarks', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Report card remarks'),
       body: Obx(_body),
     );
   }

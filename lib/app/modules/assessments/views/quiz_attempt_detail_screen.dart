@@ -12,6 +12,7 @@ import '../../homework/views/widgets/homework_widgets.dart' show ErrorBanner;
 import '../../lesson_plans/views/widgets/lesson_plan_widgets.dart' show NoteBox;
 import '../controllers/quiz_controllers.dart';
 import 'widgets/assessment_widgets.dart' show LockBanner;
+import '../../../../core/design/design.dart';
 
 /// One online quiz attempt (`/assessments/quiz-attempts/:id`): the student's answers with the answer key, and a mark for every written
 /// answer (0..the question's marks). See [QuizAttemptDetailController] for the effect on the student's mark entry.
@@ -62,8 +63,8 @@ class QuizAttemptDetailScreen extends GetView<QuizAttemptDetailController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Grade attempt', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Grade attempt'),
       body: Obx(() {
         final c = controller;
         c.revision.value;
