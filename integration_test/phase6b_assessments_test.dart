@@ -156,13 +156,20 @@ void main() {
     await back(t);
     await t.scrollUntilVisible(find.text('Term 1 Result (DUMMY)'), 300, scrollable: find.byType(Scrollable).first);
     await t.tap(find.text('Term 1 Result (DUMMY)'));
-    await waitFor(t, find.byKey(const Key('asm_warn_Mathematics')));
+    // Since 0e105ed (2026-10-08) a results-published assessment is LOCKED, not "editable with a warning" (the earlier 99cac62 warning,
+    // keys asm_warn_<subject> / marks_status_warning, no longer exist): the detail says so and offers "View marks" only.
+    await waitFor(t, find.byKey(const Key('asm_locked_Mathematics')));
     await settle(t, 800);
-    await shot(t, '6b_26_detail_results_published_warning');
-    await t.tap(find.byKey(const Key('asm_marks_Mathematics')));
-    await waitFor(t, find.byKey(const Key('marks_status_warning')));
+    expect(find.byKey(const Key('asm_marks_Mathematics')), findsNothing, reason: 'no "Enter marks" once results are published');
+    expect(find.byKey(const Key('asm_view_Mathematics')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const Key('asm_locked_Mathematics')), matching: find.textContaining('published')), findsWidgets);
+    await shot(t, '6b_26_detail_results_published_locked');
+    await t.tap(find.byKey(const Key('asm_view_Mathematics')));
+    await waitFor(t, find.byKey(const Key('marks_lock_banner')));
     await settle(t, 1200);
-    await shot(t, '6b_27_marks_results_published_warning_editable');
+    expect(find.byKey(const Key('marks_save_button')), findsNothing, reason: 'read-only grid: no save button');
+    expect(find.textContaining('published'), findsWidgets);
+    await shot(t, '6b_27_marks_results_published_locked_readonly');
     await back(t);
     await back(t);
 
