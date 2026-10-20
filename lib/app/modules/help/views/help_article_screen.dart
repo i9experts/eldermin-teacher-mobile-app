@@ -7,6 +7,7 @@ import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/custom_text.dart';
 import '../../../components/rich_text_view.dart';
 import '../controllers/help_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// One help article (`/help/:module/:tabKey`): tagline, body (inert rich text), numbered "How to use it" steps.
 class HelpArticleScreen extends GetView<HelpArticleController> {
@@ -15,8 +16,8 @@ class HelpArticleScreen extends GetView<HelpArticleController> {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Help')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Help'),
       body: Obx(() => ScreenStateView<KbArticle>(
             state: c.state.value,
             onRefresh: () => c.load(userInitiated: true),

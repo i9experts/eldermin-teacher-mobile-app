@@ -10,6 +10,7 @@ import '../../../components/custom_text.dart';
 import '../../../components/external_link.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/help_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// Help (`/help`): bundled teacher FAQs at the top (static, always shown while not searching), then teacher-appropriate knowledge-base articles by module (HR / admin guides are hidden, see [isTeacherHelpArticle]), search, and a
 /// Contact support card when the build configures one.
@@ -100,8 +101,8 @@ class _HelpScreenState extends State<HelpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Help')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Help'),
       body: Obx(() {
         final res = c.results.value;
         if (res != null) {

@@ -5,6 +5,7 @@ import '../../../../core/widgets/app_widgets.dart';
 import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/about_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// About (`/about`).
 class AboutScreen extends GetView<AboutController> {
@@ -13,8 +14,8 @@ class AboutScreen extends GetView<AboutController> {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    return Scaffold(
-      appBar: AppBar(title: const Text('About')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'About'),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 24, 16, 24), children: [
         Center(
           child: Container(
