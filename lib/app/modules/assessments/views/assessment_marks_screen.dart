@@ -167,19 +167,11 @@ class _MarksBodyState extends State<_MarksBody> {
 
   Widget _bottomBar() {
     final n = c.dirtyCount;
-    return DecoratedBox(
-      decoration: BoxDecoration(color: EmColors.surface, boxShadow: EmShadows.soft),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: EmSpacing.screenH, vertical: EmSpacing.s12),
-          child: Row(children: [
-            Expanded(child: Text(n == 0 ? 'No changes yet' : '$n unsaved ${n == 1 ? 'change' : 'changes'}', key: const Key('marks_dirty_count'), style: EmType.label.copyWith(color: n == 0 ? EmColors.textSecondary : EmColors.ink))),
-            const SizedBox(width: EmSpacing.row),
-            EmPrimaryButton(key: const Key('marks_save_button'), expand: false, loading: c.saving.value, label: 'Review & save', onPressed: c.saving.value || n == 0 ? null : _save),
-          ]),
-        ),
-      ),
+    return SaveBar(
+      statusKey: const Key('marks_dirty_count'),
+      status: n == 0 ? 'No changes yet' : '$n unsaved ${n == 1 ? 'change' : 'changes'}',
+      muted: n == 0,
+      button: (expand) => EmPrimaryButton(key: const Key('marks_save_button'), expand: expand, loading: c.saving.value, label: 'Review & save', onPressed: c.saving.value || n == 0 ? null : _save),
     );
   }
 }
@@ -263,12 +255,10 @@ class _MarkRowTileState extends State<_MarkRowTile> {
               ),
             ),
           ),
-          Focus(canRequestFocus: false, skipTraversal: true, child: _Toggle(key: Key('absent_$id'), label: 'Absent', on: r.absent, onChanged: editable ? (v) => c.setAbsent(id, v) : null)),
-          Focus(canRequestFocus: false, skipTraversal: true, child: _Toggle(key: Key('exempt_$id'), label: 'Exempt', on: r.exempt, onChanged: editable ? (v) => c.setExempt(id, v) : null)),
+          ExcludeFocus(child: _Toggle(key: Key('absent_$id'), label: 'Absent', on: r.absent, onChanged: editable ? (v) => c.setAbsent(id, v) : null)),
+          ExcludeFocus(child: _Toggle(key: Key('exempt_$id'), label: 'Exempt', on: r.exempt, onChanged: editable ? (v) => c.setExempt(id, v) : null)),
           if (editable || r.remarks.isNotEmpty)
-            Focus(
-              canRequestFocus: false,
-              skipTraversal: true,
+            ExcludeFocus(
               child: EmIconCircleButton(
                 key: Key('remarks_toggle_$id'),
                 icon: showRemarks ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,

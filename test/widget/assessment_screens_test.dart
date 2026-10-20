@@ -211,6 +211,31 @@ void main() {
       expect(find.text("You don't have access"), findsOneWidget);
       expect(find.byKey(const Key('asm_quiz_card')), findsNothing);
     });
+
+    // D7 label-height assertions: status tags and counts never wrap, whatever the width / text scale
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        testWidgets(probeName('tags and chip counts on one line', w, sc, TextDirection.ltr), (t) async {
+          ProbeEnv.set(w, sc, TextDirection.ltr);
+          final h = await signIn(t);
+          repo.onList = () async => AllPages([
+                asm('a3', title: 'Final', type: 'final_exam', status: 'scheduled', start: '2026-12-01'),
+                asm('a4', title: 'Term 1', status: 'result_published', published: true, start: '2026-08-01'),
+              ]);
+          final c = putList(h);
+          await open(t, const AssessmentsScreen());
+          await c.load();
+          await settle(t);
+          await t.tap(find.byKey(const Key('chip_all')));
+          await settle(t);
+          expectNoLayoutError(t);
+          for (final label in ['SCHEDULED', 'RESULTS PUBLISHED']) {
+            expectOneLine(t, find.text(label), scale: sc);
+          }
+          expectInsideScreen(t, find.byKey(const Key('asm_quiz_card')), w);
+        });
+      }
+    }
   });
 
   group('Assessment detail', () {
@@ -288,11 +313,11 @@ void main() {
   });
 
   group('Marks entry screen', () {
-    Future<MarksEntryController> boot(WidgetTester t, {List<MarkRecord> marks = const [], bool classTeacher = false, List<Map<String, Object?>> assignments = const [maths5a]}) async {
+    Future<MarksEntryController> boot(WidgetTester t, {List<MarkRecord> marks = const [], bool classTeacher = false, List<Map<String, Object?>> assignments = const [maths5a], Size size = const Size(430, 3000)}) async {
       final h = await signIn(t, classTeacher: classTeacher, assignments: assignments);
       repo.onMarks = (_, __) async => AllPages(marks);
       final c = Get.put(MarksEntryController(assessmentId: 'a1', subject: 'Mathematics', repository: repo, students: students, auth: h.auth, permissions: h.perms));
-      await open(t, const AssessmentMarksScreen());
+      await open(t, const AssessmentMarksScreen(), size: size);
       await c.load();
       await settle(t);
       return c;
@@ -590,6 +615,86 @@ void main() {
       expect(find.text('First1 Last1'), findsOneWidget);
       expect(find.text('First230 Last230'), findsNothing); // below the fold: built lazily
     });
+
+    // ---- D7: keyboard, focus order, validation at 1.3x, locked rows ----
+    void keyboard(WidgetTester t, double logicalBottom) {
+      t.view.viewInsets = FakeViewPadding(bottom: logicalBottom * t.view.devicePixelRatio);
+      addTearDown(t.view.resetViewInsets);
+    }
+
+    testWidgets('keyboard open on a 360x640 phone: no layout error, the focused mark and the save bar stay above the keyboard, the bar does not jump', (t) async {
+      await boot(t, size: const Size(360, 640));
+      final barBefore = t.getRect(find.byKey(const Key('marks_save_button')));
+      await t.tap(find.byKey(Key('marks_field_${idOf(1)}')));
+      keyboard(t, 300);
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 300));
+      expectNoLayoutError(t);
+      final field = t.getRect(find.byKey(Key('marks_field_${idOf(1)}')));
+      expect(field.bottom, lessThanOrEqualTo(640 - 300), reason: 'the focused field is above the keyboard');
+      await t.enterText(find.byKey(Key('marks_field_${idOf(1)}')), '12');
+      await t.pump();
+      final bar = t.getRect(find.byKey(const Key('marks_save_button')));
+      expect(bar.bottom, lessThanOrEqualTo(640 - 300), reason: 'the save bar rides above the keyboard');
+      expect(find.text('1 unsaved change'), findsOneWidget);
+      expect(barBefore.width, bar.width);
+      expectNoLayoutError(t);
+    });
+
+    testWidgets('the number keyboard\'s Next moves to the next student\'s mark (toggles and the remarks button are skipped)', (t) async {
+      await boot(t);
+      await t.tap(find.byKey(Key('marks_field_${idOf(1)}')));
+      await t.enterText(find.byKey(Key('marks_field_${idOf(1)}')), '30');
+      await t.testTextInput.receiveAction(TextInputAction.next);
+      await t.pump();
+      final second = t.widget<EditableText>(find.descendant(of: find.byKey(Key('marks_field_${idOf(2)}')), matching: find.byType(EditableText)));
+      expect(second.focusNode.hasFocus, isTrue);
+      expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}'))).keyboardType, const TextInputType.numberWithOptions(decimal: true));
+    });
+
+    for (final w in [320.0, 360.0]) {
+      testWidgets('an invalid mark is explained in words with a glyph, readable at 1.3x on ${w.toInt()} dp', (t) async {
+        ProbeEnv.set(w, 1.3, TextDirection.ltr);
+        await boot(t);
+        await t.enterText(find.byKey(Key('marks_field_${idOf(1)}')), '60'); // above the total of 50
+        await t.pump();
+        await t.tap(find.byKey(const Key('marks_save_button')));
+        await settle(t);
+        await t.pump(const Duration(seconds: 3)); // the "Fix 1 mark first" toast timer
+        expectNoLayoutError(t);
+        expect(find.byKey(Key('marks_error_${idOf(1)}')), findsOneWidget);
+        expectInsideScreen(t, find.byKey(Key('marks_error_${idOf(1)}')), w);
+        expect(find.byKey(const Key('marks_invalid_banner')), findsOneWidget);
+        expectInsideScreen(t, find.byKey(const Key('marks_invalid_banner')), w);
+      });
+    }
+
+    testWidgets('a locked row is distinguishable without colour: lock glyph + reason in words; the sheet note carries a lock glyph too', (t) async {
+      await boot(t, marks: [mark(student(1), 40, verified: true), mark(student(2), 30)]);
+      expect(find.descendant(of: find.byKey(const Key('marks_locked_note')), matching: find.byIcon(Icons.lock_outline_rounded)), findsOneWidget);
+      expect(find.byIcon(Icons.lock_outline_rounded), findsNWidgets(3)); // the sheet note, the row's lock and the reason line
+      expect(find.byKey(Key('marks_lock_${idOf(1)}')), findsOneWidget);
+    });
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('marks row labels', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t, marks: [mark(student(1), 42.5), mark(student(2), 30, verified: true)]);
+            expectNoLayoutError(t);
+            // the toggles keep their labels on one line and 48dp tall; the dirty counter and the roll numbers never wrap
+            for (final label in ['Absent', 'Exempt']) {
+              expectOneLine(t, find.text(label).first, scale: sc);
+            }
+            expect(t.getSize(find.byKey(Key('absent_${idOf(1)}'))).height, greaterThanOrEqualTo(48));
+            expectOneLine(t, find.text('No changes yet'), scale: sc);
+            expectInsideScreen(t, find.byKey(const Key('marks_save_button')), w);
+            expectInsideScreen(t, find.byKey(Key('marks_field_${idOf(1)}')), w);
+          });
+        }
+      }
+    }
   });
 
   group('Report remarks screen', () {
@@ -657,6 +762,21 @@ void main() {
       await c.load(force: true);
       await settle(t);
       expect(find.byKey(const Key('screen_error')), findsOneWidget);
+    });
+
+    testWidgets('D7: keyboard open on a 360x640 phone while writing a remark: no layout error, the card and its save button stay reachable', (t) async {
+      await boot(t);
+      await t.binding.setSurfaceSize(const Size(360, 640));
+      await t.tap(find.byKey(const Key('remarks_input_c1')));
+      t.view.viewInsets = FakeViewPadding(bottom: 300 * t.view.devicePixelRatio);
+      addTearDown(t.view.resetViewInsets);
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 300));
+      expectNoLayoutError(t);
+      await t.enterText(find.byKey(const Key('remarks_input_c1')), 'Works very hard and helps others');
+      await t.pump();
+      expect(find.byKey(const Key('remarks_save_c1')), findsOneWidget);
+      expectNoLayoutError(t);
     });
   });
 

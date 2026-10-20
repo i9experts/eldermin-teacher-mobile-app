@@ -10,7 +10,7 @@ import '../../../utils/toast_util.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show ErrorBanner;
 import '../../lesson_plans/views/widgets/lesson_plan_widgets.dart' show NoteBox;
 import '../controllers/quiz_controllers.dart';
-import 'widgets/assessment_widgets.dart' show LockBanner;
+import 'widgets/assessment_widgets.dart' show LockBanner, SaveBar;
 import '../../../../core/design/design.dart';
 
 /// One online quiz attempt (`/assessments/quiz-attempts/:id`): the student's answers with the answer key, and a mark for every written
@@ -161,19 +161,10 @@ class QuizAttemptDetailScreen extends GetView<QuizAttemptDetailController> {
   Widget _bottom() {
     final c = controller;
     final total = c.previewTotal;
-    return DecoratedBox(
-      decoration: BoxDecoration(color: EmColors.surface, boxShadow: EmShadows.soft),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: EmSpacing.screenH, vertical: EmSpacing.s12),
-          child: Row(children: [
-            Expanded(child: Text(total != null ? 'Total ${marksText(total)} / ${marksText(c.attempt?.totalMarks ?? 0)}' : '${c.filledCount} of ${c.manualCount} marked', key: const Key('qa_progress'), style: EmType.label.copyWith(color: EmColors.ink))),
-            const SizedBox(width: EmSpacing.row),
-            EmPrimaryButton(key: const Key('qa_submit'), expand: false, loading: c.saving.value, label: 'Save marks', onPressed: c.saving.value || !c.hasChanges ? null : _submit),
-          ]),
-        ),
-      ),
+    return SaveBar(
+      statusKey: const Key('qa_progress'),
+      status: total != null ? 'Total ${marksText(total)} / ${marksText(c.attempt?.totalMarks ?? 0)}' : '${c.filledCount} of ${c.manualCount} marked',
+      button: (expand) => EmPrimaryButton(key: const Key('qa_submit'), expand: expand, loading: c.saving.value, label: 'Save marks', onPressed: c.saving.value || !c.hasChanges ? null : _submit),
     );
   }
 }

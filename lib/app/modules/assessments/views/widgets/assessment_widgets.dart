@@ -107,3 +107,36 @@ class LockBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) => EmInfoBanner(key: noteKey, tone: EmTone.warning, icon: Icons.lock_outline_rounded, text: message);
 }
+
+/// Bottom bar of the marks screens: a status line ("3 unsaved changes", "Total 12 / 20") and the primary button. Side by side when the
+/// width allows, stacked (status above a full-width button) on a narrow phone or at a large text scale, so the status never collapses to
+/// a one-word-per-line sliver.
+class SaveBar extends StatelessWidget {
+  final String status;
+  final Key? statusKey;
+  final bool muted;
+  final Widget Function(bool expand) button;
+  const SaveBar({super.key, required this.status, this.statusKey, this.muted = false, required this.button});
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = MediaQuery.textScalerOf(context).scale(1);
+    final text = Text(status, key: statusKey, style: EmType.label.copyWith(color: muted ? EmColors.textSecondary : EmColors.ink));
+    return DecoratedBox(
+      decoration: BoxDecoration(color: EmColors.surface, boxShadow: EmShadows.soft),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: EmSpacing.screenH, vertical: EmSpacing.s12),
+          child: LayoutBuilder(builder: (context, c) {
+            final sideBySide = c.maxWidth >= 360 + (scale - 1) * 240;
+            if (sideBySide) {
+              return Row(children: [Expanded(child: text), const SizedBox(width: EmSpacing.row), button(false)]);
+            }
+            return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [text, const SizedBox(height: EmSpacing.s8), button(true)]);
+          }),
+        ),
+      ),
+    );
+  }
+}
