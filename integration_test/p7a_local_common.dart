@@ -1,6 +1,7 @@
 // Shared helpers of the Phase 7 part 1 LOCAL end-to-end verification (integration_test/p7a_local_test.dart) against the LOCAL backend
 // (isolated DB eldermin_teacher_verify, NOT staging, NOT the stub). Not a test itself. Builds on e2e_common.dart (same anti-loop rules:
 // capped waits, 240 s step budget, `leaveScreen` taps Discard never Cancel, shell watchdog in tool/dev/capture_p7a.sh).
+import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:eldermin_teacher_app/main.dart' as app;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -155,9 +156,9 @@ Future<void> pickDate(WidgetTester t, Key pickerKey, DateTime target) async {
   }
 }
 
-/// Everything identifiable about the screen on top: AppBar title text and which well-known keys exist.
+/// Everything identifiable about the screen on top: app-bar (EmAppBar) title text and which well-known keys exist.
 String landed() {
-  final bar = find.byType(AppBar);
+  final bar = find.byType(EmAppBar);
   final titles = <String>[];
   for (final e in bar.evaluate()) {
     for (final w in find.descendant(of: find.byWidget(e.widget), matching: find.byType(Text)).evaluate()) {
