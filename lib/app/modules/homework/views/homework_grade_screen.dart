@@ -9,6 +9,7 @@ import '../../../components/custom_text.dart';
 import '../../../utils/toast_util.dart';
 import '../controllers/submissions_controller.dart';
 import 'widgets/homework_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Grade one submission (`/homework/:id/submissions/:sid/grade`): the student's answer and files, marks out of the maximum, feedback.
 /// Validates 0..max before sending and shows the server's own rejection text if it still says no.
@@ -64,8 +65,8 @@ class _HomeworkGradeScreenState extends State<HomeworkGradeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Grade submission', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Grade submission'),
       body: Obx(() {
         final state = c.state.value;
         final s = c.byId(sid);

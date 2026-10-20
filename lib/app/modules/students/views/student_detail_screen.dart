@@ -13,6 +13,7 @@ import '../../home/models/section_state.dart';
 import '../../attendance/views/widgets/attendance_widgets.dart';
 import '../controllers/student_detail_controller.dart';
 import 'widgets/student_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Student 360 (`/students/:id`), READ-ONLY. Built from a whitelist of teacher-relevant sections:
 /// profile basics, allergy flag, attendance, recent behaviour, recent results, guardian names.
@@ -52,8 +53,8 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Student 360', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Student 360'),
       body: Obx(_body),
     );
   }

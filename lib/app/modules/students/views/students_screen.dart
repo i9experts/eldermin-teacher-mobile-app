@@ -8,6 +8,7 @@ import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/students_controller.dart';
 import 'widgets/student_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// My students (`/students`): the roster of each of MY classes with search. Read-only; tap a student for
 /// the Student 360. Never lists students outside the teacher's classes.
@@ -16,8 +17,8 @@ class StudentsScreen extends GetView<StudentsController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'My students', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'My students'),
       body: Obx(_body),
     );
   }

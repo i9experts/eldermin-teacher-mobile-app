@@ -10,6 +10,7 @@ import '../../../components/confirm_dialog.dart';
 import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/fixtures_controller.dart';
+import '../../../../core/design/design.dart';
 
 TagStyle fixtureStatusStyle(String s) => switch (s) {
       'open' => TagStyle.amber,
@@ -49,8 +50,8 @@ class FixturesScreen extends GetView<FixturesController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Substitutions')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Substitutions'),
       body: Obx(() {
         final st = c.load.value;
         final tab = c.tab.value;
@@ -175,8 +176,8 @@ class _FixtureDetailScreenState extends State<FixtureDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Substitution')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Substitution'),
       body: Obx(() {
         final st = c.load.value;
         final s = c.find(id);

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/homework/homework_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/submissions_controller.dart';
 import 'widgets/homework_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Submissions of one assignment (`/homework/:id/submissions`): the whole class roster with who handed in, who is late, who still has
 /// to be graded and who has not handed in at all.
@@ -16,8 +15,8 @@ class HomeworkSubmissionsScreen extends GetView<SubmissionsController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Submissions', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Submissions'),
       body: Obx(_body),
     );
   }

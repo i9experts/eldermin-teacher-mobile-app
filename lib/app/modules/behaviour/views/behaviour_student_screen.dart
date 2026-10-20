@@ -10,6 +10,7 @@ import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/behaviour_student_controller.dart';
 import 'widgets/behaviour_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// One student's behaviour and Tarbiyah history (`/behaviour/student/:id`). Only for students in MY classes.
 class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
@@ -18,8 +19,8 @@ class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Student behaviour', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Student behaviour'),
       floatingActionButton: Obx(() {
         final s = c.student.value.data;
         return s != null && c.canLog

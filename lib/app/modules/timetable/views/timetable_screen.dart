@@ -8,6 +8,7 @@ import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/custom_text.dart';
 import '../controllers/timetable_controller.dart';
 import 'widgets/timetable_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// My timetable (`/timetable`, and the tab in the Attendance slot for teachers
 /// who are not class teachers): read-only day and week views of MY periods.
@@ -20,10 +21,8 @@ class TimetableScreen extends GetView<TimetableController> {
   Widget build(BuildContext context) {
     final body = Obx(() => _body());
     if (embedded) return body;
-    return Scaffold(
-      appBar: AppBar(
-        title: const CustomText(text: 'Timetable', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700),
-      ),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Timetable'),
       body: body,
     );
   }

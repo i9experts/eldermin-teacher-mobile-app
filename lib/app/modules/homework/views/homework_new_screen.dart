@@ -13,6 +13,7 @@ import '../../students/views/widgets/student_widgets.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/homework_form_controller.dart';
 import 'widgets/homework_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// New homework (`/homework/new`) or edit (`arguments: Assignment`): class and subject from MY assignments, due date, marks,
 /// attachments with upload progress / retry, "Save draft" and "Assign to class".
@@ -38,8 +39,8 @@ class HomeworkNewScreen extends GetView<HomeworkFormController> {
         }
         Get.back();
       },
-      child: Scaffold(
-        appBar: AppBar(title: CustomText(text: c.isEditing ? 'Edit homework' : 'New homework', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+      child: EmScaffold(
+        appBar: EmAppBar(title: c.isEditing ? 'Edit homework' : 'New homework'),
         body: Obx(() {
           if (!c.isEditing && c.classes.isEmpty) {
             return const AppEmptyView(

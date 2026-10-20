@@ -11,6 +11,7 @@ import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/attendance_controller.dart';
 import 'widgets/attendance_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Attendance hub (`/attendance` and the Attendance tab of class teachers): today's status for MY
 /// class with entry points to mark and to the history. Class teachers only: anyone else gets an
@@ -24,8 +25,8 @@ class AttendanceScreen extends GetView<AttendanceController> {
   Widget build(BuildContext context) {
     final body = Obx(() => controller.allowed ? _hub() : const _NotClassTeacher());
     if (embedded) return body;
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Attendance', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Attendance'),
       body: body,
     );
   }

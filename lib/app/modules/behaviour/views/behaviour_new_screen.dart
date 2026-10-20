@@ -14,6 +14,7 @@ import '../../homework/views/widgets/homework_widgets.dart';
 import '../../students/views/widgets/student_widgets.dart';
 import '../controllers/behaviour_log_controller.dart';
 import 'widgets/behaviour_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Quick log (`/behaviour/new`): merit / demerit / note for a student of MY classes.
 class BehaviourNewScreen extends GetView<BehaviourLogController> {
@@ -37,8 +38,8 @@ class BehaviourNewScreen extends GetView<BehaviourLogController> {
         }
         Get.back();
       },
-      child: Scaffold(
-        appBar: AppBar(title: const CustomText(text: 'Log behaviour', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+      child: EmScaffold(
+        appBar: EmAppBar(title: 'Log behaviour'),
         body: Obx(() {
           if (!c.canLog) {
             return const AppEmptyView(key: Key('beh_no_access'), icon: Icons.lock_outline_rounded, title: "You don't have access", subtitle: "Your account isn't allowed to log behaviour. Ask your school admin if you think this is a mistake.");

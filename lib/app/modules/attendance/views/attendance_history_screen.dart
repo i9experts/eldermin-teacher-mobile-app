@@ -13,6 +13,7 @@ import '../../../routes/app_routes.dart';
 import '../controllers/attendance_controller.dart' show kAttendanceEditWindowDays;
 import '../controllers/attendance_history_controller.dart';
 import 'widgets/attendance_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Attendance history (`/attendance/history`): a month calendar with a coloured marker on every day that
 /// has records, the per-day summary counts, and a day detail with an "Edit" shortcut where editing is allowed
@@ -22,8 +23,8 @@ class AttendanceHistoryScreen extends GetView<AttendanceHistoryController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Attendance history', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Attendance history'),
       body: Obx(() {
         if (!controller.daily.allowed) {
           return const AppEmptyView(

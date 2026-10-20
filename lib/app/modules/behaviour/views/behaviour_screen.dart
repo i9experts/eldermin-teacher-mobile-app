@@ -10,6 +10,7 @@ import '../../homework/views/widgets/homework_widgets.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/behaviour_controller.dart';
 import 'widgets/behaviour_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Behaviour & Tarbiyah (`/behaviour`): what I logged and what is recorded for my classes. Records of other classes never appear.
 class BehaviourScreen extends StatefulWidget {
@@ -31,8 +32,8 @@ class _BehaviourScreenState extends State<BehaviourScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Behaviour & Tarbiyah', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Behaviour & Tarbiyah'),
       floatingActionButton: Obx(() => c.canView && c.canLog && c.classes.isNotEmpty && c.state.value.status != SectionStatus.forbidden
           ? FloatingActionButton.extended(
               key: const Key('beh_new_fab'),

@@ -11,6 +11,7 @@ import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/custom_text.dart';
 import '../controllers/attendance_controller.dart';
 import 'widgets/attendance_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// Mark (or edit) the daily attendance of MY class (`/attendance/mark[?date=YYYY-MM-DD]`).
 /// Every student needs an explicit status before the day can be submitted: unmarked students are
@@ -141,8 +142,8 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         if (c.dirty || !sameDate(c.day.value, c.today)) unawaited(c.openDay(c.today, discard: true));
         if (mounted) Get.back();
       },
-      child: Scaffold(
-        appBar: AppBar(title: const CustomText(text: 'Mark attendance', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+      child: EmScaffold(
+        appBar: EmAppBar(title: 'Mark attendance'),
         body: Obx(() {
           if (!c.allowed) {
             return const AppEmptyView(

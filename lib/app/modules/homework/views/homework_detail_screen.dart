@@ -11,6 +11,7 @@ import '../../../routes/app_routes.dart';
 import '../../../utils/toast_util.dart';
 import '../controllers/homework_detail_controller.dart';
 import 'widgets/homework_widgets.dart';
+import '../../../../core/design/design.dart';
 
 /// One assignment (`/homework/:id`): details, attachments, and the actions that make sense for its state.
 class HomeworkDetailScreen extends GetView<HomeworkDetailController> {
@@ -18,8 +19,8 @@ class HomeworkDetailScreen extends GetView<HomeworkDetailController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const CustomText(text: 'Homework', color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Homework'),
       body: Obx(() {
         final c = controller;
         final state = c.state;
