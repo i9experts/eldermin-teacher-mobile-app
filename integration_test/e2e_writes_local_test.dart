@@ -130,11 +130,29 @@ Future<void> hwScenario(WidgetTester t, TestAttachmentPicker picker) async {
     await waitFor(t, find.byKey(const Key('hw_pick_files')));
     await t.tap(find.byKey(const Key('hw_pick_files')));
     await waitFor(t, find.byKey(const ValueKey('att_u0')));
-    final ok = await waitForAny(t, [find.byKey(const ValueKey('retry_u0')), find.descendant(of: find.byKey(const ValueKey('att_u0')), matching: find.byIcon(Icons.check_circle_rounded))], seconds: 60);
+    final ok = await waitForAny(t, [
+      find.byKey(const ValueKey('retry_u0')),
+      find.byKey(const ValueKey('att_unavailable_title_u0')),
+      find.descendant(of: find.byKey(const ValueKey('att_u0')), matching: find.byIcon(Icons.check_circle_rounded)),
+    ], seconds: 60);
     await settle(t, 800);
+    expect(ok, isTrue, reason: 'the upload must end in DONE, a retryable failure or the "uploads unavailable" state');
+    // 503 "storage is not configured" (this local backend has no S3): the app shows "Upload unavailable" + the server's text, no Retry,
+    // and a "Continue without attachment" action. Anything else failing keeps the Retry flow below.
+    final unavailable = find.byKey(const ValueKey('att_unavailable_title_u0')).evaluate().isNotEmpty;
     final failed = find.byKey(const ValueKey('retry_u0')).evaluate().isNotEmpty;
-    print('INFO upload outcome: ${!ok ? 'TIMEOUT' : failed ? 'FAILED' : 'DONE'}; error text on screen: ${find.byKey(const ValueKey('att_err_u0')).evaluate().isEmpty ? '(none)' : textOf(t, find.byKey(const ValueKey('att_err_u0')))}');
+    print('INFO upload outcome: ${unavailable ? 'UNAVAILABLE (503)' : failed ? 'FAILED' : 'DONE'}; error text on screen: ${find.byKey(const ValueKey('att_err_u0')).evaluate().isEmpty ? '(none)' : textUnder(t, find.byKey(const ValueKey('att_err_u0')))}');
     await shot(t, 'B_homework_attachment_upload_outcome');
+    if (unavailable) {
+      expect(textUnder(t, find.byKey(const ValueKey('att_unavailable_title_u0'))), 'Upload unavailable');
+      expect(textUnder(t, find.byKey(const ValueKey('att_err_u0'))).toLowerCase(), contains('not available'), reason: 'a readable explanation, not a raw error');
+      expect(find.byKey(const ValueKey('retry_u0')), findsNothing, reason: 'no Retry when uploads are unavailable');
+      await t.ensureVisible(find.byKey(const ValueKey('continue_without_u0')));
+      await settle(t, 500);
+      await t.tap(find.byKey(const ValueKey('continue_without_u0')));
+      await settle(t, 600);
+      expect(find.byKey(const ValueKey('att_u0')), findsNothing, reason: '"Continue without attachment" removes the failed attachment');
+    }
     if (failed) {
       // one retry (bounded): same outcome expected
       await t.tap(find.byKey(const ValueKey('retry_u0')));
@@ -174,6 +192,12 @@ Future<void> hwScenario(WidgetTester t, TestAttachmentPicker picker) async {
     await leaveToShell(t);
   });
   await step(t, 'B sign out', () async => signOutViaUi(t));
+}
+
+/// The text of the first `Text` at or under [keyed] (the keys sit on `CustomText` wrappers, not on the `Text`).
+String textUnder(WidgetTester t, Finder keyed) {
+  final inner = find.descendant(of: keyed, matching: find.byType(Text));
+  return inner.evaluate().isEmpty ? textOf(t, keyed) : (t.widget<Text>(inner.first).data ?? '');
 }
 
 int idKeyedCount() => find.byWidgetPredicate((w) => w.key is ValueKey<String> && RegExp(r'^class_chip_\d+$').hasMatch((w.key as ValueKey<String>).value)).evaluate().length;

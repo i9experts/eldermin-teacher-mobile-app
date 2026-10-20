@@ -368,37 +368,25 @@ class _P implements AvatarPicker {
 
 // =============================================================================================================== 4 help / about / delete account
 Future<void> helpScenario(WidgetTester t) async {
-  await step(t, 'A login + help list, article, unsafe markup, search', () async {
+  await step(t, 'A login + help list: server KB (HR/admin guides) is hidden by the teacher filter, bundled FAQs shown', () async {
     await bootAndSignIn(t, e2eTeacherEmail, e2eTeacherPassword);
     await settle(t, 2500);
     await openFromMore(t, 'Help', find.byKey(const Key('help_search')));
-    await waitFor(t, find.text('Dashboard'));
-    await settle(t, 800);
-    await pshot(t, 'help_list_seeded_kb');
-    final art1 = find.byKey(const ValueKey('help_p7c/getting-started'));
-    await t.scrollUntilVisible(art1, 300, scrollable: find.byType(Scrollable).first, maxScrolls: 25);
-    await settle(t, 500);
-    await pshot(t, 'help_list_dummy_module_p7c');
-    await t.tap(art1);
-    await waitFor(t, find.byKey(const Key('help_article_title')));
-    await settle(t, 1200);
-    await pshot(t, 'help_article_markdown');
-    await leaveScreen(t);
-    final art2 = find.byKey(const ValueKey('help_p7c/adversarial'));
-    await t.scrollUntilVisible(art2, 300, scrollable: find.byType(Scrollable).first, maxScrolls: 25);
-    await t.tap(art2);
-    await waitFor(t, find.byKey(const Key('help_article_title')));
-    await settle(t, 1200);
-    expectTrue('script/iframe/style source text not rendered as markup (no <script on screen)', !hasText('<script') && !hasText('<iframe'));
-    result('visible text contains alert(', hasText('alert('));
-    await pshot(t, 'help_article_unsafe_markup_inert');
-    await leaveScreen(t);
-    await toTop(t);
+    await settle(t, 2500);
+    // The seeded server KB holds only Staff & HR guides (module `hr`: Dashboard, Employees, Recruitment ... 18 articles), and the p7c fixture adds a dummy
+    // `p7c` module. kb_models.dart `isTeacherHelpArticle` (Phase 7 follow-up 8c6ff75) shows an article only when its module is on the allow-list
+    // (general, faq, teacher ...) and none of its words is an HR/admin term, so ALL of them are hidden from a teacher BY DESIGN.
+    expectTrue('HR guide titles are not shown (Dashboard / Employees / Recruitment)', !hasText('Dashboard') && !hasText('Employees') && !hasText('Recruitment'));
+    final kbRows = find.byWidgetPredicate((w) => w.key is ValueKey<String> && ((w.key as ValueKey<String>).value.startsWith('help_hr/') || (w.key as ValueKey<String>).value.startsWith('help_p7c/')));
+    expectTrue('no knowledge-base article row is listed', kbRows.evaluate().isEmpty);
+    expectTrue('bundled teacher FAQs are shown', find.byKey(const Key('help_faqs')).evaluate().isNotEmpty);
+    await pshot(t, 'help_list_hr_kb_hidden_faqs_shown');
+    // searching for an HR term must not surface a hidden article either
     await t.enterText(find.byKey(const Key('help_search')), 'leave');
     await t.testTextInput.receiveAction(TextInputAction.search);
     await settle(t, 2500);
-    result('search result shows the leave article', hasText('P7C How to apply for leave'));
-    await pshot(t, 'help_search_leave');
+    expectTrue('search does not surface the hidden dummy article', !hasText('P7C How to apply for leave'));
+    await pshot(t, 'help_search_leave_no_hidden_articles');
     await t.tap(find.byKey(const Key('help_search_clear')));
     await settle(t, 600);
     await leaveToShell(t);

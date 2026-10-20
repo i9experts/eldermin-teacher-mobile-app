@@ -772,14 +772,29 @@ Future<void> walk(WidgetTester t, TestWho w, TestSourcePicker picker) async {
     await t.tap(find.byKey(const Key('asm_quiz_card')));
     await settle(t, 3000);
     expectNoBadStates('$L quiz attempts', allowEmpty: true);
-    final n = idKeyed('qa_').evaluate().length;
-    // The server returns 3 (A) / 2 (B) class-scoped attempts, all Mathematics. The app additionally filters by SUBJECT: B (class teacher, teaches
-    // English) must see none of them, A (teaches Mathematics in 5-A and 6-A) sees all 3.
-    print(
-        'INFO $L quiz attempts listed: $n (expected ${w.isClass ? 0 : 3}: class AND subject scoping in the app)');
+    final rows = idKeyed('qa_').evaluate().toList();
+    final n = rows.length;
+    // Scoping rule in the app (assessment_scope.dart `isMyAttempt`): a CLASS teacher sees every subject of their own class
+    // (B: Grade 5 - A) plus the subjects they teach in other classes (B: English in 5-B); a SUBJECT teacher sees only their
+    // subjects in the classes they teach (A: Mathematics in 5-A and 6-A). The check is on WHAT is listed, not on how many rows
+    // the database happens to hold, so it does not depend on leftover state from other scenarios.
+    bool allowed(String subject, String cls) {
+      final c = cls.replaceAll(RegExp(r'\s+'), ' ').replaceAll('\u2013', '-').trim();
+      if (w.isClass) return c == 'Grade 5 - A' || (c == 'Grade 5 - B' && subject == 'English');
+      return subject == 'Mathematics' && (c == 'Grade 5 - A' || c == 'Grade 6 - A');
+    }
+
+    final leaks = <String>[];
+    for (final e in rows) {
+      final texts = find.descendant(of: find.byKey(e.widget.key!), matching: find.byType(Text)).evaluate().map((x) => (x.widget as Text).data ?? '');
+      // second line of the tile: "<assessment title> · <subject> · <class>"
+      final meta = texts.firstWhere((x) => x.split(' · ').length >= 3, orElse: () => '');
+      final parts = meta.split(' · ');
+      if (parts.length < 3 || !allowed(parts[parts.length - 2].trim(), parts.last)) leaks.add(meta.isEmpty ? '(unreadable row)' : meta);
+    }
+    print('INFO $L quiz attempts listed: $n; outside this teacher\'s scope: ${leaks.length}');
     await shot(t, '${L}_quiz_attempts');
-    expect(n, w.isClass ? 0 : 3,
-        reason: 'quiz attempts must be scoped to the teacher\'s classes');
+    expect(leaks, isEmpty, reason: 'quiz attempts must be scoped to the teacher\'s classes / subjects (rule in isMyAttempt)');
     await leaveToShell(t);
   });
 
