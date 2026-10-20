@@ -162,7 +162,7 @@ void main() {
     await settle(t, 800);
     expect(find.byKey(const Key('asm_marks_Mathematics')), findsNothing, reason: 'no "Enter marks" once results are published');
     expect(find.byKey(const Key('asm_view_Mathematics')), findsOneWidget);
-    expect(find.descendant(of: find.byKey(const Key('asm_locked_Mathematics')), matching: find.textContaining('published')), findsWidgets);
+    expect(find.descendant(of: find.byKey(const Key('asm_locked_Mathematics')), matching: find.textContaining('published'), matchRoot: true), findsWidgets); // D7: the key now sits on the Text itself
     await shot(t, '6b_26_detail_results_published_locked');
     await t.tap(find.byKey(const Key('asm_view_Mathematics')));
     await waitFor(t, find.byKey(const Key('marks_lock_banner')));
@@ -284,6 +284,7 @@ void main() {
     // ── Curriculum and Library (More tab) ──
     await t.tap(navLabel('More'));
     await settle(t, 1200);
+    await t.scrollUntilVisible(find.text('Curriculum'), 250, scrollable: find.byType(Scrollable).last); // D7: the More list is lazy
     await t.tap(find.text('Curriculum'));
     await waitFor(t, find.text('Mathematics Grade 5 (SNC)'));
     await settle(t, 1000);
@@ -294,6 +295,7 @@ void main() {
     await shot(t, '6b_61_curriculum_detail');
     await back(t);
     await back(t);
+    await t.scrollUntilVisible(find.text('Library'), 250, scrollable: find.byType(Scrollable).last); // D7: the More list is lazy
     await t.tap(find.text('Library'));
     await waitFor(t, find.byKey(const Key('lib_search')));
     await waitFor(t, find.text('Fractions Made Easy'));
@@ -318,6 +320,7 @@ void main() {
     await stub(t, '/__stub/mode?feature=library&value=403');
     await t.tap(navLabel('More'));
     await settle(t, 1200);
+    await t.scrollUntilVisible(find.text('Library'), 250, scrollable: find.byType(Scrollable).last); // D7: the More list is lazy
     await t.tap(find.text('Library'));
     await waitFor(t, find.text("You don't have access"));
     await settle(t, 1000);
