@@ -10,6 +10,7 @@ import '../../../../components/custom_text.dart';
 import '../../../home/models/section_state.dart';
 import '../../../messages/controllers/class_roster_picker.dart';
 import '../../../students/views/widgets/student_widgets.dart';
+import '../../../../../core/design/design.dart';
 
 TagStyle ptmStatusStyle(PtmStatus s) => switch (s) {
       PtmStatus.requested => TagStyle.amber,
@@ -206,10 +207,4 @@ class SheetFrame extends StatelessWidget {
   }
 }
 
-Future<T?> showAppSheet<T>(BuildContext context, WidgetBuilder builder) => showModalBottomSheet<T>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: builder,
-    );
+Future<T?> showAppSheet<T>(BuildContext context, WidgetBuilder builder) => EmBottomSheet.showPanel<T>(context, builder: builder);

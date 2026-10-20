@@ -64,7 +64,7 @@ class _MarksBodyState extends State<_MarksBody> {
       default:
         break;
     }
-    final ok = await Get.bottomSheet<bool>(_SummarySheet(c: c), backgroundColor: Colors.white, isScrollControlled: true, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))));
+    final ok = await EmBottomSheet.showPanel<bool>(context, builder: (_) => _SummarySheet(c: c));
     if (ok != true) return;
     await _doSave();
   }

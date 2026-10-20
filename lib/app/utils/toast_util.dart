@@ -1,16 +1,14 @@
 import 'package:eldermin_teacher_app/app/common/controllers/toast_controller.dart';
 import 'package:eldermin_teacher_app/app/components/custom_toast.dart';
 // import 'package:eldermin_teacher_app/app/config/app_colors.dart';
-import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class ToastUtil {
   static void showToast(
     String message, {
-    String? imagePath,
-    Color bgColor = AppColors.black,
-    Color textColor = AppColors.white,
+    Color? bgColor,
+    Color? textColor,
     Duration duration = const Duration(seconds: 2),
   }) {
     final context = Get.overlayContext;
@@ -28,7 +26,6 @@ class ToastUtil {
         child: Center(
           child: CustomToast(
             message: message,
-            imagePath: imagePath,
             bgColor: bgColor,
             textColor: textColor,
           ),

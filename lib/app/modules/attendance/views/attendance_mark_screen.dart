@@ -52,13 +52,13 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     if (!c.dirty) return true;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => EmDialog(
         key: const Key('discard_dialog'),
-        title: const Text('Discard unsaved marks?'),
-        content: const Text('You have attendance marks that are not saved yet.'),
+        title: 'Discard unsaved marks?',
+        message: 'You have attendance marks that are not saved yet.',
         actions: [
-          TextButton(key: const Key('discard_keep'), onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep editing')),
-          TextButton(key: const Key('discard_confirm'), onPressed: () => Navigator.pop(ctx, true), child: const Text('Discard')),
+          EmDialogAction(key: const Key('discard_keep'), label: 'Keep editing', onPressed: () => Navigator.pop(ctx, false)),
+          EmDialogAction(key: const Key('discard_confirm'), label: 'Discard', tone: EmDialogTone.destructive, onPressed: () => Navigator.pop(ctx, true)),
         ],
       ),
     );
@@ -425,9 +425,9 @@ class _SummaryDialog extends StatelessWidget {
     final counts = c.counts;
     final cls = c.myClass!;
     final absentees = [for (final s in c.students_) if (c.marks[s.id] == AttendanceStatus.absent) s.fullName];
-    return AlertDialog(
+    return EmDialog(
       key: const Key('attendance_confirm_dialog'),
-      title: const Text('Submit attendance?'),
+      title: 'Submit attendance?',
       content: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           CustomText(text: '${cls.label} · ${longDateOf(c.day.value)}${c.isSubjectWise && c.selectedSubject.value != null ? ' · ${c.selectedSubject.value}' : ''}', color: AppColors.muted, fontSize: 12),
@@ -446,8 +446,8 @@ class _SummaryDialog extends StatelessWidget {
         ]),
       ),
       actions: [
-        TextButton(key: const Key('attendance_confirm_cancel'), onPressed: () => Navigator.pop(context, false), child: const Text('Back')),
-        TextButton(key: const Key('attendance_confirm_submit'), onPressed: () => Navigator.pop(context, true), child: const Text('Submit')),
+        EmDialogAction(key: const Key('attendance_confirm_cancel'), label: 'Back', onPressed: () => Navigator.pop(context, false)),
+        EmDialogAction(key: const Key('attendance_confirm_submit'), label: 'Submit', tone: EmDialogTone.primary, onPressed: () => Navigator.pop(context, true)),
       ],
     );
   }

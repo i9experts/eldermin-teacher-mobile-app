@@ -25,6 +25,31 @@ class EmBottomSheet extends StatelessWidget {
     );
   }
 
+  /// Token chrome (surface, 28 radius, drag handle, safe area) around a sheet whose body brings its own layout (pickers, forms, review
+  /// sheets). Use [show] for simple title + content sheets. [heightFactor] gives the body a fixed share of the screen (it may use
+  /// `Expanded` / lists); without it the sheet is as tall as its content.
+  static Future<T?> showPanel<T>(BuildContext context, {required WidgetBuilder builder, double? heightFactor}) {
+    return showModalBottomSheet<T>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: EmColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(EmRadius.hero))),
+      builder: (ctx) {
+        final body = builder(ctx);
+        final handle = Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 4),
+          child: ExcludeSemantics(child: Container(width: 40, height: 4, decoration: const BoxDecoration(color: EmColors.border, borderRadius: EmRadius.pillAll))),
+        );
+        if (heightFactor == null) return Column(mainAxisSize: MainAxisSize.min, children: [handle, Flexible(child: body)]);
+        return SizedBox(
+          height: MediaQuery.sizeOf(ctx).height * heightFactor,
+          child: Column(children: [handle, Expanded(child: body)]),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final maxH = MediaQuery.sizeOf(context).height * 0.9;

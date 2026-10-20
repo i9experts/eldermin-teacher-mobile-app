@@ -110,13 +110,7 @@ class _State extends State<StudentLeaveDetailScreen> {
       );
 
   Future<void> _review(StudentLeaveRequest l, LeaveStatus decision) async {
-    final result = await showModalBottomSheet<ReviewResult>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => ReviewSheet(leave: l, decision: decision, controller: c),
-    );
+    final result = await EmBottomSheet.showPanel<ReviewResult>(context, builder: (_) => ReviewSheet(leave: l, decision: decision, controller: c));
     if (!mounted || result == null) return;
     if (result is ReviewConflict) setState(() => conflictText = result.serverText);
     if (result is ReviewDone) {

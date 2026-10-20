@@ -8,16 +8,14 @@ import '../../../common/action_failure.dart';
 import '../../../components/custom_text.dart';
 import '../../../components/external_link.dart';
 import '../controllers/circulars_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// Circular detail (bottom sheet): plain-text body (the server's HTML is flattened), links and attachments open only after confirmation, and the
 /// Acknowledge button when the circular asks for it.
 Future<void> showCircularSheet(BuildContext context, CircularsController c, Circular x) {
   c.markOpened(x);
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+  return EmBottomSheet.showPanel<void>(
+    context,
     builder: (ctx) => DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.75,

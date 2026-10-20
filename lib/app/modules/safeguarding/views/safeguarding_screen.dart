@@ -178,13 +178,7 @@ class SafeguardingScreen extends GetView<SafeguardingController> {
 
   Future<void> _pickStudent(BuildContext context) async {
     c.loadPickerClass();
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => SizedBox(height: MediaQuery.of(ctx).size.height * 0.85, child: _PickerSheet(controller: c)),
-    );
+    await EmBottomSheet.showPanel<void>(context, heightFactor: 0.85, builder: (_) => _PickerSheet(controller: c));
   }
 }
 

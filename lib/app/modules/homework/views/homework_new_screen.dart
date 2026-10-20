@@ -159,8 +159,8 @@ class HomeworkNewScreen extends GetView<HomeworkFormController> {
   }
 
   Future<void> _chooseSource(BuildContext context) async {
-    await showModalBottomSheet<void>(
-      context: context,
+    await EmBottomSheet.showPanel<void>(
+      context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(

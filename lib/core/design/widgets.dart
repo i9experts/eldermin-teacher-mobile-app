@@ -7,6 +7,7 @@ export 'widgets/em_buttons.dart';
 export 'widgets/em_card.dart';
 export 'widgets/em_chip.dart';
 export 'widgets/em_date_strip.dart';
+export 'widgets/em_dialog.dart';
 export 'widgets/em_diamond_fab.dart';
 export 'widgets/em_greeting_header.dart';
 export 'widgets/em_hero_card.dart';
