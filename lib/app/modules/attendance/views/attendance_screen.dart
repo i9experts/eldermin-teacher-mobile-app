@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/classroom/student_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/home_time.dart';
 import '../../../../core/utils/timetable_week.dart';
 import '../../../../core/widgets/app_widgets.dart';
-import '../../../../core/widgets/hero_card.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/attendance_controller.dart';
 import 'widgets/attendance_widgets.dart';
@@ -45,9 +42,7 @@ class AttendanceScreen extends GetView<AttendanceController> {
       emptyIcon: Icons.groups_outlined,
       emptyTitle: 'No students in your class',
       emptySubtitle: 'There are no active students in ${cls.label} yet.',
-      header: [
-        ScreenHeader(title: 'Attendance', caption: '${cls.label} · ${longDateOf(c.today)}'),
-      ],
+      header: [EmCaptionLine('${cls.label} · ${longDateOf(c.today)}')],
       builder: (roster) {
         final total = roster.length;
         final isToday = sameDate(day, c.today);
@@ -61,35 +56,59 @@ class AttendanceScreen extends GetView<AttendanceController> {
         } else {
           trend = 'Attendance marked today';
         }
+        final percent = total == 0 ? 0 : ((marked / total) * 100).round();
         return [
-          HeroCard(
-            kicker: 'Class teacher · ${cls.label}',
-            value: '$marked / $total',
-            trend: trend,
-            trendWarn: marked < total,
-            percent: total == 0 ? 0 : ((marked / total) * 100).round(),
-            metrics: [('$total', 'Students'), ('${counts.present + counts.late}', 'Here'), ('${counts.absent}', 'Absent')],
+          EmHeroCard(
+            padding: const EdgeInsetsDirectional.all(EmSpacing.s16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text('Class teacher · ${cls.label}', maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.label.copyWith(color: EmColors.textSecondary)),
+              const SizedBox(height: EmSpacing.s8),
+              Row(children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text('$marked / $total', style: EmType.display.copyWith(color: EmColors.ink)),
+                    ),
+                    const SizedBox(height: EmSpacing.s8),
+                    // status dot + words: the warning is never colour alone
+                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(top: EmSpacing.s4),
+                        child: Icon(marked < total ? Icons.pending_actions_rounded : Icons.check_circle_rounded, size: 16, color: marked < total ? EmColors.onWarningContainer : EmColors.onSuccessContainer),
+                      ),
+                      const SizedBox(width: EmSpacing.s8),
+                      Expanded(child: Text(trend, style: EmType.body.copyWith(color: EmColors.ink))),
+                    ]),
+                  ]),
+                ),
+                const SizedBox(width: EmSpacing.s12),
+                EmProgressRing(value: percent / 100, size: 96, strokeWidth: 10, centerText: '$percent%', semanticLabel: 'Marked $percent percent'),
+              ]),
+              const SizedBox(height: EmSpacing.s16),
+              EmStatTileRow(tiles: [
+                EmStatTile(icon: Icons.groups_outlined, value: '$total', label: 'Students'),
+                EmStatTile(icon: Icons.how_to_reg_outlined, value: '${counts.present + counts.late}', label: 'Here'),
+                EmStatTile(icon: Icons.person_off_outlined, value: '${counts.absent}', label: 'Absent'),
+              ]),
+            ]),
           ),
-          const SizedBox(height: 12),
-          if (marked > 0) ...[StatusCountPills(counts: counts), const SizedBox(height: 12)],
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              key: const Key('hub_mark_button'),
-              onPressed: () => Get.toNamed(Routes.attendanceMark),
-              icon: const Icon(Icons.fact_check_outlined, size: 18),
-              label: CustomText(text: marked == 0 ? "Mark today's attendance" : "Edit today's attendance", color: Colors.white, fontWeight: FontWeight.w700),
-            ),
+          const SizedBox(height: EmSpacing.row),
+          if (marked > 0) ...[StatusCountPills(counts: counts), const SizedBox(height: EmSpacing.row)],
+          EmPrimaryButton(
+            key: const Key('hub_mark_button'),
+            icon: Icons.fact_check_outlined,
+            label: marked == 0 ? "Mark today's attendance" : "Edit today's attendance",
+            onPressed: () => Get.toNamed(Routes.attendanceMark),
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              key: const Key('hub_history_button'),
-              onPressed: () => Get.toNamed(Routes.attendanceHistory),
-              icon: const Icon(Icons.calendar_month_rounded, size: 18),
-              label: const CustomText(text: 'Attendance history', color: AppColors.primaryColor, fontWeight: FontWeight.w700),
-            ),
+          const SizedBox(height: EmSpacing.s8),
+          EmSecondaryButton(
+            key: const Key('hub_history_button'),
+            expand: true,
+            icon: Icons.calendar_month_rounded,
+            label: 'Attendance history',
+            onPressed: () => Get.toNamed(Routes.attendanceHistory),
           ),
         ];
       },

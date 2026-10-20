@@ -34,6 +34,9 @@ class EmSpacing {
   static const EdgeInsets listPadding = EdgeInsets.fromLTRB(screenH, s16, screenH, s24);
   static const EdgeInsets listPaddingFab = EdgeInsets.fromLTRB(screenH, s16, screenH, fabClearance);
 
+  /// Margin of a floating snackbar that must sit above a screen's own bottom bar (so it never covers the buttons).
+  static const EdgeInsets snackAboveBar = EdgeInsets.fromLTRB(s16, 0, s16, 170);
+
   /// Inner padding of a card, of a compact row and of a chip-like control.
   static const EdgeInsets cardPad = EdgeInsets.all(s16);
   static const EdgeInsets cardPadCompact = EdgeInsets.all(s12);

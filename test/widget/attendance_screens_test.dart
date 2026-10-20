@@ -4,6 +4,7 @@ import 'package:eldermin_teacher_app/app/modules/attendance/controllers/attendan
 import 'package:eldermin_teacher_app/app/modules/attendance/views/attendance_history_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/attendance/views/attendance_mark_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/attendance/views/attendance_screen.dart';
+import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/attendance_models.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
@@ -202,7 +203,7 @@ void main() {
       await t.tap(chip(0, AttendanceStatus.present));
       await t.pump();
       expect(c.marks, isEmpty);
-      expect(tester(t).widget<ElevatedButton>(find.byKey(const Key('submit_button'))).onPressed, isNull);
+      expect(tester(t).widget<EmPrimaryButton>(find.byKey(const Key('submit_button'))).onPressed, isNull); // D6: EmPrimaryButton replaces the raw ElevatedButton
     });
 
     testWidgets('search narrows the list by name or roll number', (t) async {
@@ -244,8 +245,8 @@ void main() {
       await boot(t, const AttendanceMarkScreen());
       await t.pump();
       expect(find.byKey(const Key('subject_bar')), findsOneWidget);
-      expect(tester(t).widget<ChoiceChip>(find.byKey(const ValueKey('subject_chip_English'))).selected, isTrue);
-      expect(tester(t).widget<ChoiceChip>(find.byKey(const ValueKey('subject_chip_Maths'))).selected, isFalse);
+      expect(tester(t).widget<EmChip>(find.byKey(const ValueKey('subject_chip_English'))).selected, isTrue);
+      expect(tester(t).widget<EmChip>(find.byKey(const ValueKey('subject_chip_Maths'))).selected, isFalse);
       await t.tap(find.byKey(const ValueKey('subject_chip_Maths')));
       await t.pump();
       await t.pump();

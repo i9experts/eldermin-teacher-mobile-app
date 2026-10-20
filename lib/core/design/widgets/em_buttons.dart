@@ -77,10 +77,10 @@ Widget _content(String label, IconData? icon, bool loading, Color color) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
       SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: color)),
       const SizedBox(width: 10),
-      Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: EmType.label.copyWith(fontSize: 15))),
+      Flexible(child: Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: EmType.label.copyWith(fontSize: 15))),
     ]);
   }
-  Text text() => Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: EmType.label.copyWith(fontSize: 15));
+  Text text() => Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: EmType.label.copyWith(fontSize: 15));
   if (icon == null) return text();
   return Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 20), const SizedBox(width: 8), Flexible(child: text())]);
 }

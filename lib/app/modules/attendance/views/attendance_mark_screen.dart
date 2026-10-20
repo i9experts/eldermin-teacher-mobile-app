@@ -3,12 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/classroom/attendance_models.dart';
 import '../../../../core/models/classroom/student_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/home_time.dart';
 import '../../../../core/utils/timetable_week.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../controllers/attendance_controller.dart';
 import 'widgets/attendance_widgets.dart';
 import '../../../../core/design/design.dart';
@@ -77,17 +75,6 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     }
   }
 
-  Future<void> _pickDay() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: c.day.value,
-      firstDate: c.earliestEditable,
-      lastDate: c.today,
-      helpText: 'Attendance for',
-    );
-    if (picked != null) await _changeDay(picked);
-  }
-
   /// Brings the first unmarked student into view (rows are built lazily, so this scrolls by index).
   void _scrollToFirstUnmarked() {
     final first = c.unmarked.firstOrNull;
@@ -107,7 +94,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         ..showSnackBar(SnackBar(
           key: const Key('not_marked_snack'),
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 170), // above the bottom bar so it never covers the buttons
+          margin: EmSpacing.snackAboveBar, // above the bottom bar so it never covers the buttons
           content: Text('$missing ${missing == 1 ? 'student isn\'t' : 'students aren\'t'} marked yet. Everyone needs a status.')));
       _scrollToFirstUnmarked();
       return;
@@ -126,7 +113,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         ..showSnackBar(const SnackBar(
           key: Key('saved_snack'),
           behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.fromLTRB(16, 0, 16, 170),
+          margin: EmSpacing.snackAboveBar,
           content: Text('Attendance saved')));
     }
   }
@@ -177,43 +164,39 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       emptyIcon: Icons.groups_outlined,
       emptyTitle: 'No students in your class',
       emptySubtitle: 'There are no active students in ${cls.label} yet.',
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: EmSpacing.listPadding,
       scrollController: scroll,
       header: [
         _DayBar(
           label: isToday ? 'Today · ${longDateOf(day)}' : longDateOf(day),
           cls: cls.label,
-          canBack: !day.isBefore(addDays(c.earliestEditable, 1)),
-          canForward: day.isBefore(c.today),
-          onBack: () => _changeDay(addDays(day, -1)),
-          onForward: () => _changeDay(addDays(day, 1)),
-          onPick: _pickDay,
+          selected: day,
+          days: [for (var i = -kAttendanceEditWindowDays; i <= 0; i++) addDays(c.today, i)],
+          onSelect: _changeDay,
         ),
         if (c.isSubjectWise) _SubjectBar(controller: c, onSelect: _changeSubject),
         if (c.needsSubject)
-          const _Banner(
+          const EmInfoBanner(
             key: Key('no_subjects_banner'),
+            tone: EmTone.warning,
             icon: Icons.menu_book_outlined,
             text: 'Your school marks attendance subject by subject, but no subjects are set up yet. Ask your admin to add subjects.',
-            color: AppColors.amberText,
           ),
         if (!c.editable)
-          _Banner(
+          EmInfoBanner(
             key: const Key('read_only_banner'),
+            tone: EmTone.neutral,
             icon: Icons.lock_clock_outlined,
             text: 'You can only change attendance for the last $kAttendanceEditWindowDays days. This day is read-only.',
-            color: AppColors.muted,
           ),
-        if (c.submitFailure.value != null)
-          _Banner(
-            key: const Key('submit_error_banner'),
-            icon: Icons.error_outline_rounded,
-            text: c.submitFailure.value!.message,
-            color: AppColors.red,
-          ),
+        if (c.submitFailure.value != null) EmInfoBanner(key: const Key('submit_error_banner'), tone: EmTone.error, text: c.submitFailure.value!.message),
         if (c.lastSaved.value != null && !c.dirty && c.hasServerRecords && c.submitFailure.value == null)
-          const _Banner(key: Key('saved_banner'), icon: Icons.check_circle_outline_rounded, text: 'Saved. You can still change a mark and save again.', color: AppColors.green),
-        if (c.roster.value.hasData) _SearchBar(controller: search, onChanged: (_) => setState(() {})),
+          const EmInfoBanner(key: Key('saved_banner'), tone: EmTone.success, text: 'Saved. You can still change a mark and save again.'),
+        if (c.roster.value.hasData)
+          Padding(
+            padding: const EdgeInsets.only(bottom: EmSpacing.row),
+            child: EmSearchPill(fieldKey: const Key('mark_search'), controller: search, hint: 'Search by name or roll number', onChanged: (_) => setState(() {})),
+          ),
       ],
       builder: (roster) {
         final rows = [
@@ -221,7 +204,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
             if (query.isEmpty || s.fullName.toLowerCase().contains(query) || (s.rollNumber ?? '') == query || (s.grNo ?? '').toLowerCase().contains(query)) s
         ];
         if (rows.isEmpty) {
-          return [const Padding(padding: EdgeInsets.only(top: 24), child: AppEmptyView(key: Key('mark_search_empty'), icon: Icons.search_off_rounded, title: 'No student matches your search'))];
+          return [const Padding(padding: EdgeInsets.only(top: EmSpacing.s24), child: AppEmptyView(key: Key('mark_search_empty'), icon: Icons.search_off_rounded, title: 'No student matches your search'))];
         }
         return [
           for (final s in rows)
@@ -241,37 +224,27 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   }
 }
 
+/// Which day is being marked: the title, the class, and a date strip over the editable window (today and the 7 days before).
 class _DayBar extends StatelessWidget {
   final String label;
   final String cls;
-  final bool canBack;
-  final bool canForward;
-  final VoidCallback onBack, onForward, onPick;
-  const _DayBar({required this.label, required this.cls, required this.canBack, required this.canForward, required this.onBack, required this.onForward, required this.onPick});
+  final DateTime selected;
+  final List<DateTime> days;
+  final ValueChanged<DateTime> onSelect;
+  const _DayBar({required this.label, required this.cls, required this.selected, required this.days, required this.onSelect});
 
   @override
-  Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: AppColors.line)),
-        child: Row(children: [
-          IconButton(key: const Key('day_back'), onPressed: canBack ? onBack : null, icon: const Icon(Icons.chevron_left_rounded)),
-          Expanded(
-            child: InkWell(
-              key: const Key('day_pick'),
-              onTap: onPick,
-              borderRadius: BorderRadius.circular(10),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Column(children: [
-                  CustomText(text: label, color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 13, textAlign: TextAlign.center),
-                  CustomText(text: cls, color: AppColors.muted, fontSize: 10.5, textAlign: TextAlign.center),
-                ]),
-              ),
-            ),
-          ),
-          IconButton(key: const Key('day_forward'), onPressed: canForward ? onForward : null, icon: const Icon(Icons.chevron_right_rounded)),
-        ]),
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: EmSpacing.row),
+        child: EmHeroCard(
+          padding: const EdgeInsetsDirectional.all(EmSpacing.s16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, key: const Key('day_label'), style: EmType.heading.copyWith(color: EmColors.ink)),
+            Text(cls, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+            const SizedBox(height: EmSpacing.row),
+            KeyedSubtree(key: const Key('day_strip'), child: EmDateStrip(days: days, selected: selected, onSelected: onSelect)),
+          ]),
+        ),
       );
 }
 
@@ -285,70 +258,23 @@ class _SubjectBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = controller;
     if (c.subjects.isEmpty) return const SizedBox.shrink();
-    return Container(
+    return Padding(
       key: const Key('subject_bar'),
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: AppColors.line)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const CustomText(text: 'Subject', color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w700),
-        const SizedBox(height: 6),
-        Wrap(spacing: 8, runSpacing: 0, children: [
-          for (final name in c.subjects)
-            ChoiceChip(
-              key: ValueKey('subject_chip_$name'),
-              label: Text(name),
-              selected: c.selectedSubject.value == name,
-              onSelected: c.submitting.value ? null : (_) => onSelect(name),
-            ),
+      padding: const EdgeInsets.only(bottom: EmSpacing.row),
+      child: EmCard(
+        padding: EmSpacing.cardPadCompact,
+        radius: EmRadius.md,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Subject', style: EmType.label.copyWith(color: EmColors.textSecondary)),
+          const SizedBox(height: EmSpacing.s4),
+          Wrap(spacing: EmSpacing.s8, children: [
+            for (final name in c.subjects)
+              EmChip(key: ValueKey('subject_chip_$name'), label: name, selected: c.selectedSubject.value == name, onTap: c.submitting.value ? null : () => onSelect(name)),
+          ]),
         ]),
-      ]),
+      ),
     );
   }
-}
-
-class _Banner extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final Color color;
-  const _Banner({super.key, required this.icon, required this.text, required this.color});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: color.withOpacity(0.35))),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 8),
-          Expanded(child: CustomText(text: text, color: AppColors.ink, fontSize: 12)),
-        ]),
-      );
-}
-
-class _SearchBar extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  const _SearchBar({required this.controller, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: TextField(
-          key: const Key('mark_search'),
-          controller: controller,
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: 'Search by name or roll number',
-            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: const BorderSide(color: AppColors.line)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: const BorderSide(color: AppColors.line)),
-          ),
-        ),
-      );
 }
 
 class _BottomBar extends StatelessWidget {
@@ -368,48 +294,42 @@ class _BottomBar extends StatelessWidget {
       final failed = c.submitFailure.value != null;
       final saving = c.submitting.value;
       final saved = !c.dirty && c.hasServerRecords && missing == 0;
-      return Container(
+      return DecoratedBox(
         key: const Key('mark_bottom_bar'),
-        padding: EdgeInsets.fromLTRB(16, 10, 16, 10 + MediaQuery.of(context).padding.bottom),
-        decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: AppColors.primaryColor.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, -4))]),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Row(children: [
-            Expanded(
-              child: CustomText(
-                key: const Key('marked_progress'),
-                text: missing == 0 ? 'All $total marked' : '${total - missing} of $total marked · $missing not marked',
-                color: missing == 0 ? AppColors.green : AppColors.amberText,
-                fontWeight: FontWeight.w800,
-                fontSize: 12,
+        decoration: BoxDecoration(color: EmColors.surface, boxShadow: EmShadows.soft),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s12, EmSpacing.screenH, EmSpacing.s12 + MediaQuery.paddingOf(context).bottom),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
+              Icon(missing == 0 ? Icons.check_circle_outline_rounded : Icons.pending_actions_rounded, size: 18, color: missing == 0 ? EmColors.onSuccessContainer : EmColors.onWarningContainer),
+              const SizedBox(width: EmSpacing.s8),
+              Expanded(
+                child: Text(
+                  missing == 0 ? 'All $total marked' : '${total - missing} of $total marked · $missing not marked',
+                  key: const Key('marked_progress'),
+                  style: EmType.label.copyWith(color: missing == 0 ? EmColors.onSuccessContainer : EmColors.onWarningContainer),
+                ),
               ),
-            ),
-            if (missing > 0 && c.editable)
-              TextButton(
-                key: const Key('mark_remaining_present'),
-                onPressed: saving ? null : onMarkRemaining,
-                child: CustomText(text: missing == total ? 'Mark all present' : 'Mark remaining present', color: AppColors.blue, fontWeight: FontWeight.w800, fontSize: 12),
+              if (missing > 0 && c.editable)
+                TextButton(
+                  key: const Key('mark_remaining_present'),
+                  onPressed: saving ? null : onMarkRemaining,
+                  child: Text(missing == total ? 'Mark all present' : 'Mark remaining present', textAlign: TextAlign.end, style: EmType.label.copyWith(color: EmColors.primary)),
+                ),
+            ]),
+            const SizedBox(height: EmSpacing.s8),
+            if (failed)
+              EmPrimaryButton(key: const Key('submit_retry'), icon: Icons.refresh_rounded, label: 'Retry saving', onPressed: saving ? null : onRetry)
+            else
+              // Tappable while incomplete on purpose: the tap explains "N not marked" and scrolls to the first one.
+              EmPrimaryButton(
+                key: const Key('submit_button'),
+                loading: saving,
+                label: saved ? 'Saved' : (missing > 0 ? 'Review & submit ($missing not marked)' : 'Review & submit'),
+                onPressed: (!c.editable || saving || saved) ? null : onSubmit,
               ),
           ]),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: double.infinity,
-            child: failed
-                ? ElevatedButton.icon(
-                    key: const Key('submit_retry'),
-                    onPressed: saving ? null : onRetry,
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const CustomText(text: 'Retry saving', color: Colors.white, fontWeight: FontWeight.w700),
-                  )
-                : ElevatedButton(
-                    key: const Key('submit_button'),
-                    // Tappable while incomplete on purpose: the tap explains "N not marked" and scrolls to the first one.
-                    onPressed: (!c.editable || saving || saved) ? null : onSubmit,
-                    child: saving
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : CustomText(text: saved ? 'Saved' : (missing > 0 ? 'Review & submit ($missing not marked)' : 'Review & submit'), color: Colors.white, fontWeight: FontWeight.w700),
-                  ),
-          ),
-        ]),
+        ),
       );
     });
   }
@@ -425,23 +345,24 @@ class _SummaryDialog extends StatelessWidget {
     final counts = c.counts;
     final cls = c.myClass!;
     final absentees = [for (final s in c.students_) if (c.marks[s.id] == AttendanceStatus.absent) s.fullName];
+    final replaces = c.isSubjectWise ? 'This replaces the ${c.selectedSubject.value} attendance already saved for this day.' : 'This replaces the attendance already saved for this day.';
     return EmDialog(
       key: const Key('attendance_confirm_dialog'),
       title: 'Submit attendance?',
       content: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText(text: '${cls.label} · ${longDateOf(c.day.value)}${c.isSubjectWise && c.selectedSubject.value != null ? ' · ${c.selectedSubject.value}' : ''}', color: AppColors.muted, fontSize: 12),
-          const SizedBox(height: 4),
-          CustomText(text: '${c.students_.length} students', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 14),
-          const SizedBox(height: 10),
+          Text('${cls.label} · ${longDateOf(c.day.value)}${c.isSubjectWise && c.selectedSubject.value != null ? ' · ${c.selectedSubject.value}' : ''}', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+          const SizedBox(height: EmSpacing.s4),
+          Text('${c.students_.length} students', style: EmType.label.copyWith(color: EmColors.primary)),
+          const SizedBox(height: EmSpacing.s12),
           StatusCountPills(counts: counts, showZero: true),
           if (absentees.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            CustomText(text: 'Absent: ${absentees.join(', ')}', color: AppColors.redText, fontSize: 12),
+            const SizedBox(height: EmSpacing.s12),
+            Text('Absent: ${absentees.join(', ')}', style: EmType.caption.copyWith(color: EmColors.error)),
           ],
           if (c.hasServerRecords) ...[
-            const SizedBox(height: 10),
-            CustomText(text: c.isSubjectWise ? 'This replaces the ${c.selectedSubject.value} attendance already saved for this day.' : 'This replaces the attendance already saved for this day.', color: AppColors.muted, fontSize: 11),
+            const SizedBox(height: EmSpacing.s12),
+            Text(replaces, style: EmType.caption.copyWith(color: EmColors.onWarningContainer)),
           ],
         ]),
       ),

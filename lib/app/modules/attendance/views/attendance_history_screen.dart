@@ -4,11 +4,9 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../../core/models/classroom/attendance_month.dart';
 import '../../../../core/models/classroom/attendance_models.dart';
 import '../../../../core/models/classroom/student_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/home_time.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/attendance_controller.dart' show kAttendanceEditWindowDays;
 import '../controllers/attendance_history_controller.dart';
@@ -56,9 +54,9 @@ class AttendanceHistoryScreen extends GetView<AttendanceHistoryController> {
       emptyTitle: 'No students in your class',
       emptySubtitle: 'There are no active students in ${cls.label} yet.',
       header: [
-        ScreenHeader(title: 'History', caption: cls.label),
+        EmCaptionLine(cls.label),
         _Calendar(controller: c, month: s.data, selected: selected, focusedMonth: focused),
-        const SizedBox(height: 12),
+        const SizedBox(height: EmSpacing.row),
       ],
       builder: (m) => _detail(m, selected, roster, editable),
     );
@@ -69,57 +67,46 @@ class AttendanceHistoryScreen extends GetView<AttendanceHistoryController> {
     final day = m.day(ymdOf(d));
     final title = '${longDateOf(d)}${sameSelected(d, c.today) ? ' · Today' : ''}';
     return [
-      SubHeading(title),
+      SectionRow(title: title),
       if (day == null)
-        AppCard(
+        EmCard(
           key: const Key('history_day_empty'),
           child: Row(children: [
-            const Icon(Icons.event_busy_outlined, color: AppColors.faint, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: CustomText(
-                text: d.isAfter(c.today) ? 'This day is in the future.' : 'No attendance was recorded for this day.',
-                color: AppColors.primaryColor,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
+            const ExcludeSemantics(child: Icon(Icons.event_busy_outlined, color: EmColors.textSecondary, size: 24)),
+            const SizedBox(width: EmSpacing.row),
+            Expanded(child: Text(d.isAfter(c.today) ? 'This day is in the future.' : 'No attendance was recorded for this day.', style: EmType.body.copyWith(color: EmColors.ink))),
           ]),
         )
       else
-        AppCard(
+        EmCard(
           key: const Key('history_day_card'),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            CustomText(
-              text: 'Marked ${day.marked} of ${m.rosterSize}${day.complete ? '' : ' (incomplete)'}',
-              color: day.complete ? AppColors.green : AppColors.amberText,
-              fontWeight: FontWeight.w800,
-              fontSize: 12,
-            ),
-            const SizedBox(height: 8),
+            Row(children: [
+              Icon(day.complete ? Icons.check_circle_outline_rounded : Icons.pending_actions_rounded, size: 18, color: day.complete ? EmColors.onSuccessContainer : EmColors.onWarningContainer),
+              const SizedBox(width: EmSpacing.s8),
+              Expanded(
+                child: Text(
+                  'Marked ${day.marked} of ${m.rosterSize}${day.complete ? '' : ' (incomplete)'}',
+                  style: EmType.label.copyWith(color: day.complete ? EmColors.onSuccessContainer : EmColors.onWarningContainer),
+                ),
+              ),
+            ]),
+            const SizedBox(height: EmSpacing.s12),
             StatusCountPills(counts: day.counts, showZero: true),
             ..._notPresent(day, roster),
           ]),
         ),
       if (!d.isAfter(c.today)) ...[
-        const SizedBox(height: 4),
+        const SizedBox(height: EmSpacing.row),
         if (editable)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              key: const Key('history_edit_button'),
-              onPressed: () => Get.toNamed('${Routes.attendanceMark}?date=${ymdOf(d)}'),
-              icon: const Icon(Icons.edit_calendar_outlined, size: 18),
-              label: CustomText(text: day == null ? 'Mark this day' : 'Edit this day', color: Colors.white, fontWeight: FontWeight.w700),
-            ),
+          EmPrimaryButton(
+            key: const Key('history_edit_button'),
+            icon: Icons.edit_calendar_outlined,
+            label: day == null ? 'Mark this day' : 'Edit this day',
+            onPressed: () => Get.toNamed('${Routes.attendanceMark}?date=${ymdOf(d)}'),
           )
         else
-          CustomText(
-            key: const Key('history_read_only'),
-            text: 'Older than $kAttendanceEditWindowDays days: view only.',
-            color: AppColors.faint,
-            fontSize: 11,
-          ),
+          Text('Older than $kAttendanceEditWindowDays days: view only.', key: const Key('history_read_only'), style: EmType.caption.copyWith(color: EmColors.textSecondary)),
       ],
     ];
   }
@@ -134,10 +121,11 @@ class AttendanceHistoryScreen extends GetView<AttendanceHistoryController> {
       ]..sort();
       if (names.isEmpty) continue;
       rows.add(Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(width: 62, child: CustomText(text: st.label, color: statusColors(st).fg, fontWeight: FontWeight.w800, fontSize: 11)),
-          Expanded(child: CustomText(text: names.join(', '), color: AppColors.ink, fontSize: 12)),
+        padding: const EdgeInsets.only(top: EmSpacing.s12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(st.label, style: EmType.label.copyWith(color: statusColors(st).fg)),
+          const SizedBox(height: EmSpacing.s2),
+          Text(names.join(', '), style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400)),
         ]),
       ));
     }
@@ -157,11 +145,11 @@ class _Calendar extends StatelessWidget {
   Color _toneColor(DayTone t) {
     switch (t) {
       case DayTone.allPresent:
-        return AppColors.green;
+        return EmColors.success;
       case DayTone.attention:
-        return AppColors.amber;
+        return EmColors.warning;
       case DayTone.absences:
-        return AppColors.red;
+        return EmColors.error;
       case DayTone.none:
         return Colors.transparent;
     }
@@ -171,10 +159,10 @@ class _Calendar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = controller;
     final today = c.today;
-    return Container(
+    final dayStyle = EmType.body.copyWith(color: EmColors.ink);
+    return EmCard(
       key: const Key('history_calendar'),
-      padding: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.lg), border: Border.all(color: AppColors.line)),
+      padding: const EdgeInsets.only(bottom: EmSpacing.s8),
       child: Column(children: [
         TableCalendar<void>(
           firstDay: DateTime.utc(2020, 1, 1),
@@ -183,11 +171,23 @@ class _Calendar extends StatelessWidget {
           selectedDayPredicate: (d) => isSameDay(d, selected),
           startingDayOfWeek: StartingDayOfWeek.sunday,
           availableCalendarFormats: const {CalendarFormat.month: 'Month'},
-          headerStyle: const HeaderStyle(formatButtonVisible: false, titleCentered: true),
+          rowHeight: EmSpacing.minTouch,
+          headerStyle: HeaderStyle(
+            formatButtonVisible: false,
+            titleCentered: true,
+            titleTextStyle: EmType.bodyLarge.copyWith(color: EmColors.ink),
+            leftChevronIcon: const Icon(Icons.chevron_left_rounded, color: EmColors.ink),
+            rightChevronIcon: const Icon(Icons.chevron_right_rounded, color: EmColors.ink),
+          ),
+          daysOfWeekStyle: DaysOfWeekStyle(weekdayStyle: EmType.caption.copyWith(color: EmColors.textSecondary), weekendStyle: EmType.caption.copyWith(color: EmColors.textSecondary)),
           calendarStyle: CalendarStyle(
-            todayDecoration: BoxDecoration(color: AppColors.pale, shape: BoxShape.circle, border: Border.all(color: AppColors.blue)),
-            todayTextStyle: const TextStyle(color: AppColors.primaryColor, fontWeight: FontWeight.w700),
-            selectedDecoration: const BoxDecoration(color: AppColors.primaryColor, shape: BoxShape.circle),
+            defaultTextStyle: dayStyle,
+            weekendTextStyle: dayStyle,
+            todayDecoration: BoxDecoration(color: EmColors.primaryContainer, shape: BoxShape.circle, border: Border.all(color: EmColors.primary)),
+            todayTextStyle: dayStyle.copyWith(fontWeight: FontWeight.w600),
+            selectedDecoration: const BoxDecoration(color: EmColors.primary, shape: BoxShape.circle),
+            selectedTextStyle: dayStyle.copyWith(color: EmColors.onPrimary, fontWeight: FontWeight.w600),
+            disabledTextStyle: dayStyle.copyWith(color: EmColors.onDisabled),
             outsideDaysVisible: false,
           ),
           onDaySelected: (sel, focused) => c.selectDay(sel),
@@ -199,11 +199,11 @@ class _Calendar extends StatelessWidget {
               final tone = entry.tone;
               if (tone == DayTone.none) return null;
               return Positioned(
-                bottom: 4,
+                bottom: EmSpacing.s4,
                 child: Container(
                   key: ValueKey('marker_${ymdOf(day)}'),
-                  width: 7,
-                  height: 7,
+                  width: 8,
+                  height: 8,
                   decoration: BoxDecoration(
                     color: entry.complete ? _toneColor(tone) : Colors.transparent,
                     shape: BoxShape.circle,
@@ -215,12 +215,12 @@ class _Calendar extends StatelessWidget {
           ),
         ),
         const Padding(
-          padding: EdgeInsets.fromLTRB(12, 0, 12, 4),
-          child: Wrap(spacing: 14, runSpacing: 4, children: [
-            _Legend(color: AppColors.green, label: 'All present'),
-            _Legend(color: AppColors.amber, label: 'Late / leave'),
-            _Legend(color: AppColors.red, label: 'Absences'),
-            _Legend(color: AppColors.faint, label: 'Hollow = not everyone marked', hollow: true),
+          padding: EdgeInsetsDirectional.fromSTEB(EmSpacing.s12, 0, EmSpacing.s12, EmSpacing.s4),
+          child: Wrap(spacing: EmSpacing.s16, runSpacing: EmSpacing.s4, children: [
+            _Legend(color: EmColors.success, label: 'All present'),
+            _Legend(color: EmColors.warning, label: 'Late / leave'),
+            _Legend(color: EmColors.error, label: 'Absences'),
+            _Legend(color: EmColors.textTertiary, label: 'Hollow = not everyone marked', hollow: true),
           ]),
         ),
       ]),
@@ -245,8 +245,8 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: hollow ? Colors.transparent : color, shape: BoxShape.circle, border: Border.all(color: color, width: 1.6))),
-        const SizedBox(width: 5),
-        CustomText(text: label, color: AppColors.muted, fontSize: 10),
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: hollow ? Colors.transparent : color, shape: BoxShape.circle, border: Border.all(color: color, width: 1.6))),
+        const SizedBox(width: EmSpacing.s4),
+        Flexible(child: Text(label, style: EmType.caption.copyWith(color: EmColors.textSecondary))),
       ]);
 }
