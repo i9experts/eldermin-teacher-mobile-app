@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/classroom/student_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/students_controller.dart';
 import 'widgets/student_widgets.dart';
@@ -42,26 +40,21 @@ class StudentsScreen extends GetView<StudentsController> {
           ? 'Your classes come from your teaching assignments. Ask your school admin to assign you to a class.'
           : 'There are no active students in this class.',
       header: [
-        ScreenHeader(
-          title: 'My students',
-          caption: current == null ? 'No classes assigned' : '${current.label}${current.isClassTeacherClass ? ' · Class teacher' : ''}',
-        ),
-        if (classes.length > 1) ...[ClassPicker(classes: classes, selected: selected, onSelect: c.selectClass), const SizedBox(height: 10)],
+        EmCaptionLine(current == null ? 'No classes assigned' : '${current.label}${current.isClassTeacherClass ? ' · Class teacher' : ''}'),
+        if (classes.length > 1) ...[ClassPicker(classes: classes, selected: selected, onSelect: c.selectClass), const SizedBox(height: EmSpacing.row)],
         if (state.hasData) SearchBox(controller: c.searchController, onChanged: (v) => c.query.value = v),
       ],
       builder: (all) {
         if (visible.isEmpty) {
-          return [Padding(padding: const EdgeInsets.only(top: 24), child: AppEmptyView(key: const Key('students_search_empty'), icon: Icons.search_off_rounded, title: 'No student matches "$query"'))];
+          return [Padding(padding: const EdgeInsets.only(top: EmSpacing.s24), child: AppEmptyView(key: const Key('students_search_empty'), icon: Icons.search_off_rounded, title: 'No student matches "$query"'))];
         }
         return [
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: CustomText(
+            padding: const EdgeInsets.only(bottom: EmSpacing.s8),
+            child: Text(
               key: const Key('students_count'),
-              text: query.isEmpty ? '${all.length} ${all.length == 1 ? 'student' : 'students'}' : '${visible.length} of ${all.length} students',
-              color: AppColors.muted,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+              query.isEmpty ? '${all.length} ${all.length == 1 ? 'student' : 'students'}' : '${visible.length} of ${all.length} students',
+              style: EmType.label.copyWith(color: EmColors.textSecondary),
             ),
           ),
           for (final s in visible) StudentTile(student: s, onTap: () => Get.toNamed(Routes.studentDetailOf(s.id))),

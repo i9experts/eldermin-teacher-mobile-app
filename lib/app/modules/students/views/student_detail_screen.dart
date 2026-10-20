@@ -7,7 +7,6 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/timetable_week.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../../attendance/views/widgets/attendance_widgets.dart';
@@ -80,34 +79,32 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
       builder: (d) => [
         _ProfileCard(d: d),
         if (d.allergies.isNotEmpty || d.bloodGroup.isNotEmpty) _MedicalAlertCard(allergies: d.allergies, bloodGroup: d.bloodGroup),
-        const SubHeading('Attendance'),
+        const SectionRow(title: 'Attendance'),
         _AttendanceCard(d: d.attendance, month: month, monthLabel: _monthLabel(c.monthStart)),
-        const SubHeading('Recent behaviour'),
+        const SectionRow(title: 'Recent behaviour'),
         _BehaviourCard(b: d.behaviour, studentId: d.student.id),
-        const SubHeading('Recent results'),
+        const SectionRow(title: 'Recent results'),
         _ResultsCard(results: d.results),
         if (d.guardiansKnown) ...[
-          const SubHeading('Guardians'),
+          const SectionRow(title: 'Guardians'),
           _GuardiansCard(guardians: d.guardians),
         ],
+        const SizedBox(height: EmSpacing.s8),
         // Guardian contact details are never shown to teachers; messages go through the app only.
-        Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 4),
-          child: OutlinedButton.icon(
-            key: const Key('student_message_guardian'),
-            onPressed: () => Get.toNamed(Routes.messageNew, arguments: d.student),
-            icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-            label: const CustomText(text: 'Message guardian', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 12.5),
-          ),
+        EmSecondaryButton(
+          key: const Key('student_message_guardian'),
+          expand: true,
+          icon: Icons.chat_bubble_outline_rounded,
+          label: 'Message guardian',
+          onPressed: () => Get.toNamed(Routes.messageNew, arguments: d.student),
         ),
-        const Padding(
-          padding: EdgeInsets.only(top: 6),
-          child: CustomText(
-            key: Key('student_privacy_note'),
-            text: 'Read-only. Fees, finance and contact details are not shown in this app.',
-            color: AppColors.faint,
-            fontSize: 10.5,
+        Padding(
+          padding: const EdgeInsets.only(top: EmSpacing.row),
+          child: Text(
+            'Read-only. Fees, finance and contact details are not shown in this app.',
+            key: const Key('student_privacy_note'),
             textAlign: TextAlign.center,
+            style: EmType.caption.copyWith(color: EmColors.textSecondary),
           ),
         ),
       ],
@@ -120,6 +117,29 @@ String _monthLabel(DateTime d) => '${_months[d.month - 1]} ${d.year}';
 
 String _date(DateTime? d) => d == null ? '' : '${dayMonthShort(d.toUtc())} ${d.toUtc().year}';
 
+/// A card of this screen: the shared card with the 12dp gap below it.
+class _Section extends StatelessWidget {
+  final Key? cardKey;
+  final Widget child;
+  const _Section({this.cardKey, required this.child});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: EmSpacing.row),
+        child: EmCard(key: cardKey, child: child),
+      );
+}
+
+class _Quiet extends StatelessWidget {
+  final String text;
+  final Key? textKey;
+  final Color? color;
+  const _Quiet(this.text, {this.textKey, this.color});
+
+  @override
+  Widget build(BuildContext context) => Text(text, key: textKey, style: EmType.body.copyWith(color: color ?? EmColors.textSecondary, fontWeight: FontWeight.w400));
+}
+
 class _ProfileCard extends StatelessWidget {
   final Student360 d;
   const _ProfileCard({required this.d});
@@ -131,21 +151,18 @@ class _ProfileCard extends StatelessWidget {
       if (s.classLabel.isNotEmpty) s.classLabel,
       if ((s.rollNumber ?? '').isNotEmpty) 'Roll ${s.rollNumber}',
     ].join(' · ');
-    return AppCard(
-      key: const Key('student_profile'),
+    final ids = [if (s.studentId.isNotEmpty) s.studentId, if ((s.grNo ?? '').isNotEmpty) s.grNo!].join(' · ');
+    return _Section(
+      cardKey: const Key('student_profile'),
       child: Row(children: [
-        StudentAvatar(student: s, size: 56),
-        const SizedBox(width: 14),
+        StudentAvatar(student: s, size: 64),
+        const SizedBox(width: EmSpacing.s16),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            CustomText(text: s.fullName, fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.primaryColor, maxLines: 2, overflow: TextOverflow.ellipsis),
-            if (lines.isNotEmpty) CustomText(text: lines, color: AppColors.muted, fontSize: 12),
-            CustomText(
-              text: [if (s.studentId.isNotEmpty) s.studentId, if ((s.grNo ?? '').isNotEmpty) s.grNo!].join(' · '),
-              color: AppColors.faint,
-              fontSize: 10.5,
-            ),
-            if (!s.isActive) ...[const SizedBox(height: 6), AppTag(s.status.replaceAll('_', ' '), style: TagStyle.amber)],
+            Text(s.fullName, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.heading.copyWith(color: EmColors.ink)),
+            if (lines.isNotEmpty) Text(lines, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
+            if (ids.isNotEmpty) Text(ids, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+            if (!s.isActive) ...[const SizedBox(height: EmSpacing.s8), AppTag(s.status.replaceAll('_', ' '), style: TagStyle.amber)],
           ]),
         ),
       ]),
@@ -160,29 +177,35 @@ class _MedicalAlertCard extends StatelessWidget {
   const _MedicalAlertCard({required this.allergies, required this.bloodGroup});
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final label = EmType.label.copyWith(color: EmColors.onWarningContainer);
+    final value = EmType.body.copyWith(color: EmColors.ink);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: EmSpacing.row),
+      child: EmCard(
         key: const Key('student_medical_alert'),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppColors.amberBg, borderRadius: BorderRadius.circular(AppRadius.lg), border: Border.all(color: AppColors.amber)),
+        color: EmColors.warningContainer,
+        padding: EmSpacing.cardPad,
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Icon(Icons.warning_amber_rounded, color: AppColors.amberText, size: 20),
-          const SizedBox(width: 10),
+          const ExcludeSemantics(child: Icon(Icons.warning_amber_rounded, color: EmColors.onWarningContainer, size: 24)),
+          const SizedBox(width: EmSpacing.row),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (allergies.isNotEmpty) ...[
-                const CustomText(text: 'Allergies', color: AppColors.amberText, fontWeight: FontWeight.w800, fontSize: 12),
-                CustomText(key: const Key('student_allergies'), text: allergies.join(', '), color: AppColors.ink, fontSize: 13),
+                Text('Allergies', style: label),
+                Text(allergies.join(', '), key: const Key('student_allergies'), style: value),
               ],
               if (bloodGroup.isNotEmpty) ...[
-                if (allergies.isNotEmpty) const SizedBox(height: 6),
-                const CustomText(text: 'Blood group', color: AppColors.amberText, fontWeight: FontWeight.w800, fontSize: 12),
-                CustomText(key: const Key('student_blood_group'), text: bloodGroup, color: AppColors.ink, fontSize: 13),
+                if (allergies.isNotEmpty) const SizedBox(height: EmSpacing.s8),
+                Text('Blood group', style: label),
+                Text(bloodGroup, key: const Key('student_blood_group'), style: value),
               ],
             ]),
           ),
         ]),
-      );
+      ),
+    );
+  }
 }
 
 class _AttendanceCard extends StatelessWidget {
@@ -194,37 +217,45 @@ class _AttendanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (d.totalDays == 0) {
-      return const AppCard(key: Key('student_attendance'), child: CustomText(text: 'No attendance has been recorded this academic year.', color: AppColors.muted, fontSize: 12));
+      return const _Section(cardKey: Key('student_attendance'), child: _Quiet('No attendance has been recorded this academic year.'));
     }
     final recent = d.recent.reversed.toList(); // oldest -> newest
-    return AppCard(
-      key: const Key('student_attendance'),
+    final pct = d.percentage.round().clamp(0, 100);
+    final ringColor = d.percentage >= 90 ? EmColors.success : (d.percentage >= 75 ? EmColors.warning : EmColors.error);
+    return _Section(
+      cardKey: const Key('student_attendance'),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          DonutRing(percent: d.percentage.round().clamp(0, 100), color: d.percentage >= 90 ? AppColors.green : d.percentage >= 75 ? AppColors.amber : AppColors.red, size: 76),
-          const SizedBox(width: 16),
+          EmProgressRing(value: pct / 100, size: 84, strokeWidth: 9, knob: false, color: ringColor, centerText: '$pct%', semanticLabel: 'Attendance $pct percent'),
+          const SizedBox(width: EmSpacing.s16),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              CustomText(key: const Key('attendance_percentage'), text: '${_pct(d.percentage)}% attendance', fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 15),
-              CustomText(text: '${d.presentDays} of ${d.totalDays} days present or late this academic year', color: AppColors.muted, fontSize: 11),
-              const SizedBox(height: 8),
+              Text('${_pct(d.percentage)}% attendance', key: const Key('attendance_percentage'), style: EmType.bodyLarge.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600)),
+              Text('${d.presentDays} of ${d.totalDays} days present or late this academic year', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+              const SizedBox(height: EmSpacing.s8),
               StatusCountPills(counts: d.counts),
             ]),
           ),
         ]),
-        const SizedBox(height: 12),
-        CustomText(text: 'This month · $monthLabel', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 11),
-        const SizedBox(height: 6),
+        const SizedBox(height: EmSpacing.s16),
+        Text('This month · $monthLabel', style: EmType.label.copyWith(color: EmColors.ink)),
+        const SizedBox(height: EmSpacing.s8),
         _monthRow(),
         if (recent.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          CustomText(text: 'Last ${recent.length} recorded days', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 11),
-          const SizedBox(height: 6),
-          Wrap(key: const Key('attendance_recent'), spacing: 3, runSpacing: 3, children: [
+          const SizedBox(height: EmSpacing.s16),
+          Text('Last ${recent.length} recorded days', style: EmType.label.copyWith(color: EmColors.ink)),
+          const SizedBox(height: EmSpacing.s8),
+          // each square carries the status glyph as well as its colour
+          Wrap(key: const Key('attendance_recent'), spacing: EmSpacing.s4, runSpacing: EmSpacing.s4, children: [
             for (final r in recent)
               Tooltip(
                 message: '${r.dayKey} · ${r.status?.label ?? 'Other'}',
-                child: Container(width: 14, height: 14, decoration: BoxDecoration(color: r.status == null ? AppColors.line : statusColors(r.status!).fg, borderRadius: BorderRadius.circular(4))),
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(color: r.status == null ? EmColors.border : statusColors(r.status!).fg, shape: BoxShape.circle),
+                  child: Icon(r.status == null ? Icons.remove_rounded : statusIcon(r.status!), size: 14, color: EmColors.surface),
+                ),
               ),
           ]),
         ],
@@ -235,14 +266,14 @@ class _AttendanceCard extends StatelessWidget {
   Widget _monthRow() {
     switch (month.status) {
       case SectionStatus.loading:
-        return const CustomText(text: 'Loading…', color: AppColors.faint, fontSize: 11);
+        return const _Quiet('Loading…');
       case SectionStatus.data:
         final c = month.data!;
-        return c.total == 0 ? const CustomText(key: Key('month_none'), text: 'Nothing recorded this month.', color: AppColors.muted, fontSize: 11) : StatusCountPills(key: const Key('month_counts'), counts: c);
+        return c.total == 0 ? const _Quiet('Nothing recorded this month.', textKey: Key('month_none')) : StatusCountPills(key: const Key('month_counts'), counts: c);
       case SectionStatus.forbidden:
-        return const CustomText(text: "You don't have access", color: AppColors.muted, fontSize: 11);
+        return const _Quiet("You don't have access");
       default:
-        return const CustomText(key: Key('month_error'), text: "Couldn't load this month.", color: AppColors.red, fontSize: 11);
+        return const _Quiet("Couldn't load this month.", textKey: Key('month_error'), color: EmColors.error);
     }
   }
 
@@ -262,43 +293,45 @@ class _BehaviourCard extends StatelessWidget {
     final canOpen = Get.isRegistered<PermissionService>() && Get.find<PermissionService>().canAccess('behaviour:view');
     final link = canOpen
         ? Align(
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: TextButton.icon(
               key: const Key('student_behaviour_history'),
               onPressed: () => Get.toNamed(Routes.behaviourStudentOf(studentId)),
-              icon: const Icon(Icons.history_rounded, size: 18),
-              label: const CustomText(text: 'Behaviour history and Tarbiyah', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 12),
+              icon: const Icon(Icons.history_rounded, size: 20),
+              label: Text('Behaviour history and Tarbiyah', style: EmType.label.copyWith(color: EmColors.primary)),
             ),
           )
         : const SizedBox.shrink();
     if (b.recent.isEmpty) {
-      return AppCard(
-        key: const Key('student_behaviour'),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const CustomText(text: 'No behaviour records on the student profile.', color: AppColors.muted, fontSize: 12),
-          link,
-        ]),
+      return _Section(
+        cardKey: const Key('student_behaviour'),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const _Quiet('No behaviour records on the student profile.'), link]),
       );
     }
-    return AppCard(
-      key: const Key('student_behaviour'),
+    return _Section(
+      cardKey: const Key('student_behaviour'),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        CustomText(text: 'Behaviour points this year: ${b.totalPoints}', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 12),
-        const SizedBox(height: 8),
+        Text('Behaviour points this year: ${b.totalPoints}', style: EmType.label.copyWith(color: EmColors.ink)),
+        const SizedBox(height: EmSpacing.s12),
         for (final i in b.recent)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: EmSpacing.s12),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(i.type == 'positive' ? Icons.thumb_up_alt_outlined : i.type == 'negative' ? Icons.flag_outlined : Icons.chat_bubble_outline_rounded,
-                  size: 18, color: i.type == 'positive' ? AppColors.green : i.type == 'negative' ? AppColors.red : AppColors.muted),
-              const SizedBox(width: 10),
+              ExcludeSemantics(
+                child: Icon(
+                  i.type == 'positive' ? Icons.thumb_up_alt_outlined : (i.type == 'negative' ? Icons.flag_outlined : Icons.chat_bubble_outline_rounded),
+                  size: 20,
+                  color: i.type == 'positive' ? EmColors.success : (i.type == 'negative' ? EmColors.error : EmColors.textSecondary),
+                ),
+              ),
+              const SizedBox(width: EmSpacing.row),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  CustomText(text: '${i.categoryLabel} · ${_date(i.date)}', color: AppColors.primaryColor, fontWeight: FontWeight.w700, fontSize: 12),
-                  if (i.description.isNotEmpty) CustomText(text: i.description, color: AppColors.muted, fontSize: 11.5),
+                  Text('${i.categoryLabel} · ${_date(i.date)}', style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600)),
+                  if (i.description.isNotEmpty) Text(i.description, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
                 ]),
               ),
-              if (i.type == 'negative' && !i.resolved) const AppTag('Open', style: TagStyle.amber),
+              if (i.type == 'negative' && !i.resolved) ...[const SizedBox(width: EmSpacing.s8), const AppTag('Open', style: TagStyle.amber)],
             ]),
           ),
         link,
@@ -313,23 +346,25 @@ class _ResultsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (results.isEmpty) {
-      return const AppCard(key: Key('student_results'), child: CustomText(text: 'No recent results.', color: AppColors.muted, fontSize: 12));
-    }
-    return AppCard(
-      key: const Key('student_results'),
+    if (results.isEmpty) return const _Section(cardKey: Key('student_results'), child: _Quiet('No recent results.'));
+    return _Section(
+      cardKey: const Key('student_results'),
       child: Column(children: [
         for (final r in results)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.symmetric(vertical: EmSpacing.s8),
             child: Row(children: [
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  CustomText(text: r.title, color: AppColors.primaryColor, fontWeight: FontWeight.w700, fontSize: 12.5),
-                  CustomText(text: [if (r.type.isNotEmpty) r.type, if (r.date != null) _date(r.date)].join(' · '), color: AppColors.faint, fontSize: 10.5),
+                  Text(r.title, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600)),
+                  Text([if (r.type.isNotEmpty) r.type, if (r.date != null) _date(r.date)].join(' · '), style: EmType.caption.copyWith(color: EmColors.textSecondary)),
                 ]),
               ),
-              if (r.percentage != null) CustomText(text: '${r.percentage!.round()}%${r.overallGrade != null ? ' · ${r.overallGrade}' : ''}', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 12.5),
+              if (r.percentage != null)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(start: EmSpacing.s8),
+                  child: Text('${r.percentage!.round()}%${r.overallGrade != null ? ' · ${r.overallGrade}' : ''}', style: EmType.valueSmall.copyWith(color: EmColors.ink)),
+                ),
             ]),
           ),
       ]),
@@ -343,21 +378,19 @@ class _GuardiansCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (guardians.isEmpty) {
-      return const AppCard(key: Key('student_guardians'), child: CustomText(text: 'No guardians on record.', color: AppColors.muted, fontSize: 12));
-    }
-    return AppCard(
-      key: const Key('student_guardians'),
+    if (guardians.isEmpty) return const _Section(cardKey: Key('student_guardians'), child: _Quiet('No guardians on record.'));
+    return _Section(
+      cardKey: const Key('student_guardians'),
       child: Column(children: [
         for (final g in guardians)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.symmetric(vertical: EmSpacing.s8),
             child: Row(children: [
-              const Icon(Icons.person_outline_rounded, size: 18, color: AppColors.blue),
-              const SizedBox(width: 10),
-              Expanded(child: CustomText(text: g.name, color: AppColors.primaryColor, fontWeight: FontWeight.w700, fontSize: 12.5)),
+              const ExcludeSemantics(child: Icon(Icons.person_outline_rounded, size: 20, color: EmColors.primary)),
+              const SizedBox(width: EmSpacing.row),
+              Expanded(child: Text(g.name, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600))),
               if (g.relationLabel.isNotEmpty) AppTag(g.relationLabel, style: TagStyle.neutral),
-              if (g.isPrimary) ...[const SizedBox(width: 6), const AppTag('Primary', style: TagStyle.info)],
+              if (g.isPrimary) ...[const SizedBox(width: EmSpacing.s8), const AppTag('Primary', style: TagStyle.info)],
             ]),
           ),
       ]),

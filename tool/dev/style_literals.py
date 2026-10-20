@@ -21,7 +21,7 @@ def calls(src, pat):
                     break
             j += 1
         args = src[i:j + 1]
-        if re.search(r'(?<![A-Za-z_.])(?:[1-9]\d*(?:\.\d+)?|0\.\d*[1-9]\d*)', args):
+        if re.search(r'(?<![A-Za-z_.\d])(?:[1-9]\d*(?:\.\d+)?|0\.\d*[1-9]\d*)', args):
             n += 1
     return n
 
