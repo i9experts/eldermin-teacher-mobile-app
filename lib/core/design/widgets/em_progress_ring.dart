@@ -145,20 +145,25 @@ class EmProgressRingCard extends StatelessWidget {
       semanticLabel: semanticLabel,
       child: LayoutBuilder(builder: (context, c) {
         final stacked = c.maxWidth < 300 + (scale - 1) * 200;
+        // Title and subtitle sit next to the ring; the action goes UNDER them at its natural width, so a button label ("Mark remaining") is
+        // never squeezed into the narrow text column and wrapped.
         final text = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(title, style: EmType.title.copyWith(color: EmColors.ink)),
             if (subtitle != null) ...[const SizedBox(height: 4), Text(subtitle!, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))],
-            if (action != null) ...[const SizedBox(height: 16), action!],
           ],
         );
         final ring = EmProgressRing(value: value, size: ringSize, centerText: centerText, centerCaption: centerCaption);
+        final act = action == null ? const <Widget>[] : [const SizedBox(height: 16), Align(alignment: AlignmentDirectional.centerStart, child: action!)];
         if (stacked) {
-          return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [text, const SizedBox(height: 16), Center(child: ring)]);
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [text, ...act, const SizedBox(height: 16), Center(child: ring)]);
         }
-        return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [Expanded(child: text), const SizedBox(width: 12), ring]);
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.center, children: [Expanded(child: text), const SizedBox(width: 12), ring]),
+          ...act,
+        ]);
       }),
     );
   }

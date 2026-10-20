@@ -410,6 +410,21 @@ void main() {
       }
     }
   });
+
+  // D6 follow-up: the "mark remaining" actions of the bottom bar never wrap at text scale 1.0 (320-430); at 1.3x they may.
+  group('mark remaining label', () {
+    for (final w in probeWidths) {
+      testWidgets('"Mark all present" and "Mark remaining present" on one line at ${w.toInt()} x 1.0', (t) async {
+        await boot(t, const AttendanceMarkScreen(), width: w);
+        expectNoLayoutError(t);
+        expectOneLine(t, find.text('Mark all present'), scale: 1.0);
+        await t.tap(chip(0, AttendanceStatus.present));
+        await t.pump();
+        expectOneLine(t, find.text('Mark remaining present'), scale: 1.0);
+        expectInsideScreen(t, find.byKey(const Key('mark_remaining_present')), w);
+      });
+    }
+  });
 }
 
 WidgetTester tester(WidgetTester t) => t;
