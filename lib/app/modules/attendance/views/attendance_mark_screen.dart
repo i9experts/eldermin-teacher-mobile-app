@@ -5,6 +5,7 @@ import '../../../../core/models/classroom/attendance_models.dart';
 import '../../../../core/models/classroom/student_models.dart';
 import '../../../../core/utils/home_time.dart';
 import '../../../../core/utils/timetable_week.dart';
+import '../../../../core/widgets/app_date_picker.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../controllers/attendance_controller.dart';
@@ -73,6 +74,13 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     if (!await c.selectSubject(name)) {
       if (await _confirmDiscard()) await c.selectSubject(name, discard: true);
     }
+  }
+
+  /// The calendar entry point (pre-D6 `day_pick`): the same allowed range as the date strip and as the old Material dialog
+  /// (`firstDate: earliestEditable`, `lastDate: today`), now in the token date picker.
+  Future<void> _pickDay() async {
+    final picked = await showAppDatePicker(context, initialDate: c.day.value, firstDate: c.earliestEditable, lastDate: c.today);
+    if (picked != null) await _changeDay(picked);
   }
 
   /// Brings the first unmarked student into view (rows are built lazily, so this scrolls by index).
@@ -173,6 +181,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
           selected: day,
           days: [for (var i = -kAttendanceEditWindowDays; i <= 0; i++) addDays(c.today, i)],
           onSelect: _changeDay,
+          onPick: _pickDay,
         ),
         if (c.isSubjectWise) _SubjectBar(controller: c, onSelect: _changeSubject),
         if (c.needsSubject)
@@ -231,7 +240,8 @@ class _DayBar extends StatelessWidget {
   final DateTime selected;
   final List<DateTime> days;
   final ValueChanged<DateTime> onSelect;
-  const _DayBar({required this.label, required this.cls, required this.selected, required this.days, required this.onSelect});
+  final VoidCallback onPick;
+  const _DayBar({required this.label, required this.cls, required this.selected, required this.days, required this.onSelect, required this.onPick});
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -239,10 +249,21 @@ class _DayBar extends StatelessWidget {
         child: EmHeroCard(
           padding: const EdgeInsetsDirectional.all(EmSpacing.s16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, key: const Key('day_label'), style: EmType.heading.copyWith(color: EmColors.ink)),
-            Text(cls, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(label, key: const Key('day_label'), style: EmType.heading.copyWith(color: EmColors.ink)),
+                  Text(cls, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+                ]),
+              ),
+              const SizedBox(width: EmSpacing.s8),
+              EmIconCircleButton(key: const Key('day_pick'), icon: Icons.calendar_month_rounded, semanticLabel: 'Pick a date', tooltip: 'Pick a date', elevated: false, onTap: onPick),
+            ]),
             const SizedBox(height: EmSpacing.row),
-            KeyedSubtree(key: const Key('day_strip'), child: EmDateStrip(days: days, selected: selected, onSelected: onSelect)),
+            KeyedSubtree(
+              key: const Key('day_strip'),
+              child: EmDateStrip(days: days, selected: selected, onSelected: onSelect, dayKey: (d) => ValueKey('mark_day_${ymdOf(d)}')),
+            ),
           ]),
         ),
       );

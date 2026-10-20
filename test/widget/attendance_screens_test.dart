@@ -425,6 +425,96 @@ void main() {
       });
     }
   });
+
+  // D6 follow-up: date selection on the marking screen. Pre-D6 (84d9b42 attendance_mark_screen.dart:80-85,186-187,258,273): day_back / day_forward moved
+  // one day inside [today - kAttendanceEditWindowDays, today] and day_pick opened showDatePicker(firstDate: earliestEditable, lastDate: today).
+  // The strip shows exactly that window and the calendar entry point (day_pick) is back, with the identical limits.
+  group('mark screen: date selection', () {
+    // clock = Monday 5 Oct 2026, window = 28 Sep .. 5 Oct (7 days back, never the future)
+    String ymd(DateTime d) => ymdOf(d);
+    // a day cell of the date picker's grid (the strip behind it also shows day numbers)
+    Finder cell(String day) => find.descendant(of: find.byType(GridView), matching: find.text(day));
+
+    testWidgets('the strip lists exactly the allowed window: 28 Sep .. 5 Oct, nothing older, nothing in the future', (t) async {
+      await boot(t, const AttendanceMarkScreen());
+      final strip = t.widget<EmDateStrip>(find.byType(EmDateStrip));
+      expect(strip.days.length, kAttendanceEditWindowDays + 1);
+      expect(ymd(strip.days.first), '2026-09-28');
+      expect(ymd(strip.days.last), '2026-10-05');
+      expect(find.byKey(const Key('day_pick')), findsOneWidget);
+    });
+
+    testWidgets('tapping a past day on the strip opens it (the previous / next day are one tap away)', (t) async {
+      await boot(t, const AttendanceMarkScreen());
+      await t.tap(find.byKey(const ValueKey('mark_day_2026-10-04')));
+      await t.pumpAndSettle();
+      expect(ymd(c.day.value), '2026-10-04');
+      await t.tap(find.byKey(const ValueKey('mark_day_2026-10-05')));
+      await t.pumpAndSettle();
+      expect(ymd(c.day.value), '2026-10-05');
+    });
+
+    testWidgets('calendar entry point: jump to an arbitrary past day of the window (1 Oct) and to its first day (28 Sep, previous month)', (t) async {
+      await boot(t, const AttendanceMarkScreen());
+      await t.tap(find.byKey(const Key('day_pick')));
+      await t.pumpAndSettle();
+      expect(find.text('Select date'), findsOneWidget);
+      expect(find.text('October 2026'), findsOneWidget);
+      await t.tap(cell('1'));
+      await t.pumpAndSettle();
+      expect(ymd(c.day.value), '2026-10-01');
+      // the earliest allowed day lives in the previous month
+      await t.tap(find.byKey(const Key('day_pick')));
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('Previous'));
+      await t.pumpAndSettle();
+      expect(find.text('September 2026'), findsOneWidget);
+      await t.tap(cell('28'));
+      await t.pumpAndSettle();
+      expect(ymd(c.day.value), '2026-09-28');
+    });
+
+    testWidgets('limits are enforced identically: older than the window (two weeks back) and the future cannot be picked', (t) async {
+      await boot(t, const AttendanceMarkScreen());
+      await t.tap(find.byKey(const Key('day_pick')));
+      await t.pumpAndSettle();
+      // future: 6 Oct is disabled and the month cannot move past October
+      await t.tap(cell('6'));
+      await t.pumpAndSettle();
+      expect(find.text('Select date'), findsOneWidget);
+      await t.tap(find.byTooltip('Next'));
+      await t.pumpAndSettle();
+      expect(find.text('October 2026'), findsOneWidget);
+      // past: one month back is September; 27 Sep (outside the 7 days) is disabled and August is out of reach (two weeks, three weeks back)
+      await t.tap(find.byTooltip('Previous'));
+      await t.pumpAndSettle();
+      expect(find.text('September 2026'), findsOneWidget);
+      await t.tap(cell('21'));
+      await t.pumpAndSettle();
+      await t.tap(cell('27'));
+      await t.pumpAndSettle();
+      expect(find.text('Select date'), findsOneWidget);
+      expect(ymd(c.day.value), '2026-10-05');
+      await t.tap(find.byTooltip('Previous'));
+      await t.pumpAndSettle();
+      expect(find.text('September 2026'), findsOneWidget);
+    });
+
+    testWidgets('unsaved marks: picking another day asks first (Keep editing stays on the day)', (t) async {
+      await boot(t, const AttendanceMarkScreen());
+      await t.tap(chip(0, AttendanceStatus.absent));
+      await t.pump();
+      await t.tap(find.byKey(const Key('day_pick')));
+      await t.pumpAndSettle();
+      await t.tap(cell('1'));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('discard_dialog')), findsOneWidget);
+      await t.tap(find.byKey(const Key('discard_keep')));
+      await t.pump();
+      expect(ymd(c.day.value), '2026-10-05');
+      expect(c.marks[roster[0].id], AttendanceStatus.absent);
+    });
+  });
 }
 
 WidgetTester tester(WidgetTester t) => t;
