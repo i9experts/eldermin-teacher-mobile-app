@@ -11,6 +11,7 @@ import '../../homework/views/widgets/homework_widgets.dart';
 import '../../ptm/views/widgets/ptm_widgets.dart';
 import '../controllers/leave_apply_controller.dart';
 import 'leave_screen.dart';
+import '../../../../core/design/design.dart';
 
 /// Apply for leave (`/leave/apply`).
 class LeaveApplyScreen extends GetView<LeaveApplyController> {
@@ -34,8 +35,8 @@ class LeaveApplyScreen extends GetView<LeaveApplyController> {
         }
         Get.back();
       },
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Apply for leave')),
+      child: EmScaffold(
+        appBar: EmAppBar(title: 'Apply for leave'),
         body: Column(children: [Expanded(child: Obx(() => _form(context))), _bottom(context)]),
       ),
     );

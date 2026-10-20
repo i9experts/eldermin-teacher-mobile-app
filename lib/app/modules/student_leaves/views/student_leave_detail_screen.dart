@@ -10,6 +10,7 @@ import '../../../common/action_failure.dart';
 import '../../homework/views/widgets/homework_widgets.dart';
 import '../controllers/student_leaves_controller.dart';
 import 'student_leaves_screen.dart';
+import '../../../../core/design/design.dart';
 
 /// One leave request (`/student-leaves/:id`): details + approve / reject (confirm sheet with optional remarks).
 /// There is no "get one" endpoint, so the request is found in the lists the controller loads.
@@ -42,8 +43,8 @@ class _State extends State<StudentLeaveDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Leave request')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Leave request'),
       body: Obx(() {
         if (!c.allowed) {
           return const AppEmptyView(key: Key('leaves_not_allowed'), icon: Icons.lock_outline_rounded, title: 'Class teachers only');

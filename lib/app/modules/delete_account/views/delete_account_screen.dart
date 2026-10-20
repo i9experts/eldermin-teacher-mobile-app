@@ -6,6 +6,7 @@ import '../../../common/action_failure.dart';
 import '../../../components/custom_text.dart';
 import '../../homework/views/widgets/homework_widgets.dart';
 import '../controllers/delete_account_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// Delete-account request (`/delete-account`).
 class DeleteAccountScreen extends GetView<DeleteAccountController> {
@@ -14,8 +15,8 @@ class DeleteAccountScreen extends GetView<DeleteAccountController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Delete account')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Delete account'),
       body: Obx(() {
         final r = c.result.value;
         if (r != null) return _done(r);

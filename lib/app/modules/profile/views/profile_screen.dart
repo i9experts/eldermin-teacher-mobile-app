@@ -10,6 +10,7 @@ import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../controllers/profile_controller.dart';
+import '../../../../core/design/design.dart';
 
 String roleLabel(String role) {
   if (role.isEmpty) return '';
@@ -25,8 +26,8 @@ class ProfileScreen extends GetView<ProfileController> {
   @override
   Widget build(BuildContext context) {
     final auth = Get.find<AuthController>();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Profile'),
       body: RefreshIndicator(
         onRefresh: () => c.load(userInitiated: true),
         child: Obx(() {

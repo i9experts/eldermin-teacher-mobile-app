@@ -13,6 +13,7 @@ import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart';
 import '../../students/views/widgets/student_widgets.dart';
 import '../controllers/safeguarding_controller.dart';
+import '../../../../core/design/design.dart';
 
 const kSafeguardingNotice = "This goes confidentially to your school's safeguarding lead. It is not shared with parents. If a child is in immediate danger contact the emergency services or your safeguarding lead directly.";
 
@@ -35,8 +36,8 @@ class SafeguardingScreen extends GetView<SafeguardingController> {
           }
           Get.back();
         },
-        child: Scaffold(
-          appBar: AppBar(title: const Text('Raise a concern')),
+        child: EmScaffold(
+          appBar: EmAppBar(title: 'Raise a concern'),
           body: Column(children: [Expanded(child: _form(context)), _bottom(context)]),
         ),
       );
@@ -193,8 +194,8 @@ class _SentView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Raise a concern'), automaticallyImplyLeading: false),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Raise a concern', showBack: false),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [

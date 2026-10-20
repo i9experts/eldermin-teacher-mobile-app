@@ -10,6 +10,7 @@ import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/leave_controller.dart';
+import '../../../../core/design/design.dart';
 
 TagStyle leaveStatusTag(StaffLeaveStatus s) => switch (s) {
       StaffLeaveStatus.pending => TagStyle.amber,
@@ -39,8 +40,8 @@ class LeaveScreen extends GetView<LeaveController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('My leave')),
+    return EmScaffold(extendBody: false, 
+      appBar: EmAppBar(title: 'My leave'),
       // A bottom bar instead of a floating button: a floating button covered the right edge (status chip) of the last visible card (7b review).
       bottomNavigationBar: SafeArea(
         child: Container(

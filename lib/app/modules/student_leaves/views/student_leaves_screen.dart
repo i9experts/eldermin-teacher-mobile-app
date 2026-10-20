@@ -8,6 +8,7 @@ import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/student_leaves_controller.dart';
+import '../../../../core/design/design.dart';
 
 /// Student leave requests of my class (`/student-leaves`): Pending / Approved / Rejected tabs. Class teachers only.
 class StudentLeavesScreen extends GetView<StudentLeavesController> {
@@ -17,8 +18,8 @@ class StudentLeavesScreen extends GetView<StudentLeavesController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Student leave requests')),
+    return EmScaffold(
+      appBar: EmAppBar(title: 'Student leave requests'),
       body: Obx(() {
         if (!c.allowed) {
           return const AppEmptyView(key: Key('leaves_not_allowed'), icon: Icons.lock_outline_rounded, title: 'Class teachers only', subtitle: 'Only the class teacher can review the leave requests of their class.');
