@@ -17,6 +17,7 @@ class EmDateStrip extends StatefulWidget {
     required this.selected,
     required this.onSelected,
     this.markedDays = const {},
+    this.dayKey,
   });
 
   /// Consecutive days to show (typically 7).
@@ -26,6 +27,9 @@ class EmDateStrip extends StatefulWidget {
 
   /// Days that get a small dot under the number (events).
   final Set<DateTime> markedDays;
+
+  /// Optional key per day (tests tap a day through it).
+  final Key? Function(DateTime day)? dayKey;
 
   /// The 7 days of the week containing [anchor], starting Monday.
   static List<DateTime> weekOf(DateTime anchor) {
@@ -66,12 +70,15 @@ class _EmDateStripState extends State<EmDateStrip> {
         final raw = (c.maxWidth - gap * (n - 1)) / n;
         final pills = [
           for (final d in widget.days)
-            _DayPill(
-              key: _same(d, widget.selected) ? _selectedKey : null,
-              day: d,
-              selected: _same(d, widget.selected),
-              marked: widget.markedDays.any((m) => _same(m, d)),
-              onTap: () => widget.onSelected(d),
+            KeyedSubtree(
+              key: widget.dayKey?.call(d),
+              child: _DayPill(
+                key: _same(d, widget.selected) ? _selectedKey : null,
+                day: d,
+                selected: _same(d, widget.selected),
+                marked: widget.markedDays.any((m) => _same(m, d)),
+                onTap: () => widget.onSelected(d),
+              ),
             ),
         ];
         // Pill width = (available - gaps) / 7 clamped to 40..48dp. Only when even

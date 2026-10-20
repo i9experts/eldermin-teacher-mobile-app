@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/home_time.dart';
 import '../../../../core/utils/timetable_week.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../controllers/timetable_controller.dart';
 import 'widgets/timetable_widgets.dart';
 import '../../../../core/design/design.dart';
@@ -44,18 +43,16 @@ class TimetableScreen extends GetView<TimetableController> {
       emptyTitle: 'No periods this week',
       emptySubtitle: 'Nothing is timetabled for you in the week of ${weekRangeLabel(c.weekStart)}.',
       header: [
-        ScreenHeader(
-          title: 'Timetable',
-          caption: c.isTodaySelected ? 'Today · ${longDateOf(c.today)}' : longDateOf(selected),
-          selectLabel: c.isTodaySelected ? null : 'Today',
-          onSelectTap: c.isTodaySelected ? null : c.goToToday,
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: EmCaptionLine(c.isTodaySelected ? 'Today · ${longDateOf(c.today)}' : longDateOf(selected))),
+          if (!c.isTodaySelected) TextButton(onPressed: c.goToToday, child: Text('Today', style: EmType.label.copyWith(color: EmColors.primary))),
+        ]),
+        EmSegmentedTabs<TimetableMode>(
+          segments: const [EmSegment(TimetableMode.day, 'Day'), EmSegment(TimetableMode.week, 'Week')],
+          selected: isDay ? TimetableMode.day : TimetableMode.week,
+          onChanged: c.setMode,
         ),
-        SegmentedControl(
-          options: const ['Day', 'Week'],
-          selectedIndex: isDay ? 0 : 1,
-          onChanged: (i) => c.setMode(i == 0 ? TimetableMode.day : TimetableMode.week),
-        ),
-        const SizedBox(height: 10),
+        const SizedBox(height: EmSpacing.row),
         TimetableWeekStrip(
           days: days,
           selected: selected,
@@ -65,7 +62,7 @@ class TimetableScreen extends GetView<TimetableController> {
           onPrevious: c.previousWeek,
           onNext: c.nextWeek,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: EmSpacing.row),
       ],
       builder: (periods) => [
         if (c.showsWeekTags) const WeekCycleNote(),
@@ -81,16 +78,9 @@ class TimetableScreen extends GetView<TimetableController> {
         AppCard(
           key: const Key('timetable_day_empty'),
           child: Row(children: [
-            const Icon(Icons.wb_sunny_outlined, color: AppColors.faint, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: CustomText(
-                text: c.isTodaySelected ? 'No classes today' : 'No classes on ${weekdayShort(date)} ${dayMonthShort(date)}',
-                fontWeight: FontWeight.w700,
-                color: AppColors.primaryColor,
-                fontSize: 13,
-              ),
-            ),
+            const ExcludeSemantics(child: Icon(Icons.wb_sunny_outlined, color: EmColors.textSecondary, size: 24)),
+            const SizedBox(width: EmSpacing.row),
+            Expanded(child: Text(c.isTodaySelected ? 'No classes today' : 'No classes on ${weekdayShort(date)} ${dayMonthShort(date)}', style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600))),
           ]),
         ),
       ];
@@ -105,12 +95,12 @@ class TimetableScreen extends GetView<TimetableController> {
       final isToday = sameDate(d, c.today);
       out.add(Padding(
         key: ValueKey('week_day_${d.year}-${d.month}-${d.day}'),
-        padding: const EdgeInsets.only(top: 6, bottom: 6),
+        padding: const EdgeInsets.only(top: EmSpacing.s8, bottom: EmSpacing.s8),
         child: Row(children: [
-          CustomText(text: '${weekdayShort(d)} ${dayMonthShort(d)}', color: AppColors.primaryColor, fontSize: 13, fontWeight: FontWeight.w800),
-          if (isToday) ...[const SizedBox(width: 8), const AppTag('Today', style: TagStyle.info)],
+          Flexible(child: Text('${weekdayShort(d)} ${dayMonthShort(d)}', style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
+          if (isToday) ...[const SizedBox(width: EmSpacing.s8), const AppTag('Today', style: TagStyle.info)],
           const Spacer(),
-          CustomText(text: items.isEmpty ? 'No classes' : '${items.length} ${items.length == 1 ? 'period' : 'periods'}', color: AppColors.faint, fontSize: 10),
+          Text(items.isEmpty ? 'No classes' : '${items.length} ${items.length == 1 ? 'period' : 'periods'}', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ]),
       ));
       for (final (i, p) in items.indexed) {
