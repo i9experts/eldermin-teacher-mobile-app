@@ -35,13 +35,14 @@ class HomeworkSubmissionsScreen extends GetView<SubmissionsController> {
       emptyTitle: 'No submissions yet',
       emptySubtitle: 'Once the homework is assigned, every student of the class appears here.',
       header: [
-        ScreenHeader(title: a?.title.isNotEmpty == true ? a!.title : 'Submissions', caption: a == null ? null : [a.subject, a.classLabel].where((e) => e.isNotEmpty).join(' · ')),
+        if (a?.title.isNotEmpty == true) Text(a!.title, key: const Key('subs_title'), style: EmType.title.copyWith(color: EmColors.ink)),
+        if (a != null && [a.subject, a.classLabel].any((e) => e.isNotEmpty)) EmCaptionLine([a.subject, a.classLabel].where((e) => e.isNotEmpty).join(' · ')) else const SizedBox(height: EmSpacing.s4),
       ],
       builder: (res) {
         if (res.submissions.isEmpty) {
           return [
             const Padding(
-              padding: EdgeInsets.only(top: 24),
+              padding: EdgeInsets.only(top: EmSpacing.s24),
               child: AppEmptyView(key: Key('subs_none'), icon: Icons.inbox_outlined, title: 'No students on this list', subtitle: 'The server has no student rows for this assignment (no active students matched the class when it was assigned).'),
             ),
           ];
@@ -52,13 +53,13 @@ class HomeworkSubmissionsScreen extends GetView<SubmissionsController> {
             ('${c.countFor(SubmissionFilter.graded)}', 'Graded', null),
             ('${c.countFor(SubmissionFilter.notHandedIn)}', 'Not handed in', null),
           ]),
-          const SizedBox(height: 10),
+          const SizedBox(height: EmSpacing.row),
           FilterChipsRow(chips: [
             for (final f in SubmissionFilter.values) (f.label, c.countFor(f), f == filter, () => c.setFilter(f), f.name),
           ]),
-          const SizedBox(height: 10),
+          const SizedBox(height: EmSpacing.row),
           if (visible.isEmpty)
-            Padding(padding: const EdgeInsets.only(top: 20), child: AppEmptyView(key: const Key('subs_filter_empty'), icon: Icons.filter_alt_off_outlined, title: 'Nobody in "${filter.label}"'))
+            Padding(padding: const EdgeInsets.only(top: EmSpacing.s24), child: AppEmptyView(key: const Key('subs_filter_empty'), icon: Icons.filter_alt_off_outlined, title: 'Nobody in "${filter.label}"'))
           else
             for (final s in visible)
               SubmissionTile(
@@ -69,7 +70,7 @@ class HomeworkSubmissionsScreen extends GetView<SubmissionsController> {
                   } else {
                     ScaffoldMessenger.of(Get.context!)
                       ..hideCurrentSnackBar()
-                      ..showSnackBar(SnackBar(content: Text('${s.studentName.isEmpty ? 'This student' : s.studentName} has not handed anything in yet.'), behavior: SnackBarBehavior.floating));
+                      ..showSnackBar(SnackBar(content: Text('${s.studentName.isEmpty ? 'This student' : s.studentName} has not handed anything in yet.')));
                   }
                 },
               ),

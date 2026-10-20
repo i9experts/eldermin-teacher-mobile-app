@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/homework/homework_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_date_picker.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../common/action_failure.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../../utils/toast_util.dart';
 import '../../students/views/widgets/student_widgets.dart';
 import '../../home/models/section_state.dart';
@@ -24,7 +22,7 @@ class HomeworkNewScreen extends GetView<HomeworkFormController> {
 
   void _snack(BuildContext context, String m) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating, margin: const EdgeInsets.fromLTRB(16, 0, 16, 100)));
+    ..showSnackBar(SnackBar(content: Text(m), margin: EmSpacing.snackAboveBar));
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +65,7 @@ class HomeworkNewScreen extends GetView<HomeworkFormController> {
     final selected = c.classIndex.value;
     final rosterState = c.roster.value;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: EmSpacing.listPadding,
       children: [
         if (failure != null) ErrorBanner(bannerKey: const Key('hw_submit_error'), message: failure.message),
         if (c.isEditing)
@@ -75,14 +73,14 @@ class HomeworkNewScreen extends GetView<HomeworkFormController> {
         else ...[
           FormLabel('Class *', error: errors['class']),
           ClassPicker(classes: c.classes, selected: selected, onSelect: c.selectClass),
-          if (selected >= 0) Padding(padding: const EdgeInsets.only(top: 8), child: _RosterLine(state: rosterState, onRetry: c.retryRoster)),
-          const SizedBox(height: 12),
+          if (selected >= 0) Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: _RosterLine(state: rosterState, onRetry: c.retryRoster)),
+          const SizedBox(height: EmSpacing.row),
           FormLabel('Subject *', error: errors['subject']),
           if (c.subjects.isEmpty)
-            const CustomText(text: 'Choose a class first.', color: AppColors.muted, fontSize: 12)
+            Text('Choose a class first.', style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))
           else
             ChoiceWrap(labels: c.subjects, selected: c.subject.value, onSelect: c.setSubject, keyPrefix: 'subject_'),
-          const SizedBox(height: 14),
+          const SizedBox(height: EmSpacing.block),
         ],
         const FormLabel('Type'),
         ChoiceWrap(
@@ -91,30 +89,35 @@ class HomeworkNewScreen extends GetView<HomeworkFormController> {
           onSelect: (l) => c.setType(AssignmentType.values.firstWhere((t) => t.label == l)),
           keyPrefix: 'type_',
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: EmSpacing.block),
         LabeledField(label: 'Title', required: true, controller: c.titleC, fieldKey: const Key('hw_title_field'), hint: 'e.g. Exercise 5.3: factoring', error: errors['title'], onChanged: (_) => c.errors.remove('title')),
         LabeledField(label: 'Description', controller: c.descriptionC, fieldKey: const Key('hw_desc_field'), maxLines: 3, hint: 'What should students do?'),
         LabeledField(label: 'Instructions', controller: c.instructionsC, fieldKey: const Key('hw_instr_field'), maxLines: 3, hint: 'Optional'),
         FormLabel('Due date *', error: errors['due']),
         InkWell(
           key: const Key('hw_due_picker'),
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: EmRadius.mdAll,
           onTap: () async {
             final today = c.today;
             final picked = await showAppDatePicker(context, initialDate: due ?? today, firstDate: c.isEditing ? DateTime(today.year - 1) : today, lastDate: DateTime(today.year + 2, 12, 31));
             if (picked != null) c.setDueDay(picked);
           },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: errors['due'] == null ? AppColors.line : AppColors.redText)),
-            child: Row(children: [
-              const Icon(Icons.event_rounded, size: 18, color: AppColors.primaryColor),
-              const SizedBox(width: 10),
-              CustomText(text: due == null ? 'Choose a date' : '${shortDay(due)} ${due.year}', color: due == null ? AppColors.faint : AppColors.black, fontWeight: FontWeight.w700, fontSize: 13),
-            ]),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: EmSpacing.minTouch),
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: EmColors.surface, borderRadius: EmRadius.mdAll, border: Border.all(color: errors['due'] == null ? EmColors.border : EmColors.error)),
+              child: Padding(
+                padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s16, vertical: EmSpacing.s12),
+                child: Row(children: [
+                  const ExcludeSemantics(child: Icon(Icons.event_rounded, size: 20, color: EmColors.primary)),
+                  const SizedBox(width: EmSpacing.s12),
+                  Expanded(child: Text(due == null ? 'Choose a date' : '${shortDay(due)} ${due.year}', style: EmType.body.copyWith(color: due == null ? EmColors.textTertiary : EmColors.ink))),
+                ]),
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: EmSpacing.block),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
             child: LabeledField(
@@ -127,7 +130,7 @@ class HomeworkNewScreen extends GetView<HomeworkFormController> {
               onChanged: (_) => c.errors.remove('total'),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: EmSpacing.row),
           Expanded(
             child: LabeledField(
               label: 'Passing marks',
@@ -140,19 +143,20 @@ class HomeworkNewScreen extends GetView<HomeworkFormController> {
           ),
         ]),
         if (c.isEditing && !c.editing!.isDraft)
-          const Padding(padding: EdgeInsets.only(bottom: 10), child: CustomText(text: "Total marks can't change once assigned: marks already given keep their maximum.", color: AppColors.muted, fontSize: 11)),
+          Padding(padding: const EdgeInsets.only(bottom: EmSpacing.s12), child: Text("Total marks can't change once assigned: marks already given keep their maximum.", style: EmType.caption.copyWith(color: EmColors.textSecondary))),
         FormLabel('Attachments', error: errors['attachments']),
-        if (notice != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: CustomText(key: const Key('hw_pick_notice'), text: notice, color: AppColors.redText, fontSize: 11.5, fontWeight: FontWeight.w600)),
+        if (notice != null) Padding(padding: const EdgeInsets.only(bottom: EmSpacing.s8), child: Text(notice, key: const Key('hw_pick_notice'), style: EmType.caption.copyWith(color: EmColors.error, fontWeight: FontWeight.w600))),
         for (final a in c.attachments) _AttachmentRow(item: a, onRetry: () => c.retryUpload(a.id), onRemove: () => c.removeAttachment(a.id)),
-        OutlinedButton.icon(
+        EmSecondaryButton(
           key: const Key('hw_add_attachment'),
+          expand: true,
+          icon: Icons.attach_file_rounded,
+          label: 'Add attachment',
           onPressed: c.attachments.length >= HomeworkFormController.maxAttachments ? null : () => _chooseSource(context),
-          icon: const Icon(Icons.attach_file_rounded, size: 18),
-          label: const CustomText(text: 'Add attachment', color: AppColors.primaryColor, fontWeight: FontWeight.w700),
         ),
-        const Padding(
-          padding: EdgeInsets.only(top: 6),
-          child: CustomText(text: 'PDF, JPG, PNG, WEBP, DOC or DOCX, up to 10 MB each (max 5).', color: AppColors.muted, fontSize: 11),
+        Padding(
+          padding: const EdgeInsets.only(top: EmSpacing.s8),
+          child: Text('PDF, JPG, PNG, WEBP, DOC or DOCX, up to 10 MB each (max 5).', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ),
       ],
     );
@@ -224,25 +228,24 @@ class _RosterLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = state;
-    if (s.isLoading) return const CustomText(key: Key('hw_roster_loading'), text: 'Checking the class list...', color: AppColors.muted, fontSize: 11.5);
+    final quiet = EmType.caption.copyWith(color: EmColors.textSecondary);
+    final warn = EmType.caption.copyWith(color: EmColors.onWarningContainer);
+    if (s.isLoading) return Text('Checking the class list...', key: const Key('hw_roster_loading'), style: quiet);
     final w = s.data;
     if (w == null) {
       return Row(children: [
-        const Expanded(child: CustomText(key: Key('hw_roster_error'), text: "Couldn't load the class list. The class name from your profile will be used.", color: AppColors.amberText, fontSize: 11.5)),
-        TextButton(onPressed: onRetry, child: const CustomText(text: 'Retry', color: AppColors.primaryColor, fontWeight: FontWeight.w800)),
+        Expanded(child: Text("Couldn't load the class list. The class name from your profile will be used.", key: const Key('hw_roster_error'), style: warn)),
+        TextButton(onPressed: onRetry, child: Text('Retry', style: EmType.label.copyWith(color: EmColors.primary))),
       ]);
     }
-    if (w.students == 0) {
-      return const CustomText(key: Key('hw_roster_empty'), text: 'No active students found in this class.', color: AppColors.amberText, fontSize: 11.5);
-    }
+    if (w.students == 0) return Text('No active students found in this class.', key: const Key('hw_roster_empty'), style: warn);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      CustomText(key: const Key('hw_roster_count'), text: '${w.students} ${w.students == 1 ? 'student' : 'students'} in this class', color: AppColors.muted, fontSize: 11.5),
+      Text('${w.students} ${w.students == 1 ? 'student' : 'students'} in this class', key: const Key('hw_roster_count'), style: quiet),
       if (w.mismatched > 0)
-        CustomText(
+        Text(
+          '${w.mismatched} ${w.mismatched == 1 ? 'student is' : 'students are'} recorded under a different class spelling and may not receive this homework.',
           key: const Key('hw_roster_mismatch'),
-          text: '${w.mismatched} ${w.mismatched == 1 ? 'student is' : 'students are'} recorded under a different class spelling and may not receive this homework.',
-          color: AppColors.amberText,
-          fontSize: 11.5,
+          style: warn,
         ),
     ]);
   }
@@ -261,46 +264,61 @@ class _AttachmentRow extends StatelessWidget {
       final p = item.progress.value;
       final err = item.error.value;
       final unavailable = item.unavailable.value;
-      return Container(
+      final failed = st == UploadStatus.failed;
+      final errStyle = EmType.caption.copyWith(color: EmColors.onErrorContainer);
+      return Padding(
         key: ValueKey('att_${item.id}'),
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: st == UploadStatus.failed ? AppColors.redText : AppColors.line)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Icon(st == UploadStatus.done ? Icons.check_circle_rounded : (st == UploadStatus.failed ? Icons.error_rounded : Icons.cloud_upload_outlined),
-                size: 18, color: st == UploadStatus.done ? AppColors.greenText : (st == UploadStatus.failed ? AppColors.redText : AppColors.muted)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                CustomText(text: item.name, fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.primaryColor, maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (item.size > 0) CustomText(text: sizeText(item.size), color: AppColors.muted, fontSize: 10.5),
-              ]),
-            ),
-            if (st == UploadStatus.failed && !unavailable) TextButton(key: ValueKey('retry_${item.id}'), onPressed: onRetry, child: const CustomText(text: 'Retry', color: AppColors.primaryColor, fontWeight: FontWeight.w800)),
-            IconButton(key: ValueKey('remove_${item.id}'), onPressed: onRemove, icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.muted)),
+        padding: const EdgeInsets.only(bottom: EmSpacing.s8),
+        child: EmCard(
+          color: failed ? EmColors.errorContainer : EmColors.surface,
+          padding: const EdgeInsetsDirectional.fromSTEB(EmSpacing.s12, EmSpacing.s8, EmSpacing.s4, EmSpacing.s8),
+          radius: EmRadius.md,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              ExcludeSemantics(
+                child: Icon(
+                  st == UploadStatus.done ? Icons.check_circle_rounded : (failed ? Icons.error_rounded : Icons.cloud_upload_outlined),
+                  size: 20,
+                  color: st == UploadStatus.done ? EmColors.onSuccessContainer : (failed ? EmColors.onErrorContainer : EmColors.textSecondary),
+                ),
+              ),
+              const SizedBox(width: EmSpacing.s8),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(item.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600)),
+                  if (item.size > 0) Text(sizeText(item.size), style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+                ]),
+              ),
+              if (failed && !unavailable) TextButton(key: ValueKey('retry_${item.id}'), onPressed: onRetry, child: Text('Retry', style: EmType.label.copyWith(color: EmColors.primary))),
+              IconButton(key: ValueKey('remove_${item.id}'), tooltip: 'Remove', onPressed: onRemove, icon: const Icon(Icons.close_rounded, size: 20, color: EmColors.textSecondary)),
+            ]),
+            if (st == UploadStatus.uploading)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: EmSpacing.s8, bottom: EmSpacing.s4),
+                child: Row(children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: EmRadius.pillAll,
+                      child: LinearProgressIndicator(key: ValueKey('progress_${item.id}'), value: p > 0 ? p : null, minHeight: EmSpacing.s8, color: EmColors.primary, backgroundColor: EmColors.primaryLight),
+                    ),
+                  ),
+                  const SizedBox(width: EmSpacing.s8),
+                  Text(p >= 1 ? 'Finishing...' : '${(p * 100).round()}%', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+                ]),
+              ),
+            if (failed && unavailable)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: EmSpacing.s8, bottom: EmSpacing.s4),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(ActionFailure.uploadUnavailableTitle, key: ValueKey('att_unavailable_title_${item.id}'), style: errStyle.copyWith(fontWeight: FontWeight.w600)),
+                  if (err != null) Text(err, key: ValueKey('att_err_${item.id}'), style: errStyle),
+                  TextButton(key: ValueKey('continue_without_${item.id}'), onPressed: onRemove, child: Text('Continue without attachment', style: EmType.label.copyWith(color: EmColors.primary))),
+                ]),
+              )
+            else if (failed && err != null)
+              Padding(padding: const EdgeInsetsDirectional.only(end: EmSpacing.s8, bottom: EmSpacing.s4), child: Text(err, key: ValueKey('att_err_${item.id}'), style: errStyle)),
           ]),
-          if (st == UploadStatus.uploading)
-            Padding(
-              padding: const EdgeInsets.only(right: 8, bottom: 4),
-              child: Row(children: [
-                Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(key: ValueKey('progress_${item.id}'), value: p > 0 ? p : null, minHeight: 5, color: AppColors.primaryColor, backgroundColor: AppColors.pale))),
-                const SizedBox(width: 8),
-                CustomText(text: p >= 1 ? 'Finishing...' : '${(p * 100).round()}%', color: AppColors.muted, fontSize: 10.5),
-              ]),
-            ),
-          if (st == UploadStatus.failed && unavailable)
-            Padding(
-              padding: const EdgeInsets.only(right: 8, bottom: 4),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                CustomText(key: ValueKey('att_unavailable_title_${item.id}'), text: ActionFailure.uploadUnavailableTitle, color: AppColors.redText, fontSize: 12, fontWeight: FontWeight.w800),
-                if (err != null) CustomText(key: ValueKey('att_err_${item.id}'), text: err, color: AppColors.redText, fontSize: 11),
-                TextButton(key: ValueKey('continue_without_${item.id}'), onPressed: onRemove, child: const CustomText(text: 'Continue without attachment', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 12)),
-              ]),
-            )
-          else if (st == UploadStatus.failed && err != null)
-            Padding(padding: const EdgeInsets.only(right: 8, bottom: 4), child: CustomText(key: ValueKey('att_err_${item.id}'), text: err, color: AppColors.redText, fontSize: 11)),
-        ]),
+        ),
       );
     });
   }
@@ -320,31 +338,27 @@ class _BottomBar extends StatelessWidget {
       final uploading = c.hasUploading;
       final busy = saving || uploading;
       final editingAssigned = c.isEditing && !c.editing!.isDraft;
-      return SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.line))),
-          child: Row(children: [
-            if (!editingAssigned)
+      return DecoratedBox(
+        decoration: BoxDecoration(color: EmColors.surface, boxShadow: EmShadows.soft),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: EmSpacing.screenH, vertical: EmSpacing.s12),
+            child: Row(children: [
+              if (!editingAssigned) ...[
+                Expanded(child: EmSecondaryButton(key: const Key('hw_save_draft'), expand: true, label: c.isEditing ? 'Save draft' : 'Save as draft', onPressed: busy ? null : onDraft)),
+                const SizedBox(width: EmSpacing.s12),
+              ],
               Expanded(
-                child: OutlinedButton(
-                  key: const Key('hw_save_draft'),
-                  onPressed: busy ? null : onDraft,
-                  child: CustomText(text: c.isEditing ? 'Save draft' : 'Save as draft', color: AppColors.primaryColor, fontWeight: FontWeight.w700),
+                child: EmPrimaryButton(
+                  key: const Key('hw_submit'),
+                  loading: saving,
+                  label: uploading ? 'Uploading...' : (editingAssigned ? 'Save changes' : 'Assign to class'),
+                  onPressed: busy ? null : (editingAssigned ? onDraft : onAssign),
                 ),
               ),
-            if (!editingAssigned) const SizedBox(width: 10),
-            Expanded(
-              child: ElevatedButton(
-                key: const Key('hw_submit'),
-                onPressed: busy ? null : (editingAssigned ? onDraft : onAssign),
-                child: saving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : CustomText(text: uploading ? 'Uploading...' : (editingAssigned ? 'Save changes' : 'Assign to class'), color: Colors.white, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ]),
+            ]),
+          ),
         ),
       );
     });

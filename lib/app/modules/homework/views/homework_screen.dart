@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/homework/homework_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/homework_controller.dart';
@@ -22,10 +20,9 @@ class HomeworkScreen extends GetView<HomeworkController> {
       floatingActionButton: Obx(() => controller.canView && controller.state.value.status != SectionStatus.forbidden
           ? FloatingActionButton.extended(
               key: const Key('hw_new_fab'),
-              backgroundColor: AppColors.primaryColor,
               onPressed: () => Get.toNamed(Routes.homeworkNew),
-              icon: const Icon(Icons.add_rounded, color: Colors.white),
-              label: const CustomText(text: 'New homework', color: Colors.white, fontWeight: FontWeight.w700),
+              icon: const Icon(Icons.add_rounded),
+              label: Text('New homework', style: EmType.label.copyWith(color: EmColors.onPrimary)),
             )
           : const SizedBox.shrink()),
       body: Obx(_body),
@@ -50,21 +47,21 @@ class HomeworkScreen extends GetView<HomeworkController> {
       emptyIcon: Icons.menu_book_outlined,
       emptyTitle: 'No homework yet',
       emptySubtitle: 'Assignments you create will appear here. Tap "New homework" to set one.',
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      padding: EmSpacing.listPaddingFab,
       header: [
-        ScreenHeader(title: 'Homework', caption: state.hasData ? '$all ${all == 1 ? 'assignment' : 'assignments'} · mine' : 'Your assignments'),
+        EmCaptionLine(state.hasData ? '$all ${all == 1 ? 'assignment' : 'assignments'} · mine' : 'Your assignments'),
         if (state.hasData) ...[
           FilterChipsRow(chips: [
             for (final f in HomeworkFilter.values) (f.label, c.countFor(f), f == filter, () => c.setFilter(f), f.name),
           ]),
-          const SizedBox(height: 8),
+          const SizedBox(height: EmSpacing.s4),
           Align(
-            alignment: Alignment.centerRight,
+            alignment: AlignmentDirectional.centerEnd,
             child: TextButton.icon(
               key: const Key('hw_sort'),
               onPressed: c.toggleSort,
-              icon: Icon(newest ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, size: 16),
-              label: CustomText(text: newest ? 'Latest due first' : 'Earliest due first', color: AppColors.primaryColor, fontSize: 11.5, fontWeight: FontWeight.w700),
+              icon: Icon(newest ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, size: 18),
+              label: Text(newest ? 'Latest due first' : 'Earliest due first', style: EmType.label.copyWith(color: EmColors.primary)),
             ),
           ),
         ],
@@ -73,7 +70,7 @@ class HomeworkScreen extends GetView<HomeworkController> {
         if (visible.isEmpty) {
           return [
             Padding(
-              padding: const EdgeInsets.only(top: 24),
+              padding: const EdgeInsets.only(top: EmSpacing.s24),
               child: AppEmptyView(key: const Key('hw_filter_empty'), icon: Icons.filter_alt_off_outlined, title: 'No ${filter.label.toLowerCase()} homework'),
             ),
           ];
@@ -85,7 +82,7 @@ class HomeworkScreen extends GetView<HomeworkController> {
               child: TextButton(
                 key: const Key('hw_show_more'),
                 onPressed: c.showMore,
-                child: CustomText(text: 'Show more (${total - visible.length} left)', color: AppColors.primaryColor, fontWeight: FontWeight.w800),
+                child: Text('Show more (${total - visible.length} left)', style: EmType.label.copyWith(color: EmColors.primary)),
               ),
             ),
         ];

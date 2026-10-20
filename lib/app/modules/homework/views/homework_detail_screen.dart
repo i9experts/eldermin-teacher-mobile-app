@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/homework/homework_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/toast_util.dart';
 import '../controllers/homework_detail_controller.dart';
@@ -39,21 +37,22 @@ class HomeworkDetailScreen extends GetView<HomeworkDetailController> {
 
   void _snack(BuildContext context, String m) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating));
+    ..showSnackBar(SnackBar(content: Text(m)));
 
   List<Widget> _content(BuildContext context, Assignment a, bool busy, String? opening) {
     final c = controller;
     final today = c.today;
     final due = a.dueDay;
+    final body = EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400, height: 1.5);
     return [
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(child: CustomText(text: a.title, key: const Key('hw_title'), fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryColor, height: 1.2)),
-        const SizedBox(width: 8),
+        Expanded(child: Text(a.title, key: const Key('hw_title'), style: EmType.title.copyWith(color: EmColors.ink))),
+        const SizedBox(width: EmSpacing.s8),
         PhaseTag(assignment: a, today: today),
       ]),
-      const SizedBox(height: 4),
-      CustomText(text: [a.subject, a.classLabel, a.typeLabel].where((e) => e.isNotEmpty).join(' · '), color: AppColors.muted, fontSize: 12),
-      const SizedBox(height: 14),
+      const SizedBox(height: EmSpacing.s4),
+      Text([a.subject, a.classLabel, a.typeLabel].where((e) => e.isNotEmpty).join(' · '), style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
+      const SizedBox(height: EmSpacing.block),
       AppCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           InfoLine(icon: Icons.event_rounded, text: due == null ? 'No due date' : '${dueText(a, today)} (${fullDay(due)})'),
@@ -62,8 +61,8 @@ class HomeworkDetailScreen extends GetView<HomeworkDetailController> {
           if (!a.isDraft && a.avgScore > 0) InfoLine(icon: Icons.analytics_outlined, text: 'Average mark ${markText(a.avgScore)}'),
         ]),
       ),
-      if (a.description.isNotEmpty) ...[const SubHeading('Description'), AppCard(child: CustomText(text: a.description, fontSize: 12.5, height: 1.4))],
-      if (a.instructions.isNotEmpty) ...[const SubHeading('Instructions'), AppCard(child: CustomText(text: a.instructions, fontSize: 12.5, height: 1.4))],
+      if (a.description.isNotEmpty) ...[const SubHeading('Description'), AppCard(child: Text(a.description, style: body))],
+      if (a.instructions.isNotEmpty) ...[const SubHeading('Instructions'), AppCard(child: Text(a.instructions, style: body))],
       if (a.attachmentKeys.isNotEmpty) ...[
         const SubHeading('Attachments'),
         for (var i = 0; i < a.attachmentKeys.length; i++)
@@ -77,52 +76,27 @@ class HomeworkDetailScreen extends GetView<HomeworkDetailController> {
             },
           ),
       ],
-      const SizedBox(height: 14),
-      if (a.isDraft) ...[
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            key: const Key('hw_assign'),
-            onPressed: busy ? null : () => _assign(context, a),
-            icon: const Icon(Icons.send_rounded, size: 18),
-            label: const CustomText(text: 'Assign to class', color: Colors.white, fontWeight: FontWeight.w700),
-          ),
-        ),
-        const SizedBox(height: 8),
-      ] else ...[
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            key: const Key('hw_view_submissions'),
-            onPressed: () => Get.toNamed(Routes.homeworkSubmissionsOf(a.id)),
-            icon: const Icon(Icons.inbox_rounded, size: 18),
-            label: const CustomText(text: 'Submissions and grading', color: Colors.white, fontWeight: FontWeight.w700),
-          ),
-        ),
-        const SizedBox(height: 8),
-      ],
-      SizedBox(
-        width: double.infinity,
-        child: OutlinedButton.icon(
-          key: const Key('hw_edit'),
-          onPressed: busy ? null : () => Get.toNamed(Routes.homeworkNew, arguments: a),
-          icon: const Icon(Icons.edit_outlined, size: 18),
-          label: const CustomText(text: 'Edit', color: AppColors.primaryColor, fontWeight: FontWeight.w700),
-        ),
-      ),
+      const SizedBox(height: EmSpacing.block),
+      if (a.isDraft)
+        EmPrimaryButton(key: const Key('hw_assign'), icon: Icons.send_rounded, label: 'Assign to class', onPressed: busy ? null : () => _assign(context, a))
+      else
+        EmPrimaryButton(key: const Key('hw_view_submissions'), icon: Icons.inbox_rounded, label: 'Submissions and grading', onPressed: () => Get.toNamed(Routes.homeworkSubmissionsOf(a.id))),
+      const SizedBox(height: EmSpacing.s8),
+      EmSecondaryButton(key: const Key('hw_edit'), expand: true, icon: Icons.edit_outlined, label: 'Edit', onPressed: busy ? null : () => Get.toNamed(Routes.homeworkNew, arguments: a)),
       if (!a.isDraft)
-        const Padding(
-          padding: EdgeInsets.only(top: 6),
-          child: CustomText(text: "Class, subject and total marks can't be changed after the homework is assigned.", color: AppColors.muted, fontSize: 11),
+        Padding(
+          padding: const EdgeInsets.only(top: EmSpacing.s8),
+          child: Text("Class, subject and total marks can't be changed after the homework is assigned.", style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ),
-      const SizedBox(height: 8),
+      const SizedBox(height: EmSpacing.s8),
       SizedBox(
         width: double.infinity,
         child: TextButton.icon(
           key: const Key('hw_delete'),
           onPressed: busy ? null : () => _delete(context, a),
-          icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.redText),
-          label: const CustomText(text: 'Delete', color: AppColors.redText, fontWeight: FontWeight.w700),
+          style: TextButton.styleFrom(foregroundColor: EmColors.error),
+          icon: const Icon(Icons.delete_outline_rounded, size: 20),
+          label: Text('Delete', style: EmType.label.copyWith(color: EmColors.error)),
         ),
       ),
     ];

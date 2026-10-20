@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/homework/homework_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../utils/toast_util.dart';
 import '../controllers/submissions_controller.dart';
 import 'widgets/homework_widgets.dart';
@@ -89,17 +87,17 @@ class _HomeworkGradeScreenState extends State<HomeworkGradeScreen> {
     _seed(s);
     final gradable = c.canGrade(s);
     final max = markText(s.maxGrade);
+    final body = EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400, height: 1.5);
+    final quiet = EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400);
     return [
-      CustomText(text: s.studentName.isEmpty ? 'Student' : s.studentName, key: const Key('grade_student'), fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryColor),
-      const SizedBox(height: 6),
+      Text(s.studentName.isEmpty ? 'Student' : s.studentName, key: const Key('grade_student'), style: EmType.title.copyWith(color: EmColors.ink)),
+      const SizedBox(height: EmSpacing.s8),
       SubmissionTags(s: s),
-      if (s.submittedAt != null) Padding(padding: const EdgeInsets.only(top: 6), child: CustomText(text: 'Handed in ${instantText(s.submittedAt!)}', color: AppColors.muted, fontSize: 12)),
-      const SizedBox(height: 14),
+      if (s.submittedAt != null) Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: Text('Handed in ${instantText(s.submittedAt!)}', style: EmType.caption.copyWith(color: EmColors.textSecondary))),
+      const SizedBox(height: EmSpacing.s8),
       const SubHeading('Answer'),
       AppCard(
-        child: s.textResponse.isEmpty
-            ? const CustomText(key: Key('grade_no_text'), text: 'No written answer.', color: AppColors.muted, fontSize: 12)
-            : CustomText(key: const Key('grade_text'), text: s.textResponse, fontSize: 12.5, height: 1.4),
+        child: s.textResponse.isEmpty ? Text('No written answer.', key: const Key('grade_no_text'), style: quiet) : Text(s.textResponse, key: const Key('grade_text'), style: body),
       ),
       if (s.attachmentKeys.isNotEmpty) ...[
         const SubHeading('Files'),
@@ -110,13 +108,13 @@ class _HomeworkGradeScreenState extends State<HomeworkGradeScreen> {
             busy: opening == s.attachmentKeys[i],
             onTap: () async {
               final f = await c.openAttachment(s.attachmentKeys[i]);
-              if (f != null && mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message), behavior: SnackBarBehavior.floating));
+              if (f != null && mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message)));
             },
           ),
       ],
       const SubHeading('Marks'),
       if (!gradable)
-        const AppCard(child: CustomText(key: Key('grade_not_gradable'), text: 'Nothing has been handed in yet, so there is nothing to grade.', color: AppColors.muted, fontSize: 12.5))
+        AppCard(child: Text('Nothing has been handed in yet, so there is nothing to grade.', key: const Key('grade_not_gradable'), style: quiet))
       else ...[
         if (serverError != null) ErrorBanner(bannerKey: const Key('grade_server_error'), message: serverError!),
         LabeledField(
@@ -129,17 +127,8 @@ class _HomeworkGradeScreenState extends State<HomeworkGradeScreen> {
           onChanged: (_) => setState(() => error = null),
         ),
         LabeledField(label: 'Feedback for the student', controller: feedback, fieldKey: const Key('grade_feedback'), maxLines: 3, hint: 'Optional'),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            key: const Key('grade_save'),
-            onPressed: saving ? null : () => _save(s),
-            child: saving
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : CustomText(text: s.isGraded ? 'Update marks' : 'Save marks', color: Colors.white, fontWeight: FontWeight.w700),
-          ),
-        ),
-        const Padding(padding: EdgeInsets.only(top: 8), child: CustomText(text: "Saving marks sets this submission to graded. Parents are notified of the mark.", color: AppColors.muted, fontSize: 11)),
+        EmPrimaryButton(key: const Key('grade_save'), loading: saving, label: s.isGraded ? 'Update marks' : 'Save marks', onPressed: saving ? null : () => _save(s)),
+        Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: Text('Saving marks sets this submission to graded. Parents are notified of the mark.', style: EmType.caption.copyWith(color: EmColors.textSecondary))),
       ],
     ];
   }
