@@ -29,7 +29,7 @@ class CalendarScreen extends StatelessWidget {
       child: EmScaffold(
         appBar: EmAppBar(
           title: 'School calendar',
-          bottom: TabBar(
+          bottom: _PaddedTabs(TabBar(
             indicatorColor: AppColors.ink,
             labelColor: AppColors.ink,
             unselectedLabelColor: AppColors.muted,
@@ -49,7 +49,7 @@ class CalendarScreen extends StatelessWidget {
                 }),
               ),
             ],
-          ),
+          )),
         ),
         body: const TabBarView(children: [_CalendarTab(), _CircularsTab()]),
       ),
@@ -196,11 +196,8 @@ class _CalendarTab extends GetView<CalendarController> {
 
 /// Detail of a calendar entry (bottom sheet).
 Future<void> showCalendarEntrySheet(BuildContext context, CalendarEntry e) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+  return EmBottomSheet.showPanel<void>(
+    context,
     builder: (ctx) => SafeArea(
       child: Padding(
         key: const Key('cal_entry_sheet'),
@@ -283,4 +280,16 @@ class _CircularCard extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// Gives the bar's `TabBar` the screen's 20dp side margins (the Em app bar pads its title row, not its bottom slot).
+class _PaddedTabs extends StatelessWidget implements PreferredSizeWidget {
+  const _PaddedTabs(this.tabs);
+  final TabBar tabs;
+
+  @override
+  Size get preferredSize => tabs.preferredSize;
+
+  @override
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.symmetric(horizontal: EmSpacing.screenH), child: tabs);
 }
