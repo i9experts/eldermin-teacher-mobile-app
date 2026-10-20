@@ -795,6 +795,17 @@ Future<void> walk(WidgetTester t, TestWho w, TestSourcePicker picker) async {
     print('INFO $L quiz attempts listed: $n; outside this teacher\'s scope: ${leaks.length}');
     await shot(t, '${L}_quiz_attempts');
     expect(leaks, isEmpty, reason: 'quiz attempts must be scoped to the teacher\'s classes / subjects (rule in isMyAttempt)');
+    // Exact in-scope count, so an empty list cannot pass. tool/dev/capture_local_backend.sh seeds (seed-smoke-quiz.js) four marked submitted
+    // attempts: "SmokeQuiz 1" + "SmokeQuiz 2" (Grade 5 A: both teachers), "SmokeQuiz 3" (Grade 6 A: Mathematics teacher A only) and "SmokeQuiz 4"
+    // (Grade 7 A: nobody of these two).
+    final seeded = <String>{
+      for (final e in rows)
+        for (final x in find.descendant(of: find.byKey(e.widget.key!), matching: find.byType(Text)).evaluate())
+          if (RegExp(r'SmokeQuiz \d').hasMatch((x.widget as Text).data ?? '')) RegExp(r'SmokeQuiz \d').firstMatch((x.widget as Text).data!)!.group(0)!,
+    };
+    final expected = w.isClass ? {'SmokeQuiz 1', 'SmokeQuiz 2'} : {'SmokeQuiz 1', 'SmokeQuiz 2', 'SmokeQuiz 3'};
+    print('INFO $L seeded quiz attempts listed: ${seeded.toList()..sort()}');
+    expect(seeded, expected, reason: 'exactly the seeded in-scope attempts are listed (never SmokeQuiz 4)');
     await leaveToShell(t);
   });
 
