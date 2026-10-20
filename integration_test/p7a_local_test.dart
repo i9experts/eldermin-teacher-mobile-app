@@ -589,7 +589,7 @@ Future<void> ptmScenario(WidgetTester t) async {
     await leaveScreen(t);
     await settle(t, 800);
   });
-  await step(t, "another teacher's meeting is view-only (through the student's history)", () async {
+  await step(t, "another teacher's meeting is not available to me (through the student's history): the server answers 403 and the app says so", () async {
     await t.tap(find.textContaining('Today'));
     await settle(t, 800);
     final todayCards = idKeyed('ptm_');
@@ -600,10 +600,13 @@ Future<void> ptmScenario(WidgetTester t) async {
     await t.scrollUntilVisible(hist, 250, scrollable: find.byType(Scrollable).last, maxScrolls: 15);
     await pshot(t, 'B_ptm_detail_with_student_history');
     await t.tap(hist);
-    await waitFor(t, find.byKey(const Key('ptm_not_mine')));
+    // GET /teaching/ptm/:id of a meeting that belongs to another teacher is a 403 on the current backend: the app shows the generic
+    // "You don't have access" explanation (lock icon + "Ask your school admin if you think this is a mistake"), never a blank or raw error.
+    await waitFor(t, find.byKey(const Key('screen_forbidden')));
     await settle(t, 1000);
+    expectTrue('clear "no access" message', find.text("You don't have access").evaluate().isNotEmpty && find.textContaining('Ask your school admin').evaluate().isNotEmpty);
     expectTrue('no action buttons on another teacher\'s meeting', find.byKey(const Key('ptm_confirm')).evaluate().isEmpty && find.byKey(const Key('ptm_cancel')).evaluate().isEmpty);
-    await pshot(t, 'B_ptm_other_teachers_meeting_view_only');
+    await pshot(t, 'B_ptm_other_teachers_meeting_no_access');
     await leaveScreen(t);
     await leaveScreen(t);
   });
