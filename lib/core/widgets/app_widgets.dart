@@ -8,12 +8,15 @@ class AppTag extends StatelessWidget {
   final TagStyle style;
   const AppTag(this.label, {super.key, this.style = TagStyle.info});
 
+  /// Status pill: tone container + dark text (AA), caption size so it stays readable at large text scales.
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-      decoration: BoxDecoration(color: style.bg, borderRadius: BorderRadius.circular(AppRadius.pill)),
-      child: CustomText(text: label, color: style.fg, fontSize: 9.5, fontWeight: FontWeight.w800, letterSpacing: 0.1),
+    return DecoratedBox(
+      decoration: BoxDecoration(color: style.bg, borderRadius: EmRadius.pillAll),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s12, vertical: EmSpacing.s4),
+        child: Text(label, style: EmType.caption.copyWith(color: style.fg, fontWeight: FontWeight.w600)),
+      ),
     );
   }
 }
@@ -23,27 +26,10 @@ class AppCard extends StatelessWidget {
   final EdgeInsets padding;
   final EdgeInsets margin;
   final VoidCallback? onTap;
-  const AppCard({super.key, required this.child, this.padding = const EdgeInsets.all(14), this.margin = const EdgeInsets.only(bottom: 10), this.onTap});
+  const AppCard({super.key, required this.child, this.padding = EmSpacing.cardPad, this.margin = const EdgeInsets.only(bottom: EmSpacing.row), this.onTap});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: margin,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.line),
-        boxShadow: [BoxShadow(color: AppColors.primaryColor.withOpacity(0.05), blurRadius: 16, offset: const Offset(0, 6))],
-      ),
-      child: onTap == null
-          ? Padding(padding: padding, child: child)
-          : Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadius.lg), splashColor: AppColors.primaryColor.withOpacity(0.05), highlightColor: AppColors.primaryColor.withOpacity(0.03), child: Padding(padding: padding, child: child)),
-            ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(padding: margin, child: EmCard(padding: padding, onTap: onTap, child: child));
 }
 
 class StatsRow extends StatelessWidget {
@@ -55,30 +41,32 @@ class StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: items.asMap().entries.map((e) {
-        final isLast = e.key == items.length - 1;
-        final tap = onTaps != null && e.key < onTaps!.length ? onTaps![e.key] : null;
-        final tile = Container(
-            margin: EdgeInsets.only(right: isLast ? 0 : 8),
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 11),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.line)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CustomText(text: e.value.$1, color: AppColors.primaryColor, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.4, maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                CustomText(text: e.value.$2, color: AppColors.muted, fontSize: 8.5, maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (e.value.$3 != null) ...[
-                  const SizedBox(height: 3),
-                  CustomText(text: e.value.$3!, color: AppColors.secondryColor, fontSize: 8, maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
-              ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (i, item) in items.indexed) ...[
+            if (i > 0) const SizedBox(width: EmSpacing.s8),
+            Expanded(
+              child: EmCard(
+                key: onTaps != null && i < onTaps!.length && onTaps![i] != null ? ValueKey('stat_tap_$i') : null,
+                padding: EmSpacing.cardPadCompact,
+                radius: EmRadius.tile,
+                onTap: onTaps != null && i < onTaps!.length ? onTaps![i] : null,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  Text(item.$1, maxLines: 1, overflow: TextOverflow.ellipsis, style: EmType.value.copyWith(color: EmColors.ink)),
+                  const SizedBox(height: EmSpacing.s2),
+                  Text(item.$2, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+                  if (item.$3 != null) ...[
+                    const SizedBox(height: EmSpacing.s2),
+                    Text(item.$3!, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.caption.copyWith(color: EmColors.primary)),
+                  ],
+                ]),
+              ),
             ),
-          );
-        if (tap == null) return Expanded(child: tile);
-        return Expanded(child: InkWell(key: ValueKey('stat_tap_${e.key}'), borderRadius: BorderRadius.circular(16), onTap: tap, child: tile));
-      }).toList(),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -199,38 +187,11 @@ class SegmentedControl extends StatelessWidget {
   const SegmentedControl({super.key, required this.options, required this.selectedIndex, required this.onChanged});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: const Color(0xFFE5EDF3), borderRadius: BorderRadius.circular(13)),
-      child: Row(
-        children: options.asMap().entries.map((e) {
-          final selected = e.key == selectedIndex;
-          return Expanded(
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              child: InkWell(
-                onTap: () => onChanged(e.key),
-                borderRadius: BorderRadius.circular(10),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: selected ? Colors.white : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: selected ? [BoxShadow(color: AppColors.primaryColor.withOpacity(0.09), blurRadius: 8, offset: const Offset(0, 2))] : null,
-                  ),
-                  child: CustomText(text: e.value, textAlign: TextAlign.center, color: selected ? AppColors.primaryColor : AppColors.muted, fontSize: 9.5, fontWeight: FontWeight.w800, maxLines: 1, overflow: TextOverflow.ellipsis),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => EmSegmentedTabs<int>(
+        segments: [for (final (i, o) in options.indexed) EmSegment(i, o)],
+        selected: selectedIndex,
+        onChanged: onChanged,
+      );
 }
 
 class DateStripWidget extends StatelessWidget {

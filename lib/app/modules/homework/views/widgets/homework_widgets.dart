@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/design/design.dart';
 import '../../../../../core/models/homework/homework_models.dart';
-import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../../core/utils/classroom_format.dart';
 import '../../../../../core/widgets/app_widgets.dart';
-import '../../../../components/custom_text.dart';
 
 /// Tag for where an assignment is (draft / due today / overdue ...). [today] is the device's calendar day.
 class PhaseTag extends StatelessWidget {
@@ -38,33 +38,45 @@ class HomeworkTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final a = assignment;
     final phase = a.phaseOn(today);
-    final dueStyle = phase == HomeworkPhase.overdue ? AppColors.redText : (phase == HomeworkPhase.dueToday ? AppColors.amberText : AppColors.muted);
-    return AppCard(
+    // Due-date emphasis: tone colour plus the PhaseTag text, so it is never colour alone.
+    final dueColor = phase == HomeworkPhase.overdue ? EmColors.error : (phase == HomeworkPhase.dueToday ? EmColors.onWarningContainer : EmColors.textSecondary);
+    return Padding(
       key: ValueKey('hw_${a.id}'),
-      onTap: onTap,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: CustomText(text: a.title.isEmpty ? '(No title)' : a.title, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 13.5, maxLines: 2, overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 8),
-          PhaseTag(assignment: a, today: today),
+      padding: const EdgeInsets.only(bottom: EmSpacing.row),
+      child: EmCard(
+        onTap: onTap,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: Text(a.title.isEmpty ? '(No title)' : a.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
+            const SizedBox(width: EmSpacing.s8),
+            PhaseTag(assignment: a, today: today),
+          ]),
+          const SizedBox(height: EmSpacing.s4),
+          Text([a.subject, a.classLabel, a.typeLabel].where((e) => e.isNotEmpty).join(' · '), style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
+          const SizedBox(height: EmSpacing.s12),
+          Wrap(spacing: EmSpacing.s16, runSpacing: EmSpacing.s4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            _Meta(icon: Icons.event_rounded, text: dueText(a, today), color: dueColor, bold: true),
+            if (!a.isDraft) _Meta(icon: Icons.inbox_rounded, text: '${a.submissionsCount} handed in', color: EmColors.textSecondary),
+          ]),
         ]),
-        const SizedBox(height: 4),
-        CustomText(text: [a.subject, a.classLabel, a.typeLabel].where((e) => e.isNotEmpty).join(' · '), color: AppColors.muted, fontSize: 11),
-        const SizedBox(height: 8),
-        Row(children: [
-          Icon(Icons.event_rounded, size: 14, color: dueStyle),
-          const SizedBox(width: 4),
-          CustomText(text: dueText(a, today), color: dueStyle, fontSize: 11, fontWeight: FontWeight.w700),
-          const Spacer(),
-          if (!a.isDraft) ...[
-            const Icon(Icons.inbox_rounded, size: 14, color: AppColors.muted),
-            const SizedBox(width: 4),
-            CustomText(text: '${a.submissionsCount} handed in', color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w700),
-          ],
-        ]),
-      ]),
+      ),
     );
   }
+}
+
+class _Meta extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final Color color;
+  final bool bold;
+  const _Meta({required this.icon, required this.text, required this.color, this.bold = false});
+
+  @override
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+        ExcludeSemantics(child: Icon(icon, size: 16, color: color)),
+        const SizedBox(width: EmSpacing.s4),
+        Flexible(child: Text(text, style: EmType.caption.copyWith(color: color, fontWeight: bold ? FontWeight.w600 : FontWeight.w500))),
+      ]);
 }
 
 class FilterChipsRow extends StatelessWidget {
@@ -75,24 +87,9 @@ class FilterChipsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: EmSpacing.s8,
       children: [
-        for (final (label, count, on, tap, name) in chips)
-          InkWell(
-            key: Key('chip_$name'),
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            onTap: tap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-              decoration: BoxDecoration(
-                color: on ? AppColors.primaryColor : Colors.white,
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-                border: Border.all(color: on ? AppColors.primaryColor : AppColors.line),
-              ),
-              child: CustomText(text: count < 0 ? label : '$label  $count', color: on ? Colors.white : AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 11.5),
-            ),
-          ),
+        for (final (label, count, on, tap, name) in chips) EmChip(key: Key('chip_$name'), label: count < 0 ? label : '$label  $count', selected: on, onTap: tap),
       ],
     );
   }
@@ -121,7 +118,7 @@ class SubmissionTags extends StatelessWidget {
         tags.add(AppTag(s.statusWire.toUpperCase(), style: TagStyle.neutral));
     }
     if (s.wasLate) tags.add(const AppTag('LATE', style: TagStyle.amber));
-    return Wrap(spacing: 6, runSpacing: 4, children: tags);
+    return Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, children: tags);
   }
 }
 
@@ -138,27 +135,30 @@ class SubmissionTile extends StatelessWidget {
       if (s.attachmentKeys.isNotEmpty) '${s.attachmentKeys.length} ${s.attachmentKeys.length == 1 ? 'file' : 'files'}',
       if (s.textResponse.isNotEmpty) 'Written answer',
     ].join(' · ');
-    return AppCard(
+    return Padding(
       key: ValueKey('sub_${s.id}'),
-      onTap: onTap,
-      padding: const EdgeInsets.all(12),
-      child: Row(children: [
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            CustomText(text: s.studentName.isEmpty ? 'Student' : s.studentName, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 13, maxLines: 1, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 4),
-            SubmissionTags(s: s),
-            if (line.isNotEmpty) ...[const SizedBox(height: 5), CustomText(text: line, color: AppColors.muted, fontSize: 11)],
-          ]),
-        ),
-        if (s.isGraded && s.grade != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 8),
-            child: CustomText(text: '${markText(s.grade!)}/${markText(s.maxGrade)}', fontWeight: FontWeight.w800, color: AppColors.greenText, fontSize: 14),
-          )
-        else
-          const Icon(Icons.chevron_right_rounded, color: AppColors.faint),
-      ]),
+      padding: const EdgeInsets.only(bottom: EmSpacing.row),
+      child: EmCard(
+        onTap: onTap,
+        padding: EmSpacing.cardPadCompact,
+        child: Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(s.studentName.isEmpty ? 'Student' : s.studentName, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink)),
+              const SizedBox(height: EmSpacing.s4),
+              SubmissionTags(s: s),
+              if (line.isNotEmpty) ...[const SizedBox(height: EmSpacing.s4), Text(line, style: EmType.caption.copyWith(color: EmColors.textSecondary))],
+            ]),
+          ),
+          if (s.isGraded && s.grade != null)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(start: EmSpacing.s8),
+              child: Text('${markText(s.grade!)}/${markText(s.maxGrade)}', style: EmType.value.copyWith(color: EmColors.onSuccessContainer)),
+            )
+          else
+            const Icon(Icons.chevron_right_rounded, color: EmColors.textSecondary),
+        ]),
+      ),
     );
   }
 }
@@ -172,21 +172,20 @@ class AttachmentLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: busy ? null : onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(color: AppColors.pale, borderRadius: BorderRadius.circular(AppRadius.md)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: EmSpacing.s8),
+      child: EmCard(
+        color: EmColors.primaryTint,
+        padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s12, vertical: EmSpacing.s12),
+        onTap: busy ? null : onTap,
         child: Row(children: [
-          const Icon(Icons.attach_file_rounded, size: 18, color: AppColors.primaryColor),
-          const SizedBox(width: 8),
-          Expanded(child: CustomText(text: label, color: AppColors.primaryColor, fontWeight: FontWeight.w700, fontSize: 12)),
+          const ExcludeSemantics(child: Icon(Icons.attach_file_rounded, size: 20, color: EmColors.primary)),
+          const SizedBox(width: EmSpacing.s8),
+          Expanded(child: Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.primary))),
           if (busy)
-            const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
           else
-            const Icon(Icons.open_in_new_rounded, size: 16, color: AppColors.muted),
+            const ExcludeSemantics(child: Icon(Icons.open_in_new_rounded, size: 18, color: EmColors.textSecondary)),
         ]),
       ),
     );
@@ -200,11 +199,11 @@ class InfoLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.only(bottom: EmSpacing.s8),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icon, size: 16, color: AppColors.muted),
-          const SizedBox(width: 8),
-          Expanded(child: CustomText(text: text, color: AppColors.black, fontSize: 12.5, height: 1.35)),
+          ExcludeSemantics(child: Icon(icon, size: 18, color: EmColors.textSecondary)),
+          const SizedBox(width: EmSpacing.s8),
+          Expanded(child: Text(text, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400))),
         ]),
       );
 }
@@ -217,18 +216,7 @@ class ErrorBanner extends StatelessWidget {
   const ErrorBanner({super.key, required this.message, this.onRetry, this.bannerKey});
 
   @override
-  Widget build(BuildContext context) => Container(
-        key: bannerKey,
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppColors.redBg, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: AppColors.redText.withOpacity(0.25))),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Icon(Icons.error_outline_rounded, size: 18, color: AppColors.redText),
-          const SizedBox(width: 8),
-          Expanded(child: CustomText(text: message, color: AppColors.redText, fontSize: 12, fontWeight: FontWeight.w600, height: 1.35)),
-          if (onRetry != null) TextButton(onPressed: onRetry, child: const CustomText(text: 'Retry', color: AppColors.redText, fontWeight: FontWeight.w800)),
-        ]),
-      );
+  Widget build(BuildContext context) => EmInfoBanner(key: bannerKey, tone: EmTone.error, text: message, actionLabel: onRetry == null ? null : 'Retry', onAction: onRetry);
 }
 
 /// Label + text field in the app's form style, with an inline error line.
@@ -259,12 +247,12 @@ class LabeledField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide(color: error == null ? AppColors.line : AppColors.redText));
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: EmSpacing.block),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        CustomText(text: required ? '$label *' : label, color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w800),
-        const SizedBox(height: 5),
+        Text(required ? '$label *' : label, style: EmType.label.copyWith(color: EmColors.textSecondary)),
+        const SizedBox(height: EmSpacing.s8),
+        // Border, fill and focus colours come from the theme's inputDecorationTheme (tokens); only the error state is set here.
         TextField(
           key: fieldKey,
           controller: controller,
@@ -274,19 +262,9 @@ class LabeledField extends StatelessWidget {
           keyboardType: keyboardType,
           onChanged: onChanged,
           textCapitalization: maxLines > 1 || keyboardType == null ? TextCapitalization.sentences : TextCapitalization.none,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: hint,
-            counterText: '',
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            border: border,
-            enabledBorder: border,
-            focusedBorder: border.copyWith(borderSide: BorderSide(color: error == null ? AppColors.primaryColor : AppColors.redText)),
-          ),
+          style: EmType.body.copyWith(color: EmColors.ink),
+          decoration: InputDecoration(hintText: hint, counterText: '', errorText: error, errorMaxLines: 3),
         ),
-        if (error != null) Padding(padding: const EdgeInsets.only(top: 4), child: CustomText(text: error!, color: AppColors.redText, fontSize: 11, fontWeight: FontWeight.w600)),
       ]),
     );
   }
@@ -301,22 +279,8 @@ class ChoiceWrap extends StatelessWidget {
   const ChoiceWrap({super.key, required this.labels, required this.selected, required this.onSelect, required this.keyPrefix});
 
   @override
-  Widget build(BuildContext context) => Wrap(spacing: 8, runSpacing: 8, children: [
-        for (final l in labels)
-          InkWell(
-            key: Key('$keyPrefix$l'),
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            onTap: () => onSelect(l),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: l == selected ? AppColors.primaryColor : Colors.white,
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-                border: Border.all(color: l == selected ? AppColors.primaryColor : AppColors.line),
-              ),
-              child: CustomText(text: l, color: l == selected ? Colors.white : AppColors.primaryColor, fontWeight: FontWeight.w700, fontSize: 12),
-            ),
-          ),
+  Widget build(BuildContext context) => Wrap(spacing: EmSpacing.s8, children: [
+        for (final l in labels) EmChip(key: Key('$keyPrefix$l'), label: l, selected: l == selected, onTap: () => onSelect(l)),
       ]);
 }
 
@@ -327,10 +291,10 @@ class FormLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 6, top: 2),
+        padding: const EdgeInsets.only(bottom: EmSpacing.s8, top: EmSpacing.s2),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText(text: text, color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w800),
-          if (error != null) CustomText(text: error!, color: AppColors.redText, fontSize: 11, fontWeight: FontWeight.w600),
+          Text(text, style: EmType.label.copyWith(color: EmColors.textSecondary)),
+          if (error != null) Text(error!, style: EmType.caption.copyWith(color: EmColors.error)),
         ]),
       );
 }

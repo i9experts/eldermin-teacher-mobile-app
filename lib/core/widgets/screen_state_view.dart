@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../app/components/custom_text.dart';
 import '../../app/modules/home/models/section_state.dart';
-import '../theme/app_theme.dart';
+import '../design/design.dart';
 import 'app_widgets.dart';
 import 'shimmer_widgets.dart';
 
@@ -40,7 +39,7 @@ class ScreenStateView<T> extends StatelessWidget {
     this.emptyTitle = 'Nothing here',
     this.emptySubtitle,
     this.skeletonRows = 5,
-    this.padding = const EdgeInsets.fromLTRB(16, 16, 16, 24),
+    this.padding = EmSpacing.listPadding,
     this.scrollController,
     this.showServerForbidden = false,
   });
@@ -108,8 +107,5 @@ class SubHeading extends StatelessWidget {
   const SubHeading(this.text, {super.key});
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 6, bottom: 8),
-        child: CustomText(text: text, color: AppColors.primaryColor, fontSize: 13, fontWeight: FontWeight.w800),
-      );
+  Widget build(BuildContext context) => SectionRow(title: text);
 }

@@ -41,10 +41,9 @@ class CircularDetail extends StatelessWidget {
       controller: scroll,
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
       children: [
-        Row(children: [
+        Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
           AppTag(x.categoryLabel.toUpperCase(), style: TagStyle.neutral),
-          if (x.urgent) ...[const SizedBox(width: 8), const AppTag('URGENT', style: TagStyle.red)],
-          const Spacer(),
+          if (x.urgent) const AppTag('URGENT', style: TagStyle.red),
           if (when != null) CustomText(text: fullDay(when.toLocal()), fontSize: 11, color: AppColors.muted),
         ]),
         const SizedBox(height: 10),

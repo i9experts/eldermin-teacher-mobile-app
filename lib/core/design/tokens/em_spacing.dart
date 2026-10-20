@@ -1,3 +1,5 @@
+import 'package:flutter/painting.dart';
+
 /// 4-based spacing scale.
 class EmSpacing {
   EmSpacing._();
@@ -24,4 +26,16 @@ class EmSpacing {
 
   /// Bottom padding to clear the nav bar + diamond FAB overlap.
   static const double navClearance = 104;
+
+  /// Bottom padding of a list that has a floating action button.
+  static const double fabClearance = 96;
+
+  /// Standard scroll-view insets for a screen body under the app bar.
+  static const EdgeInsets listPadding = EdgeInsets.fromLTRB(screenH, s16, screenH, s24);
+  static const EdgeInsets listPaddingFab = EdgeInsets.fromLTRB(screenH, s16, screenH, fabClearance);
+
+  /// Inner padding of a card, of a compact row and of a chip-like control.
+  static const EdgeInsets cardPad = EdgeInsets.all(s16);
+  static const EdgeInsets cardPadCompact = EdgeInsets.all(s12);
+  static const EdgeInsets chipPad = EdgeInsets.symmetric(horizontal: s16, vertical: s8);
 }

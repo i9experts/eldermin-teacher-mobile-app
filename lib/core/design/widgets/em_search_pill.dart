@@ -15,6 +15,7 @@ class EmSearchPill extends StatelessWidget {
     this.onSubmitted,
     this.trailing,
     this.semanticLabel = 'Search',
+    this.fieldKey,
   });
 
   final TextEditingController? controller;
@@ -23,6 +24,9 @@ class EmSearchPill extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final Widget? trailing;
   final String semanticLabel;
+
+  /// Key of the inner text field (tests enter text through it).
+  final Key? fieldKey;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +47,7 @@ class EmSearchPill extends StatelessWidget {
                       textField: true,
                       label: semanticLabel,
                       child: TextField(
+                      key: fieldKey,
                       controller: controller,
                       onChanged: onChanged,
                       onSubmitted: onSubmitted,
