@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/models/academic/syllabus_models.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../controllers/syllabus_controller.dart';
 import '../controllers/weekly_planner_controller.dart';
 import 'widgets/syllabus_widgets.dart';
@@ -41,7 +40,7 @@ class _PlannerState extends State<SyllabusWeeklyPlannerScreen> with WidgetsBindi
 
   void _snack(String m) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating));
+    ..showSnackBar(SnackBar(content: Text(m)));
 
   Future<void> _tick(Future<MarkResult> f) async {
     final r = await f;
@@ -83,17 +82,19 @@ class _PlannerState extends State<SyllabusWeeklyPlannerScreen> with WidgetsBindi
     final cards = c.cards;
     final weeks = {for (final k in cards) k.week};
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(children: [
-        IconButton(key: const Key('planner_prev'), onPressed: c.canGoEarlier ? c.earlier : null, icon: const Icon(Icons.chevron_left_rounded)),
-        Expanded(
-          child: Column(children: [
-            CustomText(key: const Key('planner_label'), text: label, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 16),
-            CustomText(text: weeks.isEmpty ? '' : (weeks.length == 1 ? 'Week ${weeks.first}' : 'Weeks ${(weeks.toList()..sort()).join(', ')}'), color: AppColors.muted, fontSize: 11),
-          ]),
-        ),
-        IconButton(key: const Key('planner_next'), onPressed: c.canGoLater ? c.later : null, icon: const Icon(Icons.chevron_right_rounded)),
-        if (off != 0) TextButton(key: const Key('planner_today'), onPressed: c.thisWeek, child: const CustomText(text: 'This week', color: AppColors.primaryColor, fontWeight: FontWeight.w800)),
+      padding: const EdgeInsets.only(bottom: EmSpacing.row),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          EmIconCircleButton(key: const Key('planner_prev'), icon: Icons.chevron_left_rounded, semanticLabel: 'Earlier week', tooltip: 'Earlier week', elevated: false, onTap: c.canGoEarlier ? c.earlier : null),
+          Expanded(
+            child: Column(children: [
+              Text(label, key: const Key('planner_label'), textAlign: TextAlign.center, style: EmType.heading.copyWith(color: EmColors.ink)),
+              Text(weeks.isEmpty ? '' : (weeks.length == 1 ? 'Week ${weeks.first}' : 'Weeks ${(weeks.toList()..sort()).join(', ')}'), textAlign: TextAlign.center, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+            ]),
+          ),
+          EmIconCircleButton(key: const Key('planner_next'), icon: Icons.chevron_right_rounded, semanticLabel: 'Later week', tooltip: 'Later week', elevated: false, onTap: c.canGoLater ? c.later : null),
+        ]),
+        if (off != 0) Center(child: TextButton(key: const Key('planner_today'), onPressed: c.thisWeek, child: Text('This week', style: EmType.label.copyWith(color: EmColors.primary)))),
       ]),
     );
   }
@@ -104,16 +105,23 @@ class _PlannerState extends State<SyllabusWeeklyPlannerScreen> with WidgetsBindi
     return AppCard(
       key: ValueKey('planner_${e.syllabusId}'),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: CustomText(text: '${e.subjectName} · ${e.classLabel}', fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 13.5)),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Text('${e.subjectName} · ${e.classLabel}', style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
+          const SizedBox(width: EmSpacing.s8),
           AppTag('WEEK ${k.week}', style: TagStyle.info),
         ]),
-        const SizedBox(height: 6),
-        if (k.rows.isEmpty)
-          CustomText(key: ValueKey('planner_none_${e.syllabusId}'), text: s == null && off != 0 ? 'Not available for this week.' : 'Nothing planned for this week.', color: AppColors.muted, fontSize: 12),
+        const SizedBox(height: EmSpacing.s8),
+        if (k.rows.isEmpty) Text(s == null && off != 0 ? 'Not available for this week.' : 'Nothing planned for this week.', key: ValueKey('planner_none_${e.syllabusId}'), style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
         for (final r in k.rows) _row(e.syllabusId, r, pending, ValueKey('prow_${e.syllabusId}_${r.unit?.no}_${r.topic?.no}_${r.sub.no}')),
         if (k.earlier.isNotEmpty) ...[
-          const Padding(padding: EdgeInsets.only(top: 10, bottom: 2), child: CustomText(text: 'PLANNED FOR EARLIER WEEKS, NOT COVERED YET', color: AppColors.amberText, fontSize: 9.5, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
+          Padding(
+            padding: const EdgeInsets.only(top: EmSpacing.row, bottom: EmSpacing.s4),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const ExcludeSemantics(child: Icon(Icons.history_rounded, size: 16, color: EmColors.onWarningContainer)),
+              const SizedBox(width: EmSpacing.s4),
+              Expanded(child: Text('PLANNED FOR EARLIER WEEKS, NOT COVERED YET', style: EmType.label.copyWith(color: EmColors.onWarningContainer))),
+            ]),
+          ),
           for (final r in k.earlier) _row(e.syllabusId, r, pending, ValueKey('erow_${e.syllabusId}_${r.unit?.no}_${r.topic?.no}_${r.sub.no}')),
         ],
       ]),
@@ -122,6 +130,7 @@ class _PlannerState extends State<SyllabusWeeklyPlannerScreen> with WidgetsBindi
 
   Widget _row(String sid, PlannerRow r, Set<String> pending, Key key) {
     final u = r.unit?.no ?? 0, t = r.topic?.no ?? 0;
+    final where = [if (r.topic != null && r.topic!.name.isNotEmpty) r.topic!.name, if (r.unit != null && r.unit!.name.isNotEmpty) r.unit!.name].join(' · ');
     return Row(key: key, children: [
       CoverageBox(
         covered: r.sub.isCovered,
@@ -130,11 +139,11 @@ class _PlannerState extends State<SyllabusWeeklyPlannerScreen> with WidgetsBindi
       ),
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText(text: r.sub.name, fontSize: 12.5, color: AppColors.black, fontWeight: FontWeight.w600),
-          CustomText(text: [if (r.topic != null && r.topic!.name.isNotEmpty) r.topic!.name, if (r.unit != null && r.unit!.name.isNotEmpty) r.unit!.name].join(' · '), fontSize: 10.5, color: AppColors.muted),
+          Text(r.sub.name, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600)),
+          if (where.isNotEmpty) Text(where, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ]),
       ),
-      if (r.sub.plannedWeek != null) AppTag('W${r.sub.plannedWeek}', style: TagStyle.neutral),
+      if (r.sub.plannedWeek != null) ...[const SizedBox(width: EmSpacing.s8), AppTag('W${r.sub.plannedWeek}', style: TagStyle.neutral)],
     ]);
   }
 }

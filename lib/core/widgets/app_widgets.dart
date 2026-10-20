@@ -23,7 +23,7 @@ class AppTag extends StatelessWidget {
 
 class AppCard extends StatelessWidget {
   final Widget child;
-  final EdgeInsets padding;
+  final EdgeInsetsGeometry padding;
   final EdgeInsets margin;
   final VoidCallback? onTap;
   const AppCard({super.key, required this.child, this.padding = EmSpacing.cardPad, this.margin = const EdgeInsets.only(bottom: EmSpacing.row), this.onTap});
@@ -74,17 +74,17 @@ class StatsRow extends StatelessWidget {
 class AppProgressBar extends StatelessWidget {
   final int percent;
   final Color color;
-  const AppProgressBar({super.key, required this.percent, this.color = AppColors.blue});
+  const AppProgressBar({super.key, required this.percent, this.color = EmColors.primary});
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(AppRadius.pill),
+      borderRadius: EmRadius.pillAll,
       child: SizedBox(
-        height: 7,
+        height: EmSpacing.s8,
         child: LinearProgressIndicator(
           value: percent.clamp(0, 100) / 100,
-          backgroundColor: const Color(0xFFEAF0F4),
+          backgroundColor: EmColors.primaryLight,
           valueColor: AlwaysStoppedAnimation(color),
         ),
       ),

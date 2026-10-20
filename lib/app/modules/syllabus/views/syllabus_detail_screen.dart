@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/academic/syllabus_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../../homework/views/widgets/homework_widgets.dart' show InfoLine;
@@ -47,7 +46,7 @@ class SyllabusDetailScreen extends GetView<SyllabusDetailController> {
 
   void _snack(BuildContext context, String m) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating));
+    ..showSnackBar(SnackBar(content: Text(m)));
 
   Future<void> _tick(BuildContext context, Future<MarkResult> f) async {
     final r = await f;
@@ -57,44 +56,35 @@ class SyllabusDetailScreen extends GetView<SyllabusDetailController> {
   List<Widget> _content(BuildContext context, Syllabus s, Set<String> expanded, Set<String> pending) {
     final p = s.progress;
     return [
-      CustomText(key: const Key('syl_title'), text: s.subjectName, fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryColor, height: 1.2),
-      const SizedBox(height: 4),
-      CustomText(text: [s.classLabel, s.term, s.academicYearLabel].where((e) => e.isNotEmpty).join(' · '), color: AppColors.muted, fontSize: 12),
-      const SizedBox(height: 12),
-      if (s.isBehind)
-        const NoteBox(boxKey: Key('syl_behind'), icon: Icons.schedule_rounded, title: 'Behind schedule', body: 'Your school has flagged this syllabus as behind schedule.', fg: AppColors.redText, bg: AppColors.redBg),
+      Text(s.subjectName, key: const Key('syl_title'), style: EmType.title.copyWith(color: EmColors.ink)),
+      const SizedBox(height: EmSpacing.s4),
+      Text([s.classLabel, s.term, s.academicYearLabel].where((e) => e.isNotEmpty).join(' · '), style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
+      const SizedBox(height: EmSpacing.row),
+      if (s.isBehind) const NoteBox(boxKey: Key('syl_behind'), icon: Icons.schedule_rounded, title: 'Behind schedule', body: 'Your school has flagged this syllabus as behind schedule.', tone: EmTone.error),
       AppCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           ProgressBlock(progress: p, barKey: const Key('syl_overall_bar')),
-          const SizedBox(height: 10),
+          const SizedBox(height: EmSpacing.row),
           if (s.teacherName.isNotEmpty) InfoLine(icon: Icons.person_outline_rounded, text: s.teacherName),
           if (s.totalWeeks > 0) InfoLine(icon: Icons.date_range_rounded, text: '${s.totalWeeks} weeks planned'),
           if (s.lastTrackedAt != null) InfoLine(icon: Icons.update_rounded, text: 'Last updated ${instantText(s.lastTrackedAt!)}'),
         ]),
       ),
-      SizedBox(
-        width: double.infinity,
-        child: OutlinedButton.icon(
-          key: const Key('syl_open_planner'),
-          onPressed: () => Get.toNamed(Routes.syllabusWeeklyPlanner),
-          icon: const Icon(Icons.date_range_rounded, size: 18),
-          label: const CustomText(text: 'Weekly planner', color: AppColors.primaryColor, fontWeight: FontWeight.w700),
-        ),
-      ),
-      const SizedBox(height: 8),
+      EmSecondaryButton(key: const Key('syl_open_planner'), expand: true, icon: Icons.date_range_rounded, label: 'Weekly planner', onPressed: () => Get.toNamed(Routes.syllabusWeeklyPlanner)),
+      const SizedBox(height: EmSpacing.s8),
       if (s.units.isEmpty) const AppEmptyView(key: Key('syl_no_units'), icon: Icons.list_alt_rounded, title: 'No topics yet', subtitle: 'The school has not added units and topics to this syllabus.'),
       for (final u in s.units) ...[
         Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 6),
+          padding: const EdgeInsets.only(top: EmSpacing.s8, bottom: EmSpacing.s8),
           child: Row(children: [
-            Expanded(child: CustomText(text: 'Unit ${u.no}: ${u.name}', color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 13)),
-            CustomText(key: ValueKey('syl_unit_pct_${u.no}'), text: u.progress.total == 0 ? '' : '${u.progress.percent}%', color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w800),
+            Expanded(child: Text('Unit ${u.no}: ${u.name}', style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
+            Text(u.progress.total == 0 ? '' : '${u.progress.percent}%', key: ValueKey('syl_unit_pct_${u.no}'), style: EmType.valueSmall.copyWith(color: EmColors.textSecondary)),
           ]),
         ),
         for (final t in u.topics) _topic(context, s, u, t, expanded, pending),
       ],
-      const SizedBox(height: 4),
-      const CustomText(text: 'Ticking a topic tells the school that you covered it. Lessons are shown for reading only.', color: AppColors.muted, fontSize: 11),
+      const SizedBox(height: EmSpacing.s4),
+      Text('Ticking a topic tells the school that you covered it. Lessons are shown for reading only.', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
     ];
   }
 
@@ -106,11 +96,15 @@ class SyllabusDetailScreen extends GetView<SyllabusDetailController> {
     final covered = t.covered;
     return AppCard(
       key: ValueKey('topic_${u.no}_${t.no}'),
-      padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+      padding: const EdgeInsetsDirectional.fromSTEB(EmSpacing.s4, EmSpacing.s4, EmSpacing.s12, EmSpacing.s4),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           if (t.hasSubTopics)
-            Padding(padding: const EdgeInsets.all(6), child: Icon(covered ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, size: 22, key: ValueKey('topic_state_${u.no}_${t.no}'), color: covered ? AppColors.secondryColor : AppColors.lightGrey5))
+            SizedBox(
+              width: EmSpacing.minTouch,
+              height: EmSpacing.minTouch,
+              child: Center(child: Icon(covered ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, size: 24, key: ValueKey('topic_state_${u.no}_${t.no}'), color: covered ? EmColors.success : EmColors.textSecondary)),
+            )
           else
             KeyedSubtree(
               key: ValueKey('tick_topic_${u.no}_${t.no}'),
@@ -119,32 +113,32 @@ class SyllabusDetailScreen extends GetView<SyllabusDetailController> {
           Expanded(
             child: InkWell(
               onTap: expandable ? () => c.toggleTopic(u.no, t.no) : null,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: EmSpacing.minTouch),
                 child: Row(children: [
-                  Expanded(child: CustomText(text: '${t.no}. ${t.name}', fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.black, maxLines: 3, overflow: TextOverflow.ellipsis)),
-                  if (t.hasSubTopics) CustomText(key: ValueKey('topic_count_${u.no}_${t.no}'), text: '${t.progress.covered}/${t.progress.total}', color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w800),
-                  if (expandable) Icon(open ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: AppColors.muted),
+                  Expanded(child: Text('${t.no}. ${t.name}', maxLines: 3, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600))),
+                  if (t.hasSubTopics) Text('${t.progress.covered}/${t.progress.total}', key: ValueKey('topic_count_${u.no}_${t.no}'), style: EmType.valueSmall.copyWith(color: EmColors.textSecondary)),
+                  if (expandable) ExcludeSemantics(child: Icon(open ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: EmColors.textSecondary)),
                 ]),
               ),
             ),
           ),
         ]),
         if (t.hasSubTopics)
-          Padding(padding: const EdgeInsets.fromLTRB(8, 0, 4, 4), child: AppProgressBar(percent: t.progress.percent, color: t.progress.isComplete ? AppColors.secondryColor : AppColors.blue)),
+          Padding(padding: const EdgeInsetsDirectional.fromSTEB(EmSpacing.s8, 0, EmSpacing.s4, EmSpacing.s8), child: AppProgressBar(percent: t.progress.percent, color: t.progress.isComplete ? EmColors.success : EmColors.primary)),
         if (open && t.hasSubTopics)
           for (final sub in t.subTopics)
             Row(key: ValueKey('sub_${u.no}_${t.no}_${sub.no}'), children: [
-              const SizedBox(width: 16),
+              const SizedBox(width: EmSpacing.s16),
               KeyedSubtree(
                 key: ValueKey('tick_sub_${u.no}_${t.no}_${sub.no}'),
                 child: CoverageBox(covered: sub.isCovered, busy: pending.contains('s:${s.id}:${u.no}:${t.no}:${sub.no}'), onTap: () => _tick(context, list.markSubTopic(s.id, u.no, t.no, sub.no, !sub.isCovered))),
               ),
-              Expanded(child: CustomText(text: sub.name, fontSize: 12.5, color: AppColors.black)),
-              if (sub.plannedWeek != null) AppTag('WEEK ${sub.plannedWeek}', style: TagStyle.neutral),
+              Expanded(child: Text(sub.name, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400))),
+              if (sub.plannedWeek != null) ...[const SizedBox(width: EmSpacing.s8), AppTag('WEEK ${sub.plannedWeek}', style: TagStyle.neutral)],
             ]),
         if (open && t.lessons.isNotEmpty) ...[
-          const Padding(padding: EdgeInsets.fromLTRB(8, 8, 0, 4), child: CustomText(text: 'LESSONS (READ ONLY)', color: AppColors.muted, fontSize: 9.5, fontWeight: FontWeight.w800, letterSpacing: 0.4)),
+          Padding(padding: const EdgeInsetsDirectional.fromSTEB(EmSpacing.s8, EmSpacing.s8, 0, EmSpacing.s4), child: Text('LESSONS (READ ONLY)', style: EmType.label.copyWith(color: EmColors.textSecondary))),
           for (final l in t.lessons) _lesson(context, u.no, t.no, l),
         ],
       ]),
@@ -166,14 +160,17 @@ class SyllabusDetailScreen extends GetView<SyllabusDetailController> {
               final ok = await controller.openLesson(l);
               if (!ok && context.mounted) _snack(context, "Couldn't open this link.");
             },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(children: [
-          Icon(icon, size: 18, color: AppColors.primaryColor),
-          const SizedBox(width: 8),
-          Expanded(child: CustomText(text: l.title.isEmpty ? '(Untitled lesson)' : l.title, fontSize: 12.5, color: AppColors.primaryColor, fontWeight: FontWeight.w700)),
-          if (l.link.isNotEmpty) const Icon(Icons.open_in_new_rounded, size: 16, color: AppColors.muted),
-        ]),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: EmSpacing.minTouch),
+        child: Padding(
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s8),
+          child: Row(children: [
+            ExcludeSemantics(child: Icon(icon, size: 20, color: EmColors.primary)),
+            const SizedBox(width: EmSpacing.s8),
+            Expanded(child: Text(l.title.isEmpty ? '(Untitled lesson)' : l.title, style: EmType.body.copyWith(color: EmColors.primary, fontWeight: FontWeight.w600))),
+            if (l.link.isNotEmpty) const ExcludeSemantics(child: Icon(Icons.open_in_new_rounded, size: 18, color: EmColors.textSecondary)),
+          ]),
+        ),
       ),
     );
   }
