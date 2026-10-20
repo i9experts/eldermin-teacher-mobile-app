@@ -297,6 +297,12 @@ Iterable<String> allTexts() => [
     ];
 
 Future<void> tapText(WidgetTester t, String text, {bool last = false}) async {
+  // The More / Classes tabs are lazy ListViews: a row far below the fold is not built yet, and `find.text(..).first` THROWS on an empty
+  // match instead of reporting "not found". Scroll until the text exists in the tree, then let scrollUntilVisible bring it on screen.
+  for (var i = 0; i < 40 && find.text(text).evaluate().isEmpty; i++) {
+    await t.drag(find.byType(Scrollable).last, const Offset(0, -250));
+    await t.pump(const Duration(milliseconds: 300));
+  }
   final f = last ? find.text(text).last : find.text(text).first;
   await t.scrollUntilVisible(f, 250,
       scrollable: find.byType(Scrollable).last, maxScrolls: 40);
