@@ -76,9 +76,16 @@ Future<void> openClasses(WidgetTester t, String id) async {
 Future<void> openMore(WidgetTester t, String title) async {
   await t.tap(navLabel('More'));
   await settle(t, 1200);
-  await t.scrollUntilVisible(find.text(title), 250, scrollable: find.byType(Scrollable).last);
+  // the More tab keeps its scroll position: start from the top, then scroll until the (lazily built) row exists (find.text(..).first throws on an empty match)
+  await t.drag(find.byType(Scrollable).last, const Offset(0, 5000));
   await settle(t, 300);
-  await t.tap(find.text(title));
+  for (var i = 0; i < 40 && find.text(title).evaluate().isEmpty; i++) {
+    await t.drag(find.byType(Scrollable).last, const Offset(0, -250));
+    await t.pump(const Duration(milliseconds: 300));
+  }
+  await t.scrollUntilVisible(find.text(title).first, 250, scrollable: find.byType(Scrollable).last);
+  await settle(t, 300);
+  await t.tap(find.text(title).first);
   await settle(t, 2600);
 }
 
@@ -90,8 +97,13 @@ Future<void> homeTab(WidgetTester t) async {
 Future<void> openAssessment(WidgetTester t, String title) async {
   await t.tap(find.byKey(const Key('chip_all')));
   await settle(t, 600);
-  await t.scrollUntilVisible(find.text(title), 300, scrollable: find.byType(Scrollable).first);
-  await t.tap(find.text(title));
+  for (var i = 0; i < 40 && find.text(title).evaluate().isEmpty; i++) {
+    await t.drag(find.byType(Scrollable).last, const Offset(0, -250));
+    await t.pump(const Duration(milliseconds: 300));
+  }
+  await t.ensureVisible(find.text(title).first);
+  await settle(t, 300);
+  await t.tap(find.text(title).first);
   await settle(t, 2000);
 }
 
@@ -110,13 +122,18 @@ Future<void> screens(WidgetTester t, String sc) async {
   await t.tap(markField(1)); // the on-screen keyboard opens
   await settle(t, 1500);
   await t.enterText(markField(1), '41');
-  await t.enterText(markField(2), '999'); // above the total: shows the error after Review & save
+  await t.enterText(markField(3), '999'); // above the total: the error line is visible once Review & save is tapped
   await settle(t, 800);
   await shot(t, 'd7_marks_entry_keyboard_open_$sc');
   FocusManager.instance.primaryFocus?.unfocus();
   await settle(t, 800);
-  await t.enterText(markField(2), '36');
-  await settle(t, 500);
+  await t.tap(find.byKey(const Key('marks_save_button')));
+  await settle(t, 1500);
+  await shot(t, 'd7_marks_invalid_$sc');
+  await t.pump(const Duration(seconds: 3)); // the "Fix 1 mark first" toast
+  await t.ensureVisible(find.byKey(Key('absent_${sid(3)}')));
+  await t.tap(find.byKey(Key('absent_${sid(3)}'))); // marking the student absent clears the invalid mark
+  await settle(t, 600);
   await t.tap(find.byKey(const Key('marks_save_button')));
   await settle(t, 1500);
   await shot(t, 'd7_marks_summary_sheet_$sc');
@@ -146,6 +163,7 @@ Future<void> screens(WidgetTester t, String sc) async {
   await t.tap(withKeyPrefix('qa_').first);
   await settle(t, 2600);
   await shot(t, 'd7_quiz_detail_$sc');
+  await back(t);
   await back(t);
   await back(t);
   await homeTab(t);
@@ -225,10 +243,8 @@ void main() {
     for (final sc in ['normal', 'scale13']) {
       if (sc == 'scale13') binding.platformDispatcher.textScaleFactorTestValue = 1.3;
       await openClasses(t, 'assessments');
-      await t.drag(find.byType(Scrollable).first, const Offset(0, -4000));
-      await settle(t, 600);
-      await waitFor(t, find.byKey(const Key('asm_remarks_card')));
       await toTop(t);
+      await waitFor(t, find.byKey(const Key('asm_remarks_card')));
       await t.tap(find.byKey(const Key('asm_remarks_card')));
       await waitFor(t, find.byType(TextField));
       await settle(t, 1500);
