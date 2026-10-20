@@ -13,6 +13,8 @@ mkdir -p "$OUT"
 xcrun simctl uninstall "$SIM" com.eldermin.elderminTeacherApp >/dev/null 2>&1
 xcrun simctl keychain "$SIM" reset >/dev/null 2>&1
 sleep 1
+# the smoke test counts the marked quiz attempts EXACTLY, so (re)create them first (idempotent; local DB eldermin_teacher_verify only)
+/usr/local/bin/node "$(dirname "$0")/../../../eldermin-teacher-app-docs/local-verification/seed-smoke-quiz.js" || { echo "smoke quiz seed failed"; exit 2; }
 HB="$OUT/.heartbeat"; touch "$HB"; START=$(date +%s)
 (
   while sleep 10; do
