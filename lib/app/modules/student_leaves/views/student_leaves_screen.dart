@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/messaging/student_leave_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/student_leaves_controller.dart';
 import '../../../../core/design/design.dart';
@@ -38,18 +37,18 @@ class StudentLeavesScreen extends GetView<StudentLeavesController> {
           },
           emptySubtitle: tab == LeaveStatus.pending ? 'New requests from parents appear here.' : null,
           header: [
-            SegmentedControl(
+            EmSegmentedTabs<LeaveStatus>(
               key: const Key('leaves_tabs'),
-              options: [for (final s in LeaveStatus.values) _tabLabel(s)],
-              selectedIndex: tab.index,
-              onChanged: (i) => c.selectTab(LeaveStatus.values[i]),
+              segments: [for (final s in LeaveStatus.values) EmSegment(s, _tabLabel(s))],
+              selected: tab,
+              onChanged: c.selectTab,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: EmSpacing.row),
           ],
           builder: (rows) => [
             for (final l in rows) LeaveCard(leave: l, onTap: () => Get.toNamed(Routes.studentLeaveDetailOf(l.id))),
             if (rows.length >= StudentLeavesController.listLimit)
-              const CustomText(key: Key('leaves_cut'), text: 'Showing the most recent 100 requests.', fontSize: 11, color: AppColors.muted, textAlign: TextAlign.center),
+              Text('Showing the most recent 100 requests.', key: const Key('leaves_cut'), textAlign: TextAlign.center, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
           ],
         );
       }),
@@ -90,18 +89,18 @@ class LeaveCard extends StatelessWidget {
       key: Key('leave_${l.id}'),
       onTap: onTap,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: CustomText(text: l.studentName.isEmpty ? 'Student' : l.studentName, fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.primaryColor, maxLines: 1, overflow: TextOverflow.ellipsis)),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Text(l.studentName.isEmpty ? 'Student' : l.studentName, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
+          const SizedBox(width: EmSpacing.s8),
           AppTag(l.status.label, style: leaveStatusStyle(l.status)),
         ]),
-        const SizedBox(height: 4),
-        CustomText(text: leaveRangeText(l), fontSize: 12, color: AppColors.ink, fontWeight: FontWeight.w700),
-        if (l.reason.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: CustomText(text: l.reason, fontSize: 12, color: AppColors.muted, maxLines: 2, overflow: TextOverflow.ellipsis)),
-        const SizedBox(height: 6),
-        Row(children: [
+        const SizedBox(height: EmSpacing.s4),
+        Text(leaveRangeText(l), style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600)),
+        if (l.reason.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: Text(l.reason, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
+        const SizedBox(height: EmSpacing.s8),
+        Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, crossAxisAlignment: WrapCrossAlignment.center, children: [
           AppTag(l.typeLabel, style: TagStyle.info),
-          const SizedBox(width: 8),
-          if (l.requestedByName.isNotEmpty) Expanded(child: CustomText(text: 'Requested by ${l.requestedByName}', fontSize: 10.5, color: AppColors.faint, maxLines: 1, overflow: TextOverflow.ellipsis)),
+          if (l.requestedByName.isNotEmpty) Text('Requested by ${l.requestedByName}', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ]),
       ]),
     );

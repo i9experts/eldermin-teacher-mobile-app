@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/messaging/student_leave_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/message_time.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/shimmer_widgets.dart';
-import '../../../components/custom_text.dart';
 import '../../../common/action_failure.dart';
 import '../../homework/views/widgets/homework_widgets.dart';
 import '../controllers/student_leaves_controller.dart';
@@ -54,16 +52,17 @@ class _State extends State<StudentLeaveDetailScreen> {
           if (_resolving) return AppShimmer(key: const Key('leave_detail_loading'), child: Column(children: List.generate(3, (_) => const ShimmerListRowSkeleton())));
           return AppEmptyView(key: const Key('leave_not_found'), icon: Icons.event_busy_outlined, title: 'Request not found', subtitle: 'It is not in your class list, or it was removed.');
         }
-        return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 24), children: [
+        return ListView(padding: EmSpacing.listPadding, children: [
           if (conflictText != null) ErrorBanner(bannerKey: const Key('leave_conflict'), message: '$conflictText ${_decidedBy(l)}'.trim()),
           AppCard(
             key: const Key('leave_detail'),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(child: CustomText(text: l.studentName.isEmpty ? 'Student' : l.studentName, fontWeight: FontWeight.w800, fontSize: 17, color: AppColors.primaryColor)),
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: Text(l.studentName.isEmpty ? 'Student' : l.studentName, style: EmType.heading.copyWith(color: EmColors.ink))),
+                const SizedBox(width: EmSpacing.s8),
                 AppTag(l.status.label, style: leaveStatusStyle(l.status)),
               ]),
-              const SizedBox(height: 10),
+              const SizedBox(height: EmSpacing.row),
               _kv('Dates', leaveRangeText(l)),
               _kv('Type', l.typeLabel),
               _kv('Reason', l.reason.isEmpty ? 'No reason given' : l.reason),
@@ -75,19 +74,19 @@ class _State extends State<StudentLeaveDetailScreen> {
             AppCard(
               key: const Key('leave_decided'),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                CustomText(text: _decidedBy(l).isEmpty ? l.status.label : _decidedBy(l), fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.primaryColor),
-                if (l.approverNote.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: CustomText(text: 'Remarks: ${l.approverNote}', fontSize: 12, color: AppColors.muted)),
+                Text(_decidedBy(l).isEmpty ? l.status.label : _decidedBy(l), style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600)),
+                if (l.approverNote.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: Text('Remarks: ${l.approverNote}', style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
               ]),
             ),
           if (l.isPending) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: EmSpacing.s4),
             Row(children: [
-              Expanded(child: OutlinedButton(key: const Key('leave_reject'), onPressed: () => _review(l, LeaveStatus.rejected), child: const CustomText(text: 'Reject', color: AppColors.redText, fontWeight: FontWeight.w700))),
-              const SizedBox(width: 12),
-              Expanded(child: ElevatedButton(key: const Key('leave_approve'), onPressed: () => _review(l, LeaveStatus.approved), child: const CustomText(text: 'Approve', color: Colors.white, fontWeight: FontWeight.w700))),
+              Expanded(child: EmSecondaryButton(key: const Key('leave_reject'), expand: true, destructive: true, label: 'Reject', onPressed: () => _review(l, LeaveStatus.rejected))),
+              const SizedBox(width: EmSpacing.row),
+              Expanded(child: EmPrimaryButton(key: const Key('leave_approve'), label: 'Approve', onPressed: () => _review(l, LeaveStatus.approved))),
             ]),
-            const SizedBox(height: 10),
-            const CustomText(text: "The parent is notified in their app as soon as you decide.", fontSize: 11, color: AppColors.muted, textAlign: TextAlign.center),
+            const SizedBox(height: EmSpacing.row),
+            Text('The parent is notified in their app as soon as you decide.', textAlign: TextAlign.center, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
           ],
         ]);
       }),
@@ -101,11 +100,12 @@ class _State extends State<StudentLeaveDetailScreen> {
     return '${l.status.label}$who$at.';
   }
 
+  /// Label above its value: no fixed-width label column, so a long value or a large text scale never squeezes either.
   Widget _kv(String k, String v) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(width: 96, child: CustomText(text: k, fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w800)),
-          Expanded(child: CustomText(text: v, fontSize: 13, color: AppColors.ink)),
+        padding: const EdgeInsets.only(bottom: EmSpacing.s12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(k, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w600)),
+          Text(v, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400)),
         ]),
       );
 
@@ -157,41 +157,37 @@ class _ReviewSheetState extends State<ReviewSheet> {
   Widget build(BuildContext context) {
     final approve = widget.decision == LeaveStatus.approved;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s8, EmSpacing.screenH, EmSpacing.s16 + MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
         top: false,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText(key: const Key('review_title'), text: approve ? 'Approve this leave request?' : 'Reject this leave request?', fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primaryColor),
-          const SizedBox(height: 4),
-          CustomText(text: '${widget.leave.studentName} · ${leaveRangeText(widget.leave)}', fontSize: 12, color: AppColors.muted),
-          const SizedBox(height: 12),
-          if (error != null) ErrorBanner(bannerKey: const Key('review_error'), message: error!),
-          TextField(
-            key: const Key('review_remarks'),
-            controller: remarks,
-            maxLines: 3,
-            minLines: 2,
-            maxLength: kLeaveRemarksMax,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(labelText: 'Remarks for the parent (optional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md))),
-          ),
-          const SizedBox(height: 8),
-          Obx(() {
-            final busy = widget.controller.reviewing.value != null;
-            return Row(children: [
-              Expanded(child: OutlinedButton(key: const Key('review_cancel'), onPressed: busy ? null : () => Navigator.of(context).pop(), child: const Text('Cancel'))),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  key: const Key('review_confirm'),
-                  style: approve ? null : ElevatedButton.styleFrom(backgroundColor: AppColors.redText),
-                  onPressed: busy ? null : _confirm,
-                  child: busy ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : CustomText(text: approve ? 'Approve' : 'Reject', color: Colors.white, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ]);
-          }),
-        ]),
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(approve ? 'Approve this leave request?' : 'Reject this leave request?', key: const Key('review_title'), style: EmType.heading.copyWith(color: EmColors.ink)),
+            const SizedBox(height: EmSpacing.s4),
+            Text('${widget.leave.studentName} · ${leaveRangeText(widget.leave)}', style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
+            const SizedBox(height: EmSpacing.block),
+            if (error != null) ErrorBanner(bannerKey: const Key('review_error'), message: error!),
+            TextField(
+              key: const Key('review_remarks'),
+              controller: remarks,
+              maxLines: 3,
+              minLines: 2,
+              maxLength: kLeaveRemarksMax,
+              textCapitalization: TextCapitalization.sentences,
+              style: EmType.body.copyWith(color: EmColors.ink),
+              decoration: const InputDecoration(labelText: 'Remarks for the parent (optional)'),
+            ),
+            const SizedBox(height: EmSpacing.s8),
+            Obx(() {
+              final busy = widget.controller.reviewing.value != null;
+              return Row(children: [
+                Expanded(child: EmSecondaryButton(key: const Key('review_cancel'), expand: true, label: 'Cancel', onPressed: busy ? null : () => Navigator.of(context).pop())),
+                const SizedBox(width: EmSpacing.row),
+                Expanded(child: EmPrimaryButton(key: const Key('review_confirm'), destructive: !approve, loading: busy, label: approve ? 'Approve' : 'Reject', onPressed: busy ? null : _confirm)),
+              ]);
+            }),
+          ]),
+        ),
       ),
     );
   }

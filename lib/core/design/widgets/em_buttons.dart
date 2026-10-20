@@ -4,7 +4,7 @@ import '../tokens/em_typography.dart';
 
 /// Filled primary pill (white label on `primary`, 52dp).
 class EmPrimaryButton extends StatelessWidget {
-  const EmPrimaryButton({super.key, required this.label, required this.onPressed, this.icon, this.loading = false, this.expand = true});
+  const EmPrimaryButton({super.key, required this.label, required this.onPressed, this.icon, this.loading = false, this.expand = true, this.destructive = false});
 
   final String label;
   final VoidCallback? onPressed;
@@ -14,6 +14,9 @@ class EmPrimaryButton extends StatelessWidget {
   final bool loading;
   final bool expand;
 
+  /// Error-coloured fill for an action that rejects / removes (the label still says what it does).
+  final bool destructive;
+
   @override
   Widget build(BuildContext context) {
     final child = _content(label, icon, loading, EmColors.onPrimary);
@@ -21,9 +24,9 @@ class EmPrimaryButton extends StatelessWidget {
       onPressed: loading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         minimumSize: const Size(64, 52),
-        backgroundColor: EmColors.primary,
-        foregroundColor: EmColors.onPrimary,
-        disabledBackgroundColor: loading ? EmColors.primary : EmColors.disabled,
+        backgroundColor: destructive ? EmColors.error : EmColors.primary,
+        foregroundColor: destructive ? EmColors.onError : EmColors.onPrimary,
+        disabledBackgroundColor: loading ? (destructive ? EmColors.error : EmColors.primary) : EmColors.disabled,
         disabledForegroundColor: loading ? EmColors.onPrimary : EmColors.onDisabled,
       ),
       child: child,
@@ -41,12 +44,13 @@ class EmPrimaryButton extends StatelessWidget {
 
 /// White pill with a light border and primary label (reference "Drink 200 ml").
 class EmSecondaryButton extends StatelessWidget {
-  const EmSecondaryButton({super.key, required this.label, required this.onPressed, this.icon, this.expand = false});
+  const EmSecondaryButton({super.key, required this.label, required this.onPressed, this.icon, this.expand = false, this.destructive = false});
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
   final bool expand;
+  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
@@ -55,10 +59,10 @@ class EmSecondaryButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(64, 52),
         backgroundColor: EmColors.surface,
-        foregroundColor: EmColors.primary,
-        side: const BorderSide(color: EmColors.primaryLight, width: 1.5),
+        foregroundColor: destructive ? EmColors.error : EmColors.primary,
+        side: BorderSide(color: destructive ? EmColors.error : EmColors.primaryLight, width: 1.5),
       ),
-      child: _content(label, icon, false, EmColors.primary),
+      child: _content(label, icon, false, destructive ? EmColors.error : EmColors.primary),
     );
     return Semantics(
       button: true,
