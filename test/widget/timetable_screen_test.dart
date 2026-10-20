@@ -8,12 +8,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../app/timetable_controller_test.dart' show serverWeek, mon, tue;
 import '../support/auth_harness.dart';
+import '../support/design_harness.dart' show loadDesignFonts;
 import '../support/fake_home_repository.dart';
+import '../support/layout_probe.dart';
 
 void main() {
   late FakeHomeRepository repo;
   late TimetableController c;
   final now = DateTime(2026, 10, 5, 8, 10); // Monday
+
+  setUpAll(loadDesignFonts); // real glyph widths (the default Ahem test font fakes overflows)
 
   setUp(() {
     Get.reset();
@@ -21,16 +25,17 @@ void main() {
     repo = FakeHomeRepository()..myTimetable = (f, t) async => serverWeek(f, t, {1: mon, 2: tue});
   });
   tearDown(Get.reset);
+  tearDown(ProbeEnv.reset);
 
   Future<void> pump(WidgetTester t, {List<String>? permissions, bool load = true, bool tall = true}) async {
     final h = (await t.runAsync(() => signedIn(permissions: permissions)))!;
     c = TimetableController(repository: repo, auth: h.auth, permissions: h.perms, clock: () => now, tick: null);
     Get.put(c);
     if (tall) {
-      await t.binding.setSurfaceSize(const Size(430, 3200));
+      await t.binding.setSurfaceSize(probeSize(const Size(430, 3200)));
       addTearDown(() => t.binding.setSurfaceSize(null));
     }
-    await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: const Scaffold(body: TimetableScreen(embedded: true))));
+    await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: probeHome(const Scaffold(body: TimetableScreen(embedded: true)))));
     if (load) {
       await c.load();
       await t.pump();
@@ -130,4 +135,32 @@ void main() {
     await t.pump(const Duration(seconds: 1));
     expect(repo.calls.where((e) => e == 'myTimetable').length, greaterThan(before));
   });
+
+  // D6 layout probes: widths 320/360/375/430 x text scale 1.0/1.3 x LTR/RTL
+  for (final w in probeWidths) {
+    for (final sc in probeScales) {
+      for (final d in probeDirs) {
+        testWidgets(probeName('timetable day view', w, sc, d), (t) async {
+          ProbeEnv.set(w, sc, d);
+          await pump(t);
+          expectNoLayoutError(t);
+          // times, NOW / NEXT / Week tags and the room line never wrap or clip
+          for (final label in ['08:00', 'NOW', 'NEXT', 'Week A']) {
+            expectOneLine(t, find.text(label).first, scale: sc);
+            expectInsideScreen(t, find.text(label).first, w);
+          }
+          expectInsideScreen(t, find.byKey(const Key('week_prev')), w);
+          expectInsideScreen(t, find.byKey(const Key('week_next')), w);
+        });
+        testWidgets(probeName('timetable week view', w, sc, d), (t) async {
+          ProbeEnv.set(w, sc, d);
+          await pump(t);
+          await t.tap(find.text('Week'));
+          await t.pump();
+          expectNoLayoutError(t);
+          expectOneLine(t, find.text('4 periods'), scale: sc);
+        });
+      }
+    }
+  }
 }

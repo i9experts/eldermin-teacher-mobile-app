@@ -17,7 +17,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_harness.dart';
+import '../support/design_harness.dart' show loadDesignFonts;
 import '../support/fake_classroom_repositories.dart';
+import '../support/layout_probe.dart';
 import '../support/fake_phase5b_repositories.dart';
 
 final now = DateTime(2026, 10, 5, 9, 30);
@@ -26,6 +28,8 @@ void main() {
   late FakeHomeworkRepository repo;
   late FakeStudentsRepository students;
 
+  setUpAll(loadDesignFonts); // real glyph widths (the default Ahem test font fakes overflows)
+
   setUp(() {
     Get.reset();
     Get.testMode = true;
@@ -33,6 +37,7 @@ void main() {
     students = FakeStudentsRepository()..roster = (_) async => [student(1), student(2)];
   });
   tearDown(Get.reset);
+  tearDown(ProbeEnv.reset);
 
   Future<({dynamic h})> signIn(WidgetTester t, {List<Map<String, Object?>> assignments = const [
     {'gradeLevel': 'Grade 5', 'sectionName': 'A', 'subjectName': 'Mathematics'}
@@ -50,10 +55,10 @@ void main() {
 
   /// Root page + the screen pushed on top (so Get.back() has somewhere to go).
   Future<void> open(WidgetTester t, Widget screen, {Size size = const Size(430, 4000)}) async {
-    await t.binding.setSurfaceSize(size);
+    await t.binding.setSurfaceSize(probeSize(size));
     addTearDown(() => t.binding.setSurfaceSize(null));
     await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: const Scaffold(body: Text('root'))));
-    unawaited(Get.to(() => screen));
+    unawaited(Get.to(() => probeHome(screen)));
     await t.pump();
     await t.pump(const Duration(milliseconds: 400));
   }
@@ -178,6 +183,34 @@ void main() {
       await t.pump(const Duration(seconds: 1));
       expect(repo.calls.length, greaterThan(before));
     });
+
+    // D6 layout probes: widths 320/360/375/430 x text scale 1.0/1.3 x LTR/RTL
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('homework list', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            final s = await signIn(t);
+            repo.mine = (_) async => [
+                  asg('a1', title: 'Chapter 3 worksheet on adding and subtracting unlike fractions', due: '2026-10-07', count: 4),
+                  asg('a2', title: 'Lab report', status: 'overdue', due: '2026-10-03', subject: 'Science'),
+                  asg('a3', title: 'Draft quiz', status: 'draft', due: '2026-10-12'),
+                  asg('a4', title: 'Due now', due: '2026-10-05'),
+                ];
+            final c = list(s.h);
+            await open(t, const HomeworkScreen());
+            await c.load();
+            await settle(t);
+            expectNoLayoutError(t);
+            for (final label in ['OVERDUE', 'DRAFT', 'DUE TODAY']) {
+              expectOneLine(t, find.text(label), scale: sc);
+            }
+            expectInsideScreen(t, find.byKey(const Key('hw_new_fab')), w);
+            expectInsideScreen(t, find.byKey(const Key('chip_all')), w);
+          });
+        }
+      }
+    }
   });
 
   group('Homework detail', () {
@@ -272,6 +305,27 @@ void main() {
       await settle(t);
       expect(find.byKey(const Key('screen_unavailable')), findsOneWidget);
     });
+
+    // D6 layout probes: widths 320/360/375/430 x text scale 1.0/1.3 x LTR/RTL
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('homework detail', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            final s = await signIn(t);
+            final l = list(s.h);
+            l.upsert(asg('a1', title: 'Fractions: adding and subtracting unlike fractions', due: '2026-10-07', count: 3, keys: ['demo/homework-attachments/x.pdf']));
+            Get.put(HomeworkDetailController(id: 'a1', repository: repo, list: l, clock: () => now));
+            await open(t, const HomeworkDetailScreen());
+            expectNoLayoutError(t);
+            expectOneLine(t, find.text('ASSIGNED'), scale: sc);
+            expectInsideScreen(t, find.byKey(const Key('hw_view_submissions')), w);
+            expectInsideScreen(t, find.byKey(const Key('hw_edit')), w);
+            expectInsideScreen(t, find.byKey(const Key('hw_delete')), w);
+          });
+        }
+      }
+    }
   });
 
   group('Homework form', () {
@@ -430,6 +484,26 @@ void main() {
       await settle(t);
       expect(find.text('Unsaved'), findsOneWidget);
     });
+
+    // D6 layout probes: widths 320/360/375/430 x text scale 1.0/1.3 x LTR/RTL
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('homework form', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            final s = await signIn(t);
+            final l = list(s.h);
+            Get.put(HomeworkFormController(repository: repo, students: students, auth: s.h.auth, picker: FakePicker(), list: l, clock: () => now));
+            await open(t, const HomeworkNewScreen());
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('hw_submit')), w);
+            expectInsideScreen(t, find.byKey(const Key('hw_save_draft')), w);
+            expectInsideScreen(t, find.byKey(const Key('hw_due_picker')), w);
+          });
+        }
+      }
+    }
   });
 
   group('Submissions and grading', () {
@@ -566,6 +640,27 @@ void main() {
       await bootGrade(t, 'nope');
       expect(find.byKey(const Key('grade_missing')), findsOneWidget);
     });
+
+    // D6 layout probes: widths 320/360/375/430 x text scale 1.0/1.3 x LTR/RTL
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('submissions list', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            final s = await signIn(t);
+            final l = list(s.h);
+            l.upsert(asg('a1', title: 'Fractions', count: 3));
+            repo.subs = (id) async => SubmissionsResult(asg(id, title: 'Fractions', count: 3), defaultRows());
+            final c = Get.put(SubmissionsController(assignmentId: 'a1', repository: repo, list: l));
+            await open(t, const HomeworkSubmissionsScreen());
+            await c.load();
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('chip_all')), w);
+          });
+        }
+      }
+    }
   });
 }
 

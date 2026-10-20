@@ -26,6 +26,8 @@ import 'package:eldermin_teacher_app/app/modules/home/controllers/home_shell_con
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_harness.dart';
+import '../support/design_harness.dart' show loadDesignFonts;
+import '../support/layout_probe.dart';
 import '../support/fake_classroom_repositories.dart';
 import '../support/fake_home_repository.dart';
 import '../support/fake_messaging_repository.dart';
@@ -42,6 +44,8 @@ void main() {
   late FakePoller poller;
   final visited = <String>[];
 
+  setUpAll(loadDesignFonts); // real glyph widths (the default Ahem test font fakes overflows)
+
   setUp(() {
     Get.reset();
     Get.testMode = true;
@@ -51,6 +55,7 @@ void main() {
     visited.clear();
   });
   tearDown(Get.reset);
+  tearDown(ProbeEnv.reset);
 
   Future<dynamic> auth(WidgetTester t, {bool classTeacher = false}) async {
     final h = (await t.runAsync(() async {
@@ -66,12 +71,12 @@ void main() {
 
   /// A GetMaterialApp whose named routes just record where the app went (the real screens are covered by their own tests).
   Future<void> show(WidgetTester t, Widget home) async {
-    await t.binding.setSurfaceSize(const Size(430, 1400));
+    await t.binding.setSurfaceSize(probeSize(const Size(430, 1400)));
     addTearDown(() => t.binding.setSurfaceSize(null));
     Widget stub(String name) => Scaffold(body: Text('went:$name'));
     await t.pumpWidget(GetMaterialApp(
       theme: AppTheme.light,
-      home: home,
+      home: probeHome(home),
       getPages: [
         for (final r in [...Routes.all, Routes.homeMessages]) GetPage(name: r, page: () => stub(r)),
       ],
@@ -661,6 +666,33 @@ void main() {
       await settle(t);
       expect(find.byKey(const Key('leave_not_found')), findsOneWidget);
     });
+
+    // D6 layout probes: widths 320/360/375/430 x text scale 1.0/1.3 x LTR/RTL
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('student leaves list', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t, data: all);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('leaves_tabs')), w);
+            expectOneLine(t, find.text('Pending (2)'), scale: sc);
+          });
+          testWidgets(probeName('student leave detail + review sheet', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t, data: all, screen: const StudentLeaveDetailScreen(leaveId: 'p1'));
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('leave_approve')), w);
+            expectInsideScreen(t, find.byKey(const Key('leave_reject')), w);
+            await t.tap(find.byKey(const Key('leave_approve')));
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('review_confirm')), w);
+            expectInsideScreen(t, find.byKey(const Key('review_cancel')), w);
+          });
+        }
+      }
+    }
   });
 }
 

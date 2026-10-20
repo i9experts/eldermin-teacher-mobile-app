@@ -13,6 +13,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_harness.dart';
 import '../support/fake_classroom_repositories.dart';
+import '../support/design_harness.dart' show loadDesignFonts;
+import '../support/layout_probe.dart';
 
 void main() {
   late FakeStudentsRepository students;
@@ -20,6 +22,9 @@ void main() {
   late AttendanceController c;
   final now = DateTime(2026, 10, 5, 9);
   final roster = [for (var i = 1; i <= 5; i++) student(i)];
+
+  // real Plus Jakarta Sans glyph widths (flutter_test's default Ahem font is far wider and fakes overflows)
+  setUpAll(loadDesignFonts);
 
   setUp(() {
     Get.reset();
@@ -29,16 +34,16 @@ void main() {
   });
   tearDown(Get.reset);
 
-  Future<void> boot(WidgetTester t, Widget screen, {bool classTeacher = true, bool tall = true}) async {
+  Future<void> boot(WidgetTester t, Widget screen, {bool classTeacher = true, bool tall = true, double width = 430, double scale = 1.0, TextDirection dir = TextDirection.ltr}) async {
     final h = (await t.runAsync(() => signedIn(classTeacher: classTeacher)))!;
     c = AttendanceController(students: students, attendance: attendance, auth: h.auth, permissions: h.perms, clock: () => now);
     Get.put(c);
     Get.put(AttendanceHistoryController(attendance: attendance, daily: c, clock: () => now));
     if (tall) {
-      await t.binding.setSurfaceSize(const Size(430, 2400));
+      await t.binding.setSurfaceSize(Size(width, 2400));
       addTearDown(() => t.binding.setSurfaceSize(null));
     }
-    await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: screen));
+    await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: probeWrap(screen, scale: scale, dir: dir)));
     await t.pump();
     await t.pump();
   }
@@ -365,6 +370,45 @@ void main() {
       await t.pump();
       expect(find.byKey(const Key('screen_forbidden')), findsOneWidget);
     });
+  });
+
+  // D6 layout probes: widths 320/360/375/430 x text scale 1.0/1.3 x LTR/RTL
+  group('D6 layout probes', () {
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('mark screen', w, sc, d), (t) async {
+            await boot(t, const AttendanceMarkScreen(), width: w, scale: sc, dir: d);
+            expectNoLayoutError(t);
+            // the five status labels never wrap or clip, and every toggle is a 48dp target
+            for (final label in ['Present', 'Absent', 'Late', 'Leave', 'Half']) {
+              expectOneLine(t, find.text(label), scale: sc);
+              expectInsideScreen(t, find.text(label), w);
+            }
+            for (final s in AttendanceStatus.values) {
+              expect(t.getSize(chip(0, s)).height, greaterThanOrEqualTo(48));
+            }
+            expectInsideScreen(t, find.byKey(const Key('submit_button')), w);
+          });
+          testWidgets(probeName('hub', w, sc, d), (t) async {
+            attendance.range = (_, __, ___, ____) async => [record(roster[0], DateTime.utc(2026, 10, 5), 'present'), record(roster[1], DateTime.utc(2026, 10, 5), 'absent')];
+            await boot(t, const AttendanceScreen(), width: w, scale: sc, dir: d);
+            expectNoLayoutError(t);
+            expectOneLine(t, find.text('2 / 5'), scale: sc);
+            expectInsideScreen(t, find.byKey(const Key('hub_mark_button')), w);
+            expectInsideScreen(t, find.byKey(const Key('hub_history_button')), w);
+            for (final label in ['Present 1', 'Absent 1']) {
+              expectOneLine(t, find.text(label), scale: sc);
+            }
+          });
+          testWidgets(probeName('history', w, sc, d), (t) async {
+            await boot(t, const AttendanceHistoryScreen(), width: w, scale: sc, dir: d);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('history_calendar')), w);
+          });
+        }
+      }
+    }
   });
 }
 

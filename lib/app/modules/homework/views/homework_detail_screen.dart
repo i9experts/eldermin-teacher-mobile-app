@@ -89,16 +89,7 @@ class HomeworkDetailScreen extends GetView<HomeworkDetailController> {
           child: Text("Class, subject and total marks can't be changed after the homework is assigned.", style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ),
       const SizedBox(height: EmSpacing.s8),
-      SizedBox(
-        width: double.infinity,
-        child: TextButton.icon(
-          key: const Key('hw_delete'),
-          onPressed: busy ? null : () => _delete(context, a),
-          style: TextButton.styleFrom(foregroundColor: EmColors.error),
-          icon: const Icon(Icons.delete_outline_rounded, size: 20),
-          label: Text('Delete', style: EmType.label.copyWith(color: EmColors.error)),
-        ),
-      ),
+      Center(child: EmTextAction(key: const Key('hw_delete'), destructive: true, icon: Icons.delete_outline_rounded, label: 'Delete', onPressed: busy ? null : () => _delete(context, a))),
     ];
   }
 

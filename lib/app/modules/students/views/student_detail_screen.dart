@@ -294,11 +294,11 @@ class _BehaviourCard extends StatelessWidget {
     final link = canOpen
         ? Align(
             alignment: AlignmentDirectional.centerStart,
-            child: TextButton.icon(
+            child: EmTextAction(
               key: const Key('student_behaviour_history'),
               onPressed: () => Get.toNamed(Routes.behaviourStudentOf(studentId)),
-              icon: const Icon(Icons.history_rounded, size: 20),
-              label: Text('Behaviour history and Tarbiyah', style: EmType.label.copyWith(color: EmColors.primary)),
+              icon: Icons.history_rounded,
+              label: 'Behaviour history and Tarbiyah',
             ),
           )
         : const SizedBox.shrink();

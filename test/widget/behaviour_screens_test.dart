@@ -14,7 +14,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_harness.dart';
+import '../support/design_harness.dart' show loadDesignFonts;
 import '../support/fake_classroom_repositories.dart';
+import '../support/layout_probe.dart';
 import '../support/fake_phase5b_repositories.dart';
 
 final now = DateTime(2026, 10, 5, 9, 30);
@@ -45,6 +47,8 @@ void main() {
   late FakeBehaviourRepository repo;
   late FakeStudentsRepository students;
 
+  setUpAll(loadDesignFonts); // real glyph widths (the default Ahem test font fakes overflows)
+
   setUp(() {
     Get.reset();
     Get.testMode = true;
@@ -54,6 +58,7 @@ void main() {
       ..roster = (cls) async => cls.grade == 'Grade 5' ? [student(1), student(2), student(3)] : [student(30, grade: 'Grade 6', section: 'B')];
   });
   tearDown(Get.reset);
+  tearDown(ProbeEnv.reset);
 
   Future<dynamic> signIn(WidgetTester t, {List<Map<String, Object?>> assignments = const [cls5a], List<String>? permissions}) async {
     return (await t.runAsync(() async {
@@ -65,10 +70,10 @@ void main() {
   }
 
   Future<void> open(WidgetTester t, Widget screen, {Size size = const Size(430, 3000)}) async {
-    await t.binding.setSurfaceSize(size);
+    await t.binding.setSurfaceSize(probeSize(size));
     addTearDown(() => t.binding.setSurfaceSize(null));
     await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: const Scaffold(body: Text('root'))));
-    unawaited(Get.to(() => screen));
+    unawaited(Get.to(() => probeHome(screen)));
     await t.pump();
     await t.pump(const Duration(milliseconds: 400));
   }
@@ -197,6 +202,27 @@ void main() {
       await t.pump(const Duration(seconds: 1));
       expect(repo.calls.length, greaterThan(before));
     });
+
+    // D6 layout probes: widths 320/360/375/430 x text scale 1.0/1.3 x LTR/RTL
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('behaviour list', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            repo.gradeRecords = (g) async => [
+                  rec('r1', by: 'Tess Teacher', byId: 'u', title: 'Great teamwork on the group science project', points: 5),
+                  rec('r2', by: 'Tess Teacher', byId: 'u', type: 'negative', points: -2, title: 'Late to class', category: 'late_coming', severity: 'high'),
+                ];
+            await boot(t);
+            expectNoLayoutError(t);
+            expectOneLine(t, find.text('+5'), scale: sc);
+            expectOneLine(t, find.text('-2'), scale: sc);
+            expectInsideScreen(t, find.byKey(const Key('beh_new_fab')), w);
+            expectInsideScreen(t, find.byKey(const Key('beh_search')), w);
+          });
+        }
+      }
+    }
   });
 
   group('Quick log', () {
@@ -402,6 +428,22 @@ void main() {
       });
     });
 
+
+    // D6 layout probes: widths 320/360/375/430 x text scale 1.0/1.3 x LTR/RTL
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('behaviour log form', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('beh_submit')), w);
+            expectInsideScreen(t, find.byKey(const Key('beh_student_picker')), w);
+            expectInsideScreen(t, find.byKey(const Key('beh_date_picker')), w);
+          });
+        }
+      }
+    }
   });
 
   group('Student history', () {
@@ -462,5 +504,20 @@ void main() {
       await settle(t);
       expect(find.byKey(const Key('student_no_tarbiyah')), findsOneWidget);
     });
+
+    // D6 layout probes: widths 320/360/375/430 x text scale 1.0/1.3 x LTR/RTL
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('student history', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            repo.studentRecords = (id) async => [rec('r1', by: 'Tess Teacher', byId: 'u', points: 5), rec('r2', type: 'negative', points: -2, title: 'Late to class', category: 'late_coming', severity: 'medium')];
+            await boot(t, initial: const StudentSummary(id: 'st1', firstName: 'Zara', lastName: 'Malik', grade: 'Grade 5', section: 'A', rollNumber: '6'));
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('beh_student_log')), w);
+          });
+        }
+      }
+    }
   });
 }

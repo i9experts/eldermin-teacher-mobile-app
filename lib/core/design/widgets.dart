@@ -24,5 +24,6 @@ export 'widgets/em_segmented_tabs.dart';
 export 'widgets/em_skeleton.dart';
 export 'widgets/em_stat_tile.dart';
 export 'widgets/em_states.dart';
+export 'widgets/em_text_action.dart';
 export 'widgets/em_text_field.dart';
 export 'widgets/em_tone.dart';

@@ -57,11 +57,11 @@ class HomeworkScreen extends GetView<HomeworkController> {
           const SizedBox(height: EmSpacing.s4),
           Align(
             alignment: AlignmentDirectional.centerEnd,
-            child: TextButton.icon(
+            child: EmTextAction(
               key: const Key('hw_sort'),
               onPressed: c.toggleSort,
-              icon: Icon(newest ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, size: 18),
-              label: Text(newest ? 'Latest due first' : 'Earliest due first', style: EmType.label.copyWith(color: EmColors.primary)),
+              icon: newest ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+              label: newest ? 'Latest due first' : 'Earliest due first',
             ),
           ),
         ],

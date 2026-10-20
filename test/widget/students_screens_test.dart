@@ -16,7 +16,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_harness.dart';
+import '../support/design_harness.dart' show loadDesignFonts;
 import '../support/fake_classroom_repositories.dart';
+import '../support/layout_probe.dart';
 
 Student360 fx360([Map<String, dynamic> patch = const {}]) {
   final raw = jsonDecode(File('test/fixtures/classroom/student_360.json').readAsStringSync()) as Map<String, dynamic>;
@@ -27,12 +29,15 @@ Student360 fx360([Map<String, dynamic> patch = const {}]) {
 void main() {
   late FakeStudentsRepository repo;
 
+  setUpAll(loadDesignFonts); // real glyph widths (the default Ahem test font fakes overflows)
+
   setUp(() {
     Get.reset();
     Get.testMode = true;
     repo = FakeStudentsRepository();
   });
   tearDown(Get.reset);
+  tearDown(ProbeEnv.reset);
 
   Future<StudentsController> bootList(WidgetTester t, {bool classTeacher = true, List<Map<String, Object?>> assignments = const [], List<String>? permissions}) async {
     final h = (await t.runAsync(() async {
@@ -42,9 +47,9 @@ void main() {
       return h;
     }))!;
     final c = Get.put(StudentsController(repository: repo, auth: h.auth, permissions: h.perms));
-    await t.binding.setSurfaceSize(const Size(430, 1800));
+    await t.binding.setSurfaceSize(probeSize(const Size(430, 1800)));
     addTearDown(() => t.binding.setSurfaceSize(null));
-    await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: const StudentsScreen()));
+    await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: probeHome(const StudentsScreen())));
     await t.pump();
     await c.load();
     await t.pump();
@@ -142,6 +147,25 @@ void main() {
       await t.pump(const Duration(seconds: 1));
       expect(repo.calls.where((e) => e.startsWith('roster:')).length, greaterThan(before));
     });
+
+    // D6 layout probes: widths 320/360/375/430 x text scale 1.0/1.3 x LTR/RTL
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('students list', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            repo.roster = (_) async => [for (var i = 1; i <= 4; i++) student(i)];
+            await bootList(t, assignments: const [
+              {'gradeLevel': 'Grade 5', 'sectionName': 'A', 'subjectName': 'Mathematics'},
+              {'gradeLevel': 'Grade 6', 'sectionName': 'B', 'subjectName': 'Science'},
+            ]);
+            expectNoLayoutError(t);
+            expectOneLine(t, find.byKey(const Key('students_count')).evaluate().isEmpty ? find.text('4 students') : find.byKey(const Key('students_count')), scale: sc);
+            expectInsideScreen(t, find.byKey(const Key('students_search')), w);
+          });
+        }
+      }
+    }
   });
 
   group('Student 360 screen', () {
@@ -150,9 +174,9 @@ void main() {
       repo.detail = (_) async => error != null ? throw error : data!;
       repo.summary = (_, __, ___) async => const StatusCounts(present: 12, late: 1, absent: 2);
       final c = Get.put(StudentDetailController('sid', repository: repo, auth: h.auth, permissions: h.perms, clock: () => DateTime(2026, 10, 5)), tag: 'sid');
-      await t.binding.setSurfaceSize(const Size(430, 3000));
+      await t.binding.setSurfaceSize(probeSize(const Size(430, 3000)));
       addTearDown(() => t.binding.setSurfaceSize(null));
-      await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: const StudentDetailScreen(studentId: 'sid')));
+      await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: probeHome(const StudentDetailScreen(studentId: 'sid'))));
       await t.pump();
       await c.load();
       await t.pump();
@@ -285,6 +309,22 @@ void main() {
       expect(find.byKey(const Key('student_profile')), findsOneWidget);
       expect(find.byKey(const Key('month_error')), findsOneWidget);
     });
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('student 360', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A'}));
+            expectNoLayoutError(t);
+            // the ring + label row may wrap the label to two lines (never clip it); the status chips stay on one line
+            expectInsideScreen(t, find.byKey(const Key('attendance_percentage')), w);
+            expectInsideScreen(t, find.byKey(const Key('student_profile')), w);
+            expectOneLine(t, find.text('Present 12'), scale: sc);
+          });
+        }
+      }
+    }
   });
 
   group('Classes tab', () {
