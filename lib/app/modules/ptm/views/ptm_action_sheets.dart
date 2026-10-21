@@ -1,17 +1,39 @@
 import 'package:flutter/material.dart';
 import '../../../../core/models/ptm/ptm_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/utils/ptm_rules.dart';
 import '../../../../core/widgets/app_date_picker.dart';
-import '../../../components/custom_text.dart';
 import '../../homework/views/widgets/homework_widgets.dart';
 import '../controllers/ptm_detail_controller.dart';
 import 'widgets/ptm_widgets.dart';
+import '../../../../core/design/design.dart';
 
 typedef ResultSink = void Function(PtmResult r);
 
 Widget _fail(String? text) => text == null ? const SizedBox.shrink() : ErrorBanner(bannerKey: const Key('sheet_error'), message: text);
+
+Widget _note(String text) => Padding(padding: const EdgeInsets.only(bottom: EmSpacing.s12), child: Text(text, style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)));
+
+/// A validation message under a field: glyph + words in the error colour (readable at 1.3x, wraps instead of clipping).
+Widget _err(String text) => Padding(
+      padding: const EdgeInsets.only(top: EmSpacing.s4),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Padding(padding: EdgeInsets.only(top: EmSpacing.s2), child: Icon(Icons.error_outline_rounded, size: 16, color: EmColors.error)),
+        const SizedBox(width: EmSpacing.s4),
+        Expanded(child: Text(text, style: EmType.caption.copyWith(color: EmColors.error, fontWeight: FontWeight.w600))),
+      ]),
+    );
+
+InputDecoration _fieldDecoration(String hint) => InputDecoration(
+      isDense: true,
+      hintText: hint,
+      hintStyle: EmType.body.copyWith(color: EmColors.textTertiary),
+      counterText: '',
+      filled: true,
+      fillColor: EmColors.surface,
+      border: OutlineInputBorder(borderRadius: EmRadius.smAll, borderSide: const BorderSide(color: EmColors.border)),
+      enabledBorder: OutlineInputBorder(borderRadius: EmRadius.smAll, borderSide: const BorderSide(color: EmColors.border)),
+    );
 
 // ── reschedule ──────────────────────────────────────────────
 
@@ -79,20 +101,13 @@ class _RescheduleSheetState extends State<_RescheduleSheet> {
     return SheetFrame(
       title: 'Reschedule meeting',
       actions: [
-        Expanded(child: OutlinedButton(key: const Key('reschedule_keep'), onPressed: saving ? null : () => Navigator.of(context).pop(), child: const Text('Keep current time'))),
-        const SizedBox(width: 10),
-        Expanded(
-          child: ElevatedButton(
-            key: const Key('reschedule_save'),
-            onPressed: saving ? null : _save,
-            child: saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Reschedule'),
-          ),
-        ),
+        Expanded(child: EmSecondaryButton(key: const Key('reschedule_keep'), label: 'Keep current time', expand: true, onPressed: saving ? null : () => Navigator.of(context).pop())),
+        const SizedBox(width: EmSpacing.s12),
+        Expanded(child: EmPrimaryButton(key: const Key('reschedule_save'), label: 'Reschedule', loading: saving, onPressed: saving ? null : _save)),
       ],
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _fail(failure),
-        const CustomText(text: 'The meeting goes back to "Requested" and the guardian is told about the new time.', fontSize: 12, color: AppColors.muted, height: 1.35),
-        const SizedBox(height: 12),
+        _note('The meeting goes back to "Requested" and the guardian is told about the new time.'),
         FormLabel('Date *', error: errors['day']),
         PickField(
           fieldKey: const Key('reschedule_day'),
@@ -111,13 +126,13 @@ class _RescheduleSheetState extends State<_RescheduleSheet> {
             }
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: EmSpacing.row),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: _timeField('Start *', 'reschedule_start', start, errors['start'], (v) => setState(() {
                 start = v;
                 errors.remove('start');
               }))),
-          const SizedBox(width: 12),
+          const SizedBox(width: EmSpacing.row),
           Expanded(child: _timeField('End *', 'reschedule_end', end, errors['end'], (v) => setState(() {
                 end = v;
                 errors.remove('end');
@@ -133,7 +148,7 @@ class _RescheduleSheetState extends State<_RescheduleSheet> {
           final p = await pickHm(context, initial: value);
           if (p != null) onPicked(p);
         }),
-        if (error != null) Padding(padding: const EdgeInsets.only(top: 4), child: CustomText(text: error, color: AppColors.redText, fontSize: 11, fontWeight: FontWeight.w600)),
+        if (error != null) _err(error),
       ]);
 }
 
@@ -194,21 +209,13 @@ class _CancelSheetState extends State<_CancelSheet> {
     return SheetFrame(
       title: 'Cancel this meeting?',
       actions: [
-        Expanded(child: OutlinedButton(key: const Key('cancel_keep'), onPressed: saving ? null : () => Navigator.of(context).pop(), child: const Text('Keep meeting'))),
-        const SizedBox(width: 10),
-        Expanded(
-          child: ElevatedButton(
-            key: const Key('cancel_confirm'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.redText),
-            onPressed: saving ? null : _save,
-            child: saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Cancel meeting'),
-          ),
-        ),
+        Expanded(child: EmSecondaryButton(key: const Key('cancel_keep'), label: 'Keep meeting', expand: true, onPressed: saving ? null : () => Navigator.of(context).pop())),
+        const SizedBox(width: EmSpacing.s12),
+        Expanded(child: EmPrimaryButton(key: const Key('cancel_confirm'), label: 'Cancel meeting', destructive: true, loading: saving, onPressed: saving ? null : _save)),
       ],
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _fail(failure),
-        const CustomText(text: 'The guardian is told that it is cancelled. Give a short reason.', fontSize: 12, color: AppColors.muted, height: 1.35),
-        const SizedBox(height: 10),
+        _note('The guardian is told that it is cancelled. Give a short reason.'),
         LabeledField(label: 'Reason', required: true, controller: reason, fieldKey: const Key('cancel_reason'), maxLines: 3, maxLength: kPtmReasonMax, error: error, onChanged: (_) => setState(() => error = null)),
       ]),
     );
@@ -294,33 +301,24 @@ class _OutcomeSheetState extends State<_OutcomeSheet> {
     return SheetFrame(
       title: 'Record outcome',
       actions: [
-        Expanded(child: OutlinedButton(key: const Key('outcome_close'), onPressed: saving ? null : () => Navigator.of(context).pop(), child: const Text('Not now'))),
-        const SizedBox(width: 10),
-        Expanded(
-          child: ElevatedButton(
-            key: const Key('outcome_save'),
-            onPressed: saving ? null : _save,
-            child: saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Save outcome'),
-          ),
-        ),
+        Expanded(child: EmSecondaryButton(key: const Key('outcome_close'), label: 'Not now', expand: true, onPressed: saving ? null : () => Navigator.of(context).pop())),
+        const SizedBox(width: EmSpacing.s12),
+        Expanded(child: EmPrimaryButton(key: const Key('outcome_save'), label: 'Save outcome', loading: saving, onPressed: saving ? null : _save)),
       ],
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _fail(failure),
         const FormLabel('Did the parent attend?'),
-        Row(children: [
-          Expanded(child: ChoiceChip(key: const Key('outcome_attended'), label: const Center(child: Text('Attended')), selected: attended, onSelected: (_) => setState(() => attended = true))),
-          const SizedBox(width: 10),
-          Expanded(child: ChoiceChip(key: const Key('outcome_noshow'), label: const Center(child: Text('No-show')), selected: !attended, onSelected: (_) => setState(() => attended = false))),
+        Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s8, children: [
+          EmChip(key: const Key('outcome_attended'), label: 'Attended', icon: attended ? Icons.check_rounded : null, selected: attended, onTap: () => setState(() => attended = true)),
+          EmChip(key: const Key('outcome_noshow'), label: 'No-show', icon: !attended ? Icons.check_rounded : null, selected: !attended, onTap: () => setState(() => attended = false)),
         ]),
-        const SizedBox(height: 14),
+        const SizedBox(height: EmSpacing.block),
         LabeledField(label: 'Meeting notes', controller: notes, fieldKey: const Key('outcome_notes'), maxLines: 4, maxLength: kPtmNotesMax, hint: 'What was discussed?', error: errors['notes']),
         FormLabel('Action items', error: errors['items']),
         for (var i = 0; i < items.length; i++) _itemEditor(i),
-        TextButton.icon(
-          key: const Key('outcome_add_item'),
-          onPressed: items.length >= kPtmMaxActionItems ? null : () => setState(() => items.add(_ItemRow())),
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('Add action item'),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: EmTextAction(key: const Key('outcome_add_item'), label: 'Add action item', icon: Icons.add_rounded, onPressed: items.length >= kPtmMaxActionItems ? null : () => setState(() => items.add(_ItemRow()))),
         ),
       ]),
     );
@@ -330,18 +328,18 @@ class _OutcomeSheetState extends State<_OutcomeSheet> {
     final row = items[i];
     final err = errors['item$i'];
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: err == null ? AppColors.line : AppColors.redText)),
+      margin: const EdgeInsets.only(bottom: EmSpacing.s12),
+      padding: const EdgeInsets.all(EmSpacing.s12),
+      decoration: BoxDecoration(color: EmColors.background, borderRadius: EmRadius.mdAll, border: Border.all(color: err == null ? EmColors.border : EmColors.error)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: CustomText(text: 'Item ${i + 1}', fontWeight: FontWeight.w800, fontSize: 12, color: AppColors.primaryColor)),
-          IconButton(key: Key('outcome_remove_$i'), visualDensity: VisualDensity.compact, icon: const Icon(Icons.close_rounded, size: 18), onPressed: () => setState(() => items.removeAt(i).dispose())),
+          Expanded(child: Text('Item ${i + 1}', style: EmType.label.copyWith(fontWeight: FontWeight.w800, color: EmColors.ink))),
+          EmIconCircleButton(key: Key('outcome_remove_$i'), icon: Icons.close_rounded, semanticLabel: 'Remove item ${i + 1}', tooltip: 'Remove item', onTap: () => setState(() => items.removeAt(i).dispose())),
         ]),
-        TextField(key: Key('outcome_item_desc_$i'), controller: row.desc, maxLength: kPtmActionDescriptionMax, onChanged: (_) { if (errors.containsKey('item$i')) setState(() => errors.remove('item$i')); }, decoration: const InputDecoration(isDense: true, hintText: 'What needs to happen?', counterText: '', filled: true, fillColor: Colors.white)),
-        const SizedBox(height: 8),
-        TextField(key: Key('outcome_item_who_$i'), controller: row.who, maxLength: kPtmActionAssigneeMax, decoration: const InputDecoration(isDense: true, hintText: 'Who? (Teacher, Parent ...)', counterText: '', filled: true, fillColor: Colors.white)),
-        const SizedBox(height: 8),
+        TextField(key: Key('outcome_item_desc_$i'), controller: row.desc, maxLength: kPtmActionDescriptionMax, style: EmType.body.copyWith(color: EmColors.ink), onChanged: (_) { if (errors.containsKey('item$i')) setState(() => errors.remove('item$i')); }, decoration: _fieldDecoration('What needs to happen?')),
+        const SizedBox(height: EmSpacing.s8),
+        TextField(key: Key('outcome_item_who_$i'), controller: row.who, maxLength: kPtmActionAssigneeMax, style: EmType.body.copyWith(color: EmColors.ink), decoration: _fieldDecoration('Who? (Teacher, Parent ...)')),
+        const SizedBox(height: EmSpacing.s8),
         PickField(
           fieldKey: Key('outcome_item_due_$i'),
           icon: Icons.event_rounded,
@@ -354,7 +352,7 @@ class _OutcomeSheetState extends State<_OutcomeSheet> {
             if (p != null) setState(() => row.due = DateTime(p.year, p.month, p.day));
           },
         ),
-        if (err != null) Padding(padding: const EdgeInsets.only(top: 6), child: CustomText(text: err, color: AppColors.redText, fontSize: 11, fontWeight: FontWeight.w600)),
+        if (err != null) _err(err),
       ]),
     );
   }

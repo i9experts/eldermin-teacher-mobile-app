@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/ptm/ptm_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/utils/ptm_rules.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/ptm_detail_controller.dart';
@@ -90,26 +89,31 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
       AppCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: CustomText(key: const Key('ptm_student'), text: m.studentName.isEmpty ? 'Student' : m.studentName, fontWeight: FontWeight.w800, fontSize: 17, color: AppColors.primaryColor)),
+            Expanded(child: Text(m.studentName.isEmpty ? 'Student' : m.studentName, key: const Key('ptm_student'), style: EmType.bodyLarge.copyWith(fontWeight: FontWeight.w800, color: EmColors.ink))),
+            const SizedBox(width: EmSpacing.s8),
             PtmStatusTag(m.status),
           ]),
-          if (m.classLabel.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 2), child: CustomText(text: m.classLabel, fontSize: 12, color: AppColors.muted)),
-          const SizedBox(height: 10),
+          if (m.classLabel.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s2), child: Text(m.classLabel, style: EmType.caption.copyWith(color: EmColors.textSecondary))),
+          const SizedBox(height: EmSpacing.s12),
           _line(Icons.event_rounded, meetingWhen(m, (d) => '${shortDay(d)} ${d.year}'), key: const Key('ptm_when')),
           _line(Icons.family_restroom_rounded, m.guardianName.isEmpty ? 'Guardian not recorded' : 'With ${m.guardianName}', key: const Key('ptm_guardian')),
           if (m.teacherName.isNotEmpty) _line(Icons.person_rounded, 'Teacher: ${m.teacherName}${c.isMine ? ' (you)' : ''}'),
-          if (isOverdueOpen(m, now)) const Padding(padding: EdgeInsets.only(top: 4), child: CustomText(key: Key('ptm_overdue_hint'), text: 'The date has passed and no outcome is recorded yet.', fontSize: 12, color: AppColors.amberText, fontWeight: FontWeight.w700)),
-          if (!c.isMine) const Padding(padding: EdgeInsets.only(top: 8), child: CustomText(key: Key('ptm_not_mine'), text: 'This meeting belongs to another teacher, so you can only view it.', fontSize: 12, color: AppColors.muted)),
+          if (isOverdueOpen(m, now)) Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Icon(Icons.schedule_rounded, size: 16, color: EmColors.warning), const SizedBox(width: EmSpacing.s4), Expanded(child: Text('The date has passed and no outcome is recorded yet.', key: const Key('ptm_overdue_hint'), style: EmType.caption.copyWith(color: EmColors.warning, fontWeight: FontWeight.w700)))])),
+          if (!c.isMine) Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Icon(Icons.visibility_outlined, size: 16, color: EmColors.textSecondary), const SizedBox(width: EmSpacing.s8), Expanded(child: Text('This meeting belongs to another teacher, so you can only view it.', key: const Key('ptm_not_mine'), style: EmType.caption.copyWith(color: EmColors.textSecondary)))])),
         ]),
       ),
       if (m.status == PtmStatus.cancelled)
         AppCard(
           key: const Key('ptm_cancelled_box'),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const CustomText(text: 'Cancelled', fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.redText),
-            const SizedBox(height: 4),
-            CustomText(text: m.cancelledReason.isEmpty ? 'No reason was recorded.' : m.cancelledReason, fontSize: 12.5, color: AppColors.ink, height: 1.35),
-            if (m.cancelledBy.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: CustomText(text: 'By ${m.cancelledBy}', fontSize: 11, color: AppColors.muted)),
+            Row(children: [
+              const Icon(Icons.event_busy_rounded, size: 18, color: EmColors.error),
+              const SizedBox(width: EmSpacing.s8),
+              Text('Cancelled', style: EmType.label.copyWith(fontWeight: FontWeight.w800, color: EmColors.error)),
+            ]),
+            const SizedBox(height: EmSpacing.s4),
+            Text(m.cancelledReason.isEmpty ? 'No reason was recorded.' : m.cancelledReason, style: EmType.label.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400)),
+            if (m.cancelledBy.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: Text('By ${m.cancelledBy}', style: EmType.caption.copyWith(color: EmColors.textSecondary))),
           ]),
         ),
       if (m.discussionPoints.isNotEmpty) ...[
@@ -124,8 +128,8 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
             Row(children: [
               AppTag(m.status == PtmStatus.completed ? 'PARENT ATTENDED' : 'NO-SHOW', style: m.status == PtmStatus.completed ? TagStyle.green : TagStyle.red),
             ]),
-            const SizedBox(height: 8),
-            CustomText(text: m.meetingNotes.isEmpty ? 'No notes were recorded.' : m.meetingNotes, fontSize: 12.5, color: m.meetingNotes.isEmpty ? AppColors.muted : AppColors.ink, height: 1.4),
+            const SizedBox(height: EmSpacing.s8),
+            Text(m.meetingNotes.isEmpty ? 'No notes were recorded.' : m.meetingNotes, style: EmType.label.copyWith(color: m.meetingNotes.isEmpty ? EmColors.textSecondary : EmColors.ink, fontWeight: FontWeight.w400)),
           ]),
         ),
       ],
@@ -133,26 +137,26 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
         const SubHeading('Action items'),
         for (final a in m.actionItems) _actionItem(m, a, enabled: allowed.contains(PtmAction.toggleActionItems)),
       ],
-      const SizedBox(height: 4),
+      const SizedBox(height: EmSpacing.s4),
       ..._buttons(m, allowed, busy),
       _history(),
     ];
   }
 
   Widget _line(IconData icon, String text, {Key? key}) => Padding(
-        padding: const EdgeInsets.only(bottom: 5),
+        padding: const EdgeInsets.only(bottom: EmSpacing.s8),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icon, size: 16, color: AppColors.muted),
-          const SizedBox(width: 8),
-          Expanded(child: CustomText(key: key, text: text, fontSize: 13, color: AppColors.ink)),
+          Padding(padding: const EdgeInsets.only(top: EmSpacing.s2), child: ExcludeSemantics(child: Icon(icon, size: 18, color: EmColors.textSecondary))),
+          const SizedBox(width: EmSpacing.s8),
+          Expanded(child: Text(text, key: key, style: EmType.label.copyWith(color: EmColors.ink, fontWeight: FontWeight.w500))),
         ]),
       );
 
   Widget _bullet(String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.only(bottom: EmSpacing.s4),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Padding(padding: EdgeInsets.only(top: 6, right: 8), child: Icon(Icons.circle, size: 5, color: AppColors.muted)),
-          Expanded(child: CustomText(text: t, fontSize: 12.5, color: AppColors.ink, height: 1.35)),
+          const Padding(padding: EdgeInsetsDirectional.only(top: EmSpacing.s8, end: EmSpacing.s8), child: ExcludeSemantics(child: Icon(Icons.circle, size: 6, color: EmColors.textSecondary))),
+          Expanded(child: Text(t, style: EmType.label.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400))),
         ]),
       );
 
@@ -161,10 +165,10 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
     final due = a.dueDay;
     return AppCard(
       key: ValueKey('ptm_item_${a.id}'),
-      padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
+      padding: const EdgeInsetsDirectional.fromSTEB(EmSpacing.s4, EmSpacing.s4, EmSpacing.s12, EmSpacing.s4),
       child: Row(children: [
         if (busy)
-          const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+          const Padding(padding: EdgeInsets.all(EmSpacing.s12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
         else
           Checkbox(
             key: ValueKey('ptm_item_check_${a.id}'),
@@ -173,9 +177,9 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
           ),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(a.description.isEmpty ? '(No description)' : a.description, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: a.done ? AppColors.muted : AppColors.ink, decoration: a.done ? TextDecoration.lineThrough : null)),
+            Text(a.description.isEmpty ? '(No description)' : a.description, style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: a.done ? EmColors.textSecondary : EmColors.ink, decoration: a.done ? TextDecoration.lineThrough : null)),
             if (a.assignedTo.isNotEmpty || due != null)
-              CustomText(text: [if (a.assignedTo.isNotEmpty) a.assignedTo, if (due != null) 'due ${shortDay(due)}'].join(' · '), fontSize: 11, color: AppColors.muted),
+              Text([if (a.assignedTo.isNotEmpty) a.assignedTo, if (due != null) 'due ${shortDay(due)}'].join(' · '), style: EmType.caption.copyWith(color: EmColors.textSecondary)),
           ]),
         ),
       ]),
@@ -187,16 +191,11 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
       if (!allowed.contains(a)) return const SizedBox.shrink();
       final working = busy == a;
       final off = busy != null;
-      final style = danger ? OutlinedButton.styleFrom(foregroundColor: AppColors.redText, side: BorderSide(color: AppColors.redText.withOpacity(0.5))) : null;
-      final child = working ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 18), const SizedBox(width: 8), Text(label)]);
       return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: SizedBox(
-          width: double.infinity,
-          child: primary
-              ? ElevatedButton(key: Key(key), onPressed: off ? null : onTap, child: child)
-              : OutlinedButton(key: Key(key), style: style, onPressed: off ? null : onTap, child: child),
-        ),
+        padding: const EdgeInsets.only(bottom: EmSpacing.s8),
+        child: primary
+            ? EmPrimaryButton(key: Key(key), label: label, icon: icon, loading: working, onPressed: off ? null : onTap)
+            : EmSecondaryButton(key: Key(key), label: label, icon: icon, expand: true, destructive: danger, loading: working, onPressed: off ? null : onTap),
       );
     }
 
@@ -224,7 +223,7 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
         Widget body;
         switch (st.status) {
           case SectionStatus.loading:
-            body = const Padding(padding: EdgeInsets.all(8), child: LinearProgressIndicator(key: Key('ptm_history_loading')));
+            body = const Padding(padding: EdgeInsets.all(EmSpacing.s8), child: LinearProgressIndicator(key: Key('ptm_history_loading')));
           case SectionStatus.data:
             body = Column(children: [
               for (final h in st.data!.take(10))
@@ -234,8 +233,8 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
                   child: Row(children: [
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        CustomText(text: meetingWhen(h, shortDay), fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.ink),
-                        if (h.teacherName.isNotEmpty) CustomText(text: h.teacherName, fontSize: 11, color: AppColors.muted),
+                        Text(meetingWhen(h, shortDay), style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: EmColors.ink)),
+                        if (h.teacherName.isNotEmpty) Text(h.teacherName, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
                       ]),
                     ),
                     PtmStatusTag(h.status),
@@ -243,9 +242,9 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
                 ),
             ]);
           case SectionStatus.empty:
-            body = const CustomText(key: Key('ptm_history_empty'), text: 'No earlier meetings for this student.', fontSize: 12, color: AppColors.muted);
+            body = Text('No earlier meetings for this student.', key: const Key('ptm_history_empty'), style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400));
           default:
-            body = const CustomText(key: Key('ptm_history_unavailable'), text: "Earlier meetings couldn't be loaded.", fontSize: 12, color: AppColors.muted);
+            body = Text("Earlier meetings couldn't be loaded.", key: const Key('ptm_history_unavailable'), style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400));
         }
         return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const SubHeading('Earlier meetings with this student'), body]);
       });

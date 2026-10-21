@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/ptm_rules.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/ptm_controller.dart';
 import 'widgets/ptm_widgets.dart';
@@ -40,16 +38,16 @@ class PtmScreen extends GetView<PtmController> {
           emptyIcon: Icons.handshake_outlined,
           emptyTitle: 'No parent meetings yet',
           emptySubtitle: 'Meetings you schedule, and the ones the school books with you, appear here.',
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+          padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s16, EmSpacing.screenH, EmSpacing.fabClearance),
           header: [
             if (st.hasData) ...[
-              SegmentedControl(
+              EmSegmentedTabs<PtmTab>(
                 key: const Key('ptm_tabs'),
-                options: [for (final t in PtmTab.values) '${_labels[t]} (${tabs.countOf(t)})'],
-                selectedIndex: tab.index,
-                onChanged: (i) => c.selectTab(PtmTab.values[i]),
+                segments: [for (final t in PtmTab.values) EmSegment(t, '${_labels[t]} (${tabs.countOf(t)})')],
+                selected: tab,
+                onChanged: c.selectTab,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: EmSpacing.s16),
             ],
           ],
           builder: (t) {
@@ -77,6 +75,6 @@ class PtmScreen extends GetView<PtmController> {
     );
   }
 
-  Widget _none(String title, String sub) => Padding(padding: const EdgeInsets.only(top: 24), child: AppEmptyView(key: const Key('ptm_tab_empty'), icon: Icons.event_busy_outlined, title: title, subtitle: sub));
-  Widget _cut(String text) => Padding(padding: const EdgeInsets.only(top: 4), child: CustomText(key: const Key('ptm_cut'), text: text, fontSize: 11, color: AppColors.muted, textAlign: TextAlign.center));
+  Widget _none(String title, String sub) => Padding(padding: const EdgeInsets.only(top: EmSpacing.s24), child: AppEmptyView(key: const Key('ptm_tab_empty'), icon: Icons.event_busy_outlined, title: title, subtitle: sub));
+  Widget _cut(String text) => Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: Text(text, key: const Key('ptm_cut'), textAlign: TextAlign.center, style: EmType.caption.copyWith(color: EmColors.textSecondary)));
 }

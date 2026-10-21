@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../../core/models/ptm/ptm_models.dart';
-import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../../core/utils/classroom_format.dart';
 import '../../../../../core/utils/ptm_rules.dart';
 import '../../../../../core/widgets/app_widgets.dart';
 import '../../../../../core/widgets/shimmer_widgets.dart';
-import '../../../../components/custom_text.dart';
 import '../../../home/models/section_state.dart';
 import '../../../messages/controllers/class_roster_picker.dart';
 import '../../../students/views/widgets/student_widgets.dart';
@@ -45,27 +44,34 @@ class PtmCard extends StatelessWidget {
       onTap: onTap,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: CustomText(text: m.studentName.isEmpty ? 'Student' : m.studentName, fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.primaryColor, maxLines: 1, overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 8),
+          Expanded(child: Text(m.studentName.isEmpty ? 'Student' : m.studentName, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(fontWeight: FontWeight.w700, color: EmColors.ink))),
+          const SizedBox(width: EmSpacing.s8),
           PtmStatusTag(m.status),
         ]),
-        const SizedBox(height: 4),
-        Row(children: [
-          const Icon(Icons.event_rounded, size: 14, color: AppColors.muted),
-          const SizedBox(width: 5),
-          Expanded(child: CustomText(text: meetingWhen(m, shortDay), fontSize: 12, color: AppColors.ink, fontWeight: FontWeight.w700)),
+        const SizedBox(height: EmSpacing.s4),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Padding(padding: EdgeInsets.only(top: EmSpacing.s2), child: ExcludeSemantics(child: Icon(Icons.event_rounded, size: 16, color: EmColors.textSecondary))),
+          const SizedBox(width: EmSpacing.s8),
+          Expanded(child: Text(meetingWhen(m, shortDay), style: EmType.label.copyWith(color: EmColors.ink, fontWeight: FontWeight.w700))),
         ]),
-        const SizedBox(height: 3),
-        CustomText(
-          text: [if (m.classLabel.isNotEmpty) m.classLabel, if (m.guardianName.isNotEmpty) 'with ${m.guardianName}'].join(' · '),
-          fontSize: 11.5,
-          color: AppColors.muted,
-          maxLines: 1,
+        const SizedBox(height: EmSpacing.s4),
+        Text(
+          [if (m.classLabel.isNotEmpty) m.classLabel, if (m.guardianName.isNotEmpty) 'with ${m.guardianName}'].join(' · '),
+          style: EmType.caption.copyWith(color: EmColors.textSecondary),
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         if (m.discussionPoints.isNotEmpty)
-          Padding(padding: const EdgeInsets.only(top: 4), child: CustomText(text: m.discussionPoints.join(', '), fontSize: 11.5, color: AppColors.muted, maxLines: 1, overflow: TextOverflow.ellipsis)),
-        if (overdue) const Padding(padding: EdgeInsets.only(top: 6), child: CustomText(key: Key('ptm_overdue_hint'), text: 'Date has passed: outcome not recorded', fontSize: 11, color: AppColors.amberText, fontWeight: FontWeight.w700)),
+          Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: Text(m.discussionPoints.join(', '), style: EmType.caption.copyWith(color: EmColors.textSecondary), maxLines: 2, overflow: TextOverflow.ellipsis)),
+        if (overdue)
+          Padding(
+            padding: const EdgeInsets.only(top: EmSpacing.s8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.schedule_rounded, size: 16, color: EmColors.warning),
+              const SizedBox(width: EmSpacing.s4),
+              Expanded(child: Text('Date has passed: outcome not recorded', key: const Key('ptm_overdue_hint'), style: EmType.caption.copyWith(color: EmColors.warning, fontWeight: FontWeight.w700))),
+            ]),
+          ),
       ]),
     );
   }
@@ -84,15 +90,16 @@ class PickField extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
         key: fieldKey,
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderRadius: EmRadius.mdAll,
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: error == null ? AppColors.line : AppColors.redText)),
+          constraints: const BoxConstraints(minHeight: EmSpacing.minTouch),
+          padding: const EdgeInsets.symmetric(horizontal: EmSpacing.s12, vertical: EmSpacing.s12),
+          decoration: BoxDecoration(color: EmColors.surface, borderRadius: EmRadius.mdAll, border: Border.all(color: error == null ? EmColors.border : EmColors.error)),
           child: Row(children: [
-            Icon(icon, size: 18, color: AppColors.primaryColor),
-            const SizedBox(width: 10),
-            Expanded(child: CustomText(text: text, color: filled ? AppColors.black : AppColors.faint, fontWeight: FontWeight.w700, fontSize: 13)),
+            ExcludeSemantics(child: Icon(icon, size: 20, color: EmColors.primary)),
+            const SizedBox(width: EmSpacing.s12),
+            Expanded(child: Text(text, style: EmType.label.copyWith(color: filled ? EmColors.ink : EmColors.textSecondary, fontWeight: filled ? FontWeight.w700 : FontWeight.w500))),
           ]),
         ),
       );
@@ -122,28 +129,17 @@ class StudentPickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = picker;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s16, EmSpacing.screenH, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const CustomText(text: 'Choose a student', fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primaryColor),
-        const SizedBox(height: 10),
+        Text('Choose a student', style: EmType.heading.copyWith(color: EmColors.ink)),
+        const SizedBox(height: EmSpacing.s12),
         Obx(() {
           final cs = p.classes;
           final sel = p.selectedClass.value;
-          return cs.length > 1 ? Padding(padding: const EdgeInsets.only(bottom: 10), child: ClassPicker(classes: cs, selected: sel, onSelect: p.selectClass)) : const SizedBox.shrink();
+          return cs.length > 1 ? Padding(padding: const EdgeInsets.only(bottom: EmSpacing.s12), child: ClassPicker(classes: cs, selected: sel, onSelect: p.selectClass)) : const SizedBox.shrink();
         }),
-        TextField(
-          key: const Key('picker_search'),
-          onChanged: (v) => p.query.value = v,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: 'Search by name or roll number',
-            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-            filled: true,
-            fillColor: AppColors.pale,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
-          ),
-        ),
-        const SizedBox(height: 10),
+        EmSearchPill(color: EmColors.background, fieldKey: const Key('picker_search'), hint: 'Search by name or roll number', onChanged: (v) => p.query.value = v),
+        const SizedBox(height: EmSpacing.s12),
         Expanded(
           child: Obx(() {
             final st = p.state;
@@ -197,9 +193,9 @@ class SheetFrame extends StatelessWidget {
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 14, 16, 8), child: CustomText(text: title, fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primaryColor)),
-            Flexible(child: SingleChildScrollView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 8), child: child)),
-            Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 12), child: Row(children: actions)),
+            Padding(padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s16, EmSpacing.screenH, EmSpacing.s8), child: Text(title, style: EmType.heading.copyWith(color: EmColors.ink))),
+            Flexible(child: SingleChildScrollView(padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s4, EmSpacing.screenH, EmSpacing.s8), child: child)),
+            Padding(padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s4, EmSpacing.screenH, EmSpacing.s12), child: Row(children: actions)),
           ]),
         ),
       ),

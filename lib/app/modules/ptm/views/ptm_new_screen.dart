@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/utils/ptm_rules.dart';
 import '../../../../core/widgets/app_date_picker.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../homework/views/widgets/homework_widgets.dart';
 import '../../students/views/widgets/student_widgets.dart';
@@ -54,33 +52,34 @@ class PtmNewScreen extends GetView<PtmCreateController> {
     final day = c.day.value;
     final f = c.failure.value;
     final today = c.clock();
-    return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 24), children: [
+    return ListView(padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s16, EmSpacing.screenH, EmSpacing.s24), children: [
       if (f != null) ErrorBanner(bannerKey: const Key('ptm_new_error'), message: f.serverMessage.isNotEmpty ? f.serverMessage : f.message),
       if (e['teacher'] != null) ErrorBanner(bannerKey: const Key('ptm_new_teacher_error'), message: e['teacher']!),
       FormLabel('Student *', error: e['student']),
       InkWell(
         key: const Key('ptm_new_student'),
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderRadius: EmRadius.mdAll,
         onTap: () => _pickStudent(context),
         child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: e['student'] == null && e['year'] == null ? AppColors.line : AppColors.redText)),
+          constraints: const BoxConstraints(minHeight: EmSpacing.minTouch),
+          padding: const EdgeInsets.all(EmSpacing.s12),
+          decoration: BoxDecoration(color: EmColors.surface, borderRadius: EmRadius.mdAll, border: Border.all(color: e['student'] == null && e['year'] == null ? EmColors.border : EmColors.error)),
           child: Row(children: [
-            if (s != null) ...[StudentAvatar(student: s, size: 34), const SizedBox(width: 10)] else const Padding(padding: EdgeInsets.only(right: 10), child: Icon(Icons.person_search_rounded, color: AppColors.primaryColor)),
+            if (s != null) ...[StudentAvatar(student: s, size: 34), const SizedBox(width: EmSpacing.s12)] else const Padding(padding: EdgeInsetsDirectional.only(end: EmSpacing.s12), child: Icon(Icons.person_search_rounded, color: EmColors.primary)),
             Expanded(
               child: s == null
-                  ? const CustomText(text: 'Choose a student from your classes', color: AppColors.faint, fontSize: 13)
+                  ? Text('Choose a student from your classes', style: EmType.label.copyWith(color: EmColors.textSecondary))
                   : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      CustomText(key: const Key('ptm_new_selected'), text: s.fullName, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 13),
-                      CustomText(text: s.classLabel, color: AppColors.muted, fontSize: 11),
+                      Text(s.fullName, key: const Key('ptm_new_selected'), style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: EmColors.primary)),
+                      Text(s.classLabel, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
                     ]),
             ),
-            const Icon(Icons.expand_more_rounded, color: AppColors.muted),
+            const Icon(Icons.expand_more_rounded, color: EmColors.textSecondary),
           ]),
         ),
       ),
-      if (e['year'] != null) Padding(padding: const EdgeInsets.only(top: 6), child: CustomText(key: const Key('ptm_new_year_error'), text: e['year']!, color: AppColors.redText, fontSize: 11.5, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 14),
+      if (e['year'] != null) Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: _error(e['year']!, key: const Key('ptm_new_year_error'))),
+      const SizedBox(height: EmSpacing.block),
       FormLabel('Date *', error: e['day']),
       PickField(
         fieldKey: const Key('ptm_new_day'),
@@ -94,24 +93,25 @@ class PtmNewScreen extends GetView<PtmCreateController> {
           if (p != null) c.setDay(p);
         },
       ),
-      const SizedBox(height: 14),
+      const SizedBox(height: EmSpacing.block),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: _time('Start *', 'ptm_new_start', c.start.value, e['start'], c.setStart, context)),
-        const SizedBox(width: 12),
+        const SizedBox(width: EmSpacing.row),
         Expanded(child: _time('End *', 'ptm_new_end', c.end.value, e['end'], c.setEnd, context)),
       ]),
-      const SizedBox(height: 14),
+      const SizedBox(height: EmSpacing.block),
       FormLabel('Discussion points', error: e['points']),
       for (var i = 0; i < c.points.length; i++)
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: EmSpacing.s8),
           child: Row(children: [
-            Expanded(child: TextField(key: Key('ptm_new_point_$i'), controller: c.points[i], maxLength: kPtmPointMax, textCapitalization: TextCapitalization.sentences, decoration: InputDecoration(isDense: true, hintText: 'e.g. Progress in maths', counterText: '', filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md))))),
-            IconButton(key: Key('ptm_new_point_remove_$i'), icon: const Icon(Icons.close_rounded, size: 18), onPressed: () => c.removePoint(i)),
+            Expanded(child: TextField(key: Key('ptm_new_point_$i'), controller: c.points[i], maxLength: kPtmPointMax, textCapitalization: TextCapitalization.sentences, style: EmType.body.copyWith(color: EmColors.ink), decoration: InputDecoration(isDense: true, hintText: 'e.g. Progress in maths', hintStyle: EmType.body.copyWith(color: EmColors.textTertiary), counterText: '', filled: true, fillColor: EmColors.surface, border: OutlineInputBorder(borderRadius: EmRadius.mdAll, borderSide: const BorderSide(color: EmColors.border)), enabledBorder: OutlineInputBorder(borderRadius: EmRadius.mdAll, borderSide: const BorderSide(color: EmColors.border))))),
+            const SizedBox(width: EmSpacing.s8),
+            EmIconCircleButton(key: Key('ptm_new_point_remove_$i'), icon: Icons.close_rounded, semanticLabel: 'Remove point ${i + 1}', tooltip: 'Remove point', onTap: () => c.removePoint(i)),
           ]),
         ),
-      TextButton.icon(key: const Key('ptm_new_add_point'), onPressed: c.points.length >= kPtmMaxPoints ? null : c.addPoint, icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Add a point')),
-      const SizedBox(height: 8),
+      Align(alignment: AlignmentDirectional.centerStart, child: EmTextAction(key: const Key('ptm_new_add_point'), label: 'Add a point', icon: Icons.add_rounded, onPressed: c.points.length >= kPtmMaxPoints ? null : c.addPoint)),
+      const SizedBox(height: EmSpacing.s8),
       const ParentNote(text: "The meeting is booked with the student's guardian and starts as 'Requested'. The guardian is notified by the school system; you never see their phone number or email."),
     ]);
   }
@@ -122,22 +122,27 @@ class PtmNewScreen extends GetView<PtmCreateController> {
           final p = await pickHm(context, initial: value);
           if (p != null) set(p);
         }),
-        if (err != null) Padding(padding: const EdgeInsets.only(top: 4), child: CustomText(text: err, color: AppColors.redText, fontSize: 11, fontWeight: FontWeight.w600)),
+        if (err != null) Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: _error(err)),
+      ]);
+
+  /// A validation message: glyph + words in the error colour (readable at 1.3x, wraps instead of clipping).
+  Widget _error(String text, {Key? key}) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Padding(padding: EdgeInsets.only(top: EmSpacing.s2), child: Icon(Icons.error_outline_rounded, size: 16, color: EmColors.error)),
+        const SizedBox(width: EmSpacing.s4),
+        Expanded(child: Text(text, key: key, style: EmType.caption.copyWith(color: EmColors.error, fontWeight: FontWeight.w600))),
       ]);
 
   Widget _bottom(BuildContext context) => SafeArea(
         top: false,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.line))),
-          child: SizedBox(
-            width: double.infinity,
-            child: Obx(() => ElevatedButton(
-                  key: const Key('ptm_new_submit'),
-                  onPressed: c.saving.value ? null : () => _submit(context),
-                  child: c.saving.value ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const CustomText(text: 'Schedule meeting', color: Colors.white, fontWeight: FontWeight.w700),
-                )),
-          ),
+          padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s12, EmSpacing.screenH, EmSpacing.s12),
+          decoration: const BoxDecoration(color: EmColors.surface, border: Border(top: BorderSide(color: EmColors.border))),
+          child: Obx(() => EmPrimaryButton(
+                key: const Key('ptm_new_submit'),
+                label: 'Schedule meeting',
+                loading: c.saving.value,
+                onPressed: c.saving.value ? null : () => _submit(context),
+              )),
         ),
       );
 
@@ -166,19 +171,11 @@ class PtmNewScreen extends GetView<PtmCreateController> {
   }
 }
 
-/// A small muted info note.
+/// A small info note (glyph + words on the info tint).
 class ParentNote extends StatelessWidget {
   final String text;
   const ParentNote({super.key, required this.text});
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: AppColors.pale, borderRadius: BorderRadius.circular(AppRadius.md)),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.blue),
-          const SizedBox(width: 8),
-          Expanded(child: CustomText(text: text, fontSize: 11.5, color: AppColors.muted, height: 1.35)),
-        ]),
-      );
+  Widget build(BuildContext context) => EmInfoBanner(text: text, tone: EmTone.info, icon: Icons.info_outline_rounded);
 }
