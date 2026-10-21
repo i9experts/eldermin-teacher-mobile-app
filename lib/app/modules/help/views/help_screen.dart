@@ -3,10 +3,8 @@ import 'package:get/get.dart';
 import '../../../../core/constants/support_config.dart';
 import '../../../../core/models/help/kb_models.dart';
 import '../../../../core/models/help/teacher_faqs.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/app_widgets.dart';
+import '../../../../core/widgets/app_widgets.dart' show AppCard, ListCardRow;
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../components/external_link.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/help_controller.dart';
@@ -31,23 +29,20 @@ class _HelpScreenState extends State<HelpScreen> {
   }
 
   Widget _search() => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
-          key: const Key('help_search'),
+        padding: const EdgeInsets.only(bottom: EmSpacing.s12),
+        child: EmSearchPill(
+          fieldKey: const Key('help_search'),
           controller: _text,
-          textInputAction: TextInputAction.search,
+          hint: 'Search help',
           onSubmitted: c.search,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: 'Search help',
-            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-            suffixIcon: ValueListenableBuilder<TextEditingValue>(
-              valueListenable: _text,
-              builder: (_, v, __) => v.text.isEmpty ? const SizedBox.shrink() : IconButton(key: const Key('help_search_clear'), icon: const Icon(Icons.close_rounded, size: 18), onPressed: () { _text.clear(); c.clearSearch(); }),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: const BorderSide(color: AppColors.line)),
+          trailing: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _text,
+            builder: (_, v, __) => v.text.isEmpty
+                ? const SizedBox.shrink()
+                : EmIconCircleButton(key: const Key('help_search_clear'), icon: Icons.close_rounded, semanticLabel: 'Clear search', tooltip: 'Clear search', onTap: () {
+                    _text.clear();
+                    c.clearSearch();
+                  }),
           ),
         ),
       );
@@ -57,33 +52,33 @@ class _HelpScreenState extends State<HelpScreen> {
     final email = SupportConfig.email, url = SupportConfig.url;
     if (email == null && url == null) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: EmSpacing.s12),
       child: Column(key: const Key('help_support'), crossAxisAlignment: CrossAxisAlignment.start, children: [
           const SubHeading('Contact support'),
-          if (email != null) ListCardRow(key: const Key('help_support_email'), icon: Icons.mail_outline_rounded, title: 'Email support', subtitle: email, trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.faint), onTap: () => ExternalLinks.openMail(email)),
-          if (url != null) ListCardRow(key: const Key('help_support_web'), icon: Icons.language_rounded, title: 'Support website', subtitle: url.host, trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.faint), onTap: () => ExternalLinks.openWithConfirm(url.toString())),
+          if (email != null) ListCardRow(key: const Key('help_support_email'), icon: Icons.mail_outline_rounded, title: 'Email support', subtitle: email, trailing: const Icon(Icons.chevron_right_rounded, color: EmColors.textTertiary), onTap: () => ExternalLinks.openMail(email)),
+          if (url != null) ListCardRow(key: const Key('help_support_web'), icon: Icons.language_rounded, title: 'Support website', subtitle: url.host, trailing: const Icon(Icons.chevron_right_rounded, color: EmColors.textTertiary), onTap: () => ExternalLinks.openWithConfirm(url.toString())),
         ]),
     );
   }
 
   /// The bundled FAQs ([kTeacherFaqs]): static, offline, one expandable row per question.
   Widget _faqs() => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.only(bottom: EmSpacing.s12),
         child: Column(key: const Key('help_faqs'), crossAxisAlignment: CrossAxisAlignment.start, children: [
           const SubHeading('Frequently asked questions'),
           for (final f in kTeacherFaqs)
             AppCard(
-              margin: const EdgeInsets.only(bottom: 8),
+              margin: const EdgeInsets.only(bottom: EmSpacing.s8),
               padding: EdgeInsets.zero,
               child: Theme(
                 data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
                   key: ValueKey('faq_${f.id}'),
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 14),
-                  childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  tilePadding: const EdgeInsets.symmetric(horizontal: EmSpacing.s16),
+                  childrenPadding: const EdgeInsets.fromLTRB(EmSpacing.s16, 0, EmSpacing.s16, EmSpacing.s16),
                   expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                  title: CustomText(text: f.question, fontSize: 13, fontWeight: FontWeight.w700),
-                  children: [CustomText(text: f.answer, fontSize: 12, color: AppColors.muted, height: 1.45)],
+                  title: Text(f.question, style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: EmColors.ink)),
+                  children: [Text(f.answer, style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400, height: 1.45))],
                 ),
               ),
             ),
@@ -95,7 +90,7 @@ class _HelpScreenState extends State<HelpScreen> {
         icon: Icons.article_outlined,
         title: a.title,
         subtitle: a.tagline.isEmpty ? kbModuleLabel(a.module) : a.tagline,
-        trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.faint),
+        trailing: const Icon(Icons.chevron_right_rounded, color: EmColors.textTertiary),
         onTap: () => Get.toNamed(Routes.helpArticle.replaceFirst(':module', Uri.encodeComponent(a.module)).replaceFirst(':tabKey', Uri.encodeComponent(a.tabKey)), arguments: a),
       );
 
@@ -127,8 +122,8 @@ class _HelpScreenState extends State<HelpScreen> {
           emptySubtitle: 'More guides appear here when your school publishes them.',
           builder: (_) => [
             for (final g in c.grouped.entries) ...[SubHeading(kbModuleLabel(g.key)), for (final a in g.value) _row(a)],
-            const SizedBox(height: 8),
-            const AppCard(key: Key('help_contact'), child: CustomText(text: "Can't find what you need? Ask your school administration, or your safeguarding lead for anything about a child's safety.", fontSize: 12, color: AppColors.muted, height: 1.4)),
+            const SizedBox(height: EmSpacing.s8),
+            AppCard(key: const Key('help_contact'), child: Text("Can't find what you need? Ask your school administration, or your safeguarding lead for anything about a child's safety.", style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400, height: 1.4))),
           ],
         );
       }),
