@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/app_widgets.dart';
-import '../../../components/custom_text.dart';
+import '../../../../core/widgets/app_widgets.dart' show AppCard, ListCardRow;
 import '../../../routes/app_routes.dart';
 import '../controllers/about_controller.dart';
 import '../../../../core/design/design.dart';
@@ -16,19 +14,19 @@ class AboutScreen extends GetView<AboutController> {
     final c = controller;
     return EmScaffold(
       appBar: EmAppBar(title: 'About'),
-      body: ListView(padding: const EdgeInsets.fromLTRB(16, 24, 16, 24), children: [
+      body: ListView(padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s24, EmSpacing.screenH, EmSpacing.s24), children: [
         Center(
           child: Container(
             width: 72,
             height: 72,
-            decoration: BoxDecoration(color: AppColors.primaryColor, borderRadius: BorderRadius.circular(22)),
-            child: const Icon(Icons.school_rounded, color: Colors.white, size: 36),
+            decoration: const BoxDecoration(color: EmColors.primary, borderRadius: EmRadius.tileAll),
+            child: const Icon(Icons.school_rounded, color: EmColors.onPrimary, size: 36),
           ),
         ),
-        const SizedBox(height: 12),
-        const Center(child: CustomText(key: Key('about_name'), text: 'Eldermin Teacher', fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryColor)),
-        const Center(child: Padding(padding: EdgeInsets.only(top: 4), child: CustomText(text: 'Classroom, attendance and communication tools for school staff.', fontSize: 12, color: AppColors.muted, textAlign: TextAlign.center))),
-        const SizedBox(height: 20),
+        const SizedBox(height: EmSpacing.s12),
+        Center(child: Text('Eldermin Teacher', key: const Key('about_name'), style: EmType.title.copyWith(fontWeight: FontWeight.w800, color: EmColors.ink))),
+        Center(child: Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: Text('Classroom, attendance and communication tools for school staff.', textAlign: TextAlign.center, style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)))),
+        const SizedBox(height: EmSpacing.s20),
         Obx(() {
           final i = c.info.value;
           return AppCard(
@@ -39,16 +37,16 @@ class AboutScreen extends GetView<AboutController> {
             ]),
           );
         }),
-        ListCardRow(key: const Key('about_help'), icon: Icons.help_outline_rounded, title: 'Help', subtitle: 'Guides and support', trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.faint), onTap: () => Get.toNamed(Routes.help)),
+        ListCardRow(key: const Key('about_help'), icon: Icons.help_outline_rounded, title: 'Help', subtitle: 'Guides and support', trailing: const Icon(Icons.chevron_right_rounded, color: EmColors.textTertiary), onTap: () => Get.toNamed(Routes.help)),
       ]),
     );
   }
 
   Widget _row(String k, String v, Key key) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(children: [
-          SizedBox(width: 90, child: CustomText(text: k, fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
-          Expanded(child: CustomText(key: key, text: v, fontSize: 13, color: AppColors.ink, fontWeight: FontWeight.w600)),
+        padding: const EdgeInsets.symmetric(vertical: EmSpacing.s8),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(width: 90, child: Text(k, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w700))),
+          Expanded(child: Text(v, key: key, style: EmType.label.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600))),
         ]),
       );
 }
