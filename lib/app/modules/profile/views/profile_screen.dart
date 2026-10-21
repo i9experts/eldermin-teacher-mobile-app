@@ -4,9 +4,7 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/models/staff_me.dart';
 import '../../../../core/services/avatar_picker.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/app_widgets.dart';
-import '../../../components/custom_text.dart';
+import '../../../../core/widgets/app_widgets.dart' show AppCard, ListCardRow;
 import '../../../routes/app_routes.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../controllers/profile_controller.dart';
@@ -35,15 +33,15 @@ class ProfileScreen extends GetView<ProfileController> {
           final user = auth.user.value;
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s16, EmSpacing.screenH, EmSpacing.s24),
             children: [
               _header(context, user?.name ?? '', user?.initials ?? '--', user?.avatarUrl, roleLabel(user?.role ?? ''), me),
-              const SizedBox(height: 12),
+              const SizedBox(height: EmSpacing.s16),
               _photoActions(context),
               _outcome(context),
-              const SizedBox(height: 8),
+              const SizedBox(height: EmSpacing.s8),
               ..._details(me, auth),
-              const SizedBox(height: 8),
+              const SizedBox(height: EmSpacing.s8),
               const SubHeadingText('Settings'),
               _nav(Icons.help_outline_rounded, 'Help', 'Guides and support', Routes.help, const Key('profile_help')),
               _nav(Icons.info_outline_rounded, 'About', 'App version', Routes.about, const Key('profile_about')),
@@ -66,43 +64,50 @@ class ProfileScreen extends GetView<ProfileController> {
       img = _initials(initials);
     }
     return Column(children: [
-      Container(key: const Key('profile_avatar'), width: 96, height: 96, clipBehavior: Clip.antiAlias, decoration: BoxDecoration(color: AppColors.pale, borderRadius: BorderRadius.circular(30), border: Border.all(color: AppColors.line, width: 2)), child: img),
-      const SizedBox(height: 10),
-      CustomText(key: const Key('profile_name'), text: name.isEmpty ? 'Teacher' : name, fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.primaryColor),
-      if (role.isNotEmpty) CustomText(text: role, fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600),
+      Container(key: const Key('profile_avatar'), width: 96, height: 96, clipBehavior: Clip.antiAlias, decoration: BoxDecoration(color: EmColors.primaryTint, borderRadius: EmRadius.heroAll, border: Border.all(color: EmColors.border, width: 2)), child: img),
+      const SizedBox(height: EmSpacing.s12),
+      Text(name.isEmpty ? 'Teacher' : name, key: const Key('profile_name'), textAlign: TextAlign.center, style: EmType.heading.copyWith(fontWeight: FontWeight.w800, color: EmColors.ink)),
+      if (role.isNotEmpty) Text(role, style: EmType.label.copyWith(color: EmColors.textSecondary)),
     ]);
   }
 
-  Widget _initials(String t) => Center(child: CustomText(text: t, fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.primaryColor));
+  Widget _initials(String t) => Center(child: Text(t, style: EmType.display.copyWith(fontWeight: FontWeight.w800, color: EmColors.primary)));
 
   Widget _photoActions(BuildContext context) => Obx(() {
         final busy = c.avatarBusy.value;
         final off = busy || c.uploadUnavailable.value;
-        return Row(children: [
-          Expanded(child: OutlinedButton.icon(key: const Key('avatar_gallery'), onPressed: off ? null : () => c.choosePhoto(AvatarSource.gallery), icon: const Icon(Icons.photo_library_outlined, size: 18), label: const Text('Choose photo'))),
-          const SizedBox(width: 10),
-          Expanded(child: OutlinedButton.icon(key: const Key('avatar_camera'), onPressed: off ? null : () => c.choosePhoto(AvatarSource.camera), icon: const Icon(Icons.photo_camera_outlined, size: 18), label: const Text('Take photo'))),
+        return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: EmSecondaryButton(key: const Key('avatar_gallery'), label: 'Choose photo', icon: Icons.photo_library_outlined, expand: true, onPressed: off ? null : () => c.choosePhoto(AvatarSource.gallery))),
+          const SizedBox(width: EmSpacing.row),
+          Expanded(child: EmSecondaryButton(key: const Key('avatar_camera'), label: 'Take photo', icon: Icons.photo_camera_outlined, expand: true, onPressed: off ? null : () => c.choosePhoto(AvatarSource.camera))),
         ]);
       });
 
   Widget _outcome(BuildContext context) => Obx(() {
         if (c.avatarBusy.value) {
-          return const Padding(padding: EdgeInsets.only(top: 10), child: Row(key: Key('avatar_busy'), children: [SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)), SizedBox(width: 10), CustomText(text: 'Uploading your photo...', fontSize: 12, color: AppColors.muted)]));
+          return Padding(padding: const EdgeInsets.only(top: EmSpacing.s12), child: Row(key: const Key('avatar_busy'), children: [const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)), const SizedBox(width: EmSpacing.s12), Expanded(child: Text('Uploading your photo...', style: EmType.label.copyWith(color: EmColors.textSecondary)))]));
         }
         final o = c.outcome.value;
         final msg = c.outcomeMessage.value;
         if (o == AvatarOutcome.none || msg == null) return const SizedBox.shrink();
         final ok = o == AvatarOutcome.uploaded;
         final title = o == AvatarOutcome.unavailable ? 'Upload unavailable' : null;
+        final tone = ok ? EmTone.success : EmTone.error;
         return Container(
           key: Key('avatar_outcome_${o.name}'),
-          margin: const EdgeInsets.only(top: 10),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: ok ? AppColors.greenBg : AppColors.redBg, borderRadius: BorderRadius.circular(AppRadius.md)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (title != null) CustomText(text: title, fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.redText),
-            CustomText(text: msg, fontSize: 12, color: ok ? AppColors.greenText : AppColors.redText, fontWeight: FontWeight.w600, height: 1.35),
-            if (o == AvatarOutcome.denied) Align(alignment: Alignment.centerLeft, child: TextButton(key: const Key('avatar_open_settings'), onPressed: openAppSettings, child: const Text('Open Settings'))),
+          margin: const EdgeInsets.only(top: EmSpacing.s12),
+          padding: const EdgeInsets.all(EmSpacing.s12),
+          decoration: BoxDecoration(color: tone.background, borderRadius: EmRadius.mdAll),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(ok ? Icons.check_circle_rounded : Icons.error_outline_rounded, size: 20, color: tone.foreground),
+            const SizedBox(width: EmSpacing.s8),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (title != null) Text(title, style: EmType.label.copyWith(fontWeight: FontWeight.w800, color: tone.foreground)),
+                Text(msg, style: EmType.label.copyWith(color: tone.foreground, fontWeight: FontWeight.w600)),
+                if (o == AvatarOutcome.denied) Align(alignment: AlignmentDirectional.centerStart, child: EmTextAction(key: const Key('avatar_open_settings'), label: 'Open Settings', onPressed: openAppSettings)),
+              ]),
+            ),
           ]),
         );
       });
@@ -136,7 +141,7 @@ class ProfileScreen extends GetView<ProfileController> {
             _kv('${a.gradeLevel ?? ''}${(a.sectionName ?? '').isEmpty ? '' : ' - ${a.sectionName}'}', [if ((a.subjectName ?? '').isNotEmpty) a.subjectName!, if (a.periodsPerWeek != null) '${a.periodsPerWeek} periods/week'].join(' · '), null),
         ]),
       ],
-      const Padding(padding: EdgeInsets.only(top: 6, bottom: 4), child: CustomText(key: Key('profile_readonly_note'), text: 'These details are managed by your school. To change them, contact your school administration.', fontSize: 11.5, color: AppColors.muted, height: 1.4)),
+      Padding(padding: const EdgeInsets.only(top: EmSpacing.s8, bottom: EmSpacing.s4), child: Text('These details are managed by your school. To change them, contact your school administration.', key: const Key('profile_readonly_note'), style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
     ];
   }
 
@@ -150,10 +155,10 @@ class ProfileScreen extends GetView<ProfileController> {
   Widget _kv(String k, String v, Key? key) {
     if (v.trim().isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: EmSpacing.s8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 108, child: CustomText(text: k, fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
-        Expanded(child: CustomText(key: key, text: v, fontSize: 13, color: AppColors.ink, fontWeight: FontWeight.w600)),
+        SizedBox(width: 108, child: Text(k, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w700))),
+        Expanded(child: Text(v, key: key, style: EmType.label.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600))),
       ]),
     );
   }
@@ -161,10 +166,10 @@ class ProfileScreen extends GetView<ProfileController> {
   Widget _nav(IconData icon, String title, String sub, String route, Key key, {bool danger = false}) => ListCardRow(
         key: key,
         icon: icon,
-        iconColor: danger ? AppColors.redText : AppColors.blue,
+        iconColor: danger ? EmColors.error : EmColors.primary,
         title: title,
         subtitle: sub,
-        trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.faint),
+        trailing: const Icon(Icons.chevron_right_rounded, color: EmColors.textTertiary),
         onTap: () => Get.toNamed(route),
       );
 }
@@ -173,5 +178,5 @@ class SubHeadingText extends StatelessWidget {
   final String text;
   const SubHeadingText(this.text, {super.key});
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(top: 6, bottom: 8), child: CustomText(text: text, color: AppColors.primaryColor, fontSize: 13, fontWeight: FontWeight.w800));
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(top: EmSpacing.s8, bottom: EmSpacing.s8), child: Semantics(header: true, child: Text(text, style: EmType.label.copyWith(color: EmColors.primary, fontWeight: FontWeight.w800))));
 }
