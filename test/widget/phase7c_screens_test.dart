@@ -694,8 +694,8 @@ void main() {
       await settle(t);
       expect(find.text('Upload unavailable'), findsOneWidget);
       expect(find.byKey(const Key('avatar_outcome_unavailable')), findsOneWidget);
-      expect(t.widget<OutlinedButton>(find.byKey(const Key('avatar_gallery'))).onPressed, isNull);
-      expect(t.widget<OutlinedButton>(find.byKey(const Key('avatar_camera'))).onPressed, isNull);
+      expect(t.widget<EmSecondaryButton>(find.byKey(const Key('avatar_gallery'))).onPressed, isNull);
+      expect(t.widget<EmSecondaryButton>(find.byKey(const Key('avatar_camera'))).onPressed, isNull);
     });
 
     testWidgets('permission denied: explanation and an Open Settings button', (t) async {
@@ -727,7 +727,7 @@ void main() {
       await t.pump();
       await t.pump();
       expect(find.byKey(const Key('avatar_busy')), findsOneWidget);
-      expect(t.widget<OutlinedButton>(find.byKey(const Key('avatar_gallery'))).onPressed, isNull);
+      expect(t.widget<EmSecondaryButton>(find.byKey(const Key('avatar_gallery'))).onPressed, isNull);
       gate.complete('https://files.test/a.png');
       await t.runAsync(() => pumpEventQueue());
       await settle(t);
@@ -966,11 +966,11 @@ void main() {
       await settle(t);
       expect(find.textContaining('request, not an instant deletion'), findsOneWidget);
       expect(find.textContaining('stays active'), findsOneWidget);
-      expect(t.widget<ElevatedButton>(find.byKey(const Key('delete_submit'))).onPressed, isNull);
+      expect(t.widget<EmPrimaryButton>(find.byKey(const Key('delete_submit'))).onPressed, isNull);
       await t.enterText(find.byKey(const Key('delete_reason')), 'Moving abroad (DUMMY)');
       await t.enterText(find.byKey(const Key('delete_confirm_field')), 'delet');
       await t.pump();
-      expect(t.widget<ElevatedButton>(find.byKey(const Key('delete_submit'))).onPressed, isNull);
+      expect(t.widget<EmPrimaryButton>(find.byKey(const Key('delete_submit'))).onPressed, isNull);
       await t.enterText(find.byKey(const Key('delete_confirm_field')), 'DELETE');
       await t.pump();
       await t.tap(find.byKey(const Key('delete_submit')));

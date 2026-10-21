@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/design/design.dart';
 import '../../core/utils/safe_text.dart';
 import 'external_link.dart';
 
@@ -8,8 +8,7 @@ import 'external_link.dart';
 /// paragraphs. Links are tappable but open only after the confirmation dialog of [ExternalLinks]. No images, no HTML, no scripts.
 class RichTextView extends StatefulWidget {
   final String raw;
-  final double fontSize;
-  const RichTextView(this.raw, {super.key, this.fontSize = 13.5});
+  const RichTextView(this.raw, {super.key});
 
   @override
   State<RichTextView> createState() => _RichTextViewState();
@@ -34,7 +33,7 @@ class _RichTextViewState extends State<RichTextView> {
         else
           TextSpan(
             text: r.text,
-            style: const TextStyle(color: AppColors.blue, decoration: TextDecoration.underline),
+            style: const TextStyle(color: EmColors.primary, decoration: TextDecoration.underline),
             recognizer: (TapGestureRecognizer()..onTap = () => ExternalLinks.openWithConfirm(r.link)),
           ),
     ]);
@@ -47,16 +46,16 @@ class _RichTextViewState extends State<RichTextView> {
     }
     _recognizers.clear();
     final blocks = parseRichText(widget.raw);
-    final base = TextStyle(fontSize: widget.fontSize, color: AppColors.ink, height: 1.5);
+    final base = EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400, height: 1.5);
     return Column(key: const Key('rich_text'), crossAxisAlignment: CrossAxisAlignment.start, children: [
       for (final b in blocks)
         Padding(
-          padding: EdgeInsets.only(bottom: b.kind == TextBlockKind.heading ? 6 : 8, top: b.kind == TextBlockKind.heading ? 6 : 0),
+          padding: EdgeInsets.only(bottom: EmSpacing.s8, top: b.kind == TextBlockKind.heading ? EmSpacing.s8 : 0),
           child: switch (b.kind) {
-            TextBlockKind.heading => Text.rich(_span(b.runs, base.copyWith(fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: widget.fontSize + 1.5))),
+            TextBlockKind.heading => Text.rich(_span(b.runs, EmType.bodyLarge.copyWith(fontWeight: FontWeight.w800, color: EmColors.ink, height: 1.5))),
             TextBlockKind.paragraph => Text.rich(_span(b.runs, base)),
             TextBlockKind.bullet => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('•  ', style: base), Expanded(child: Text.rich(_span(b.runs, base)))]),
-            TextBlockKind.numbered => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [SizedBox(width: 26, child: Text('${b.number}.', style: base.copyWith(fontWeight: FontWeight.w700))), Expanded(child: Text.rich(_span(b.runs, base)))]),
+            TextBlockKind.numbered => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [SizedBox(width: EmSpacing.s32, child: Text('${b.number}.', style: base.copyWith(fontWeight: FontWeight.w700))), Expanded(child: Text.rich(_span(b.runs, base)))]),
           },
         ),
     ]);

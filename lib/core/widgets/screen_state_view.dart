@@ -57,7 +57,7 @@ class ScreenStateView<T> extends StatelessWidget {
     );
   }
 
-  Widget _centered(Widget child) => Padding(padding: const EdgeInsets.only(top: 24), child: child);
+  Widget _centered(Widget child) => Padding(padding: const EdgeInsets.only(top: EmSpacing.s24), child: child);
 
   List<Widget> _body() {
     switch (state.status) {

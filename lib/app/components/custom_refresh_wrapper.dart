@@ -4,6 +4,7 @@ import 'common_image_view.dart';
 // import '../config/app_colors.dart';
 import '../config/app_images.dart';
 import 'package:flutter/material.dart';
+import '../../core/design/design.dart';
 
 class CustomRefreshWrapper extends StatefulWidget {
   final Widget child;
@@ -187,7 +188,7 @@ class _CustomRefreshWrapperState extends State<CustomRefreshWrapper>
                   Container(
                     width: 35,
                     height: 35,
-                    padding: const EdgeInsets.all(7),
+                    padding: const EdgeInsets.all(EmSpacing.s8),
                     decoration: BoxDecoration(
                       color: AppColors.white,
                       shape: BoxShape.circle,
