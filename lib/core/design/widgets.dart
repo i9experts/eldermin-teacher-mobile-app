@@ -17,6 +17,7 @@ export 'widgets/em_info_banner.dart';
 export 'widgets/em_list_row.dart';
 export 'widgets/em_logomark.dart';
 export 'widgets/em_progress_ring.dart';
+export 'widgets/em_keyboard_toolbar.dart';
 export 'widgets/em_scaffold.dart';
 export 'widgets/em_search_pill.dart';
 export 'widgets/em_select_field.dart';

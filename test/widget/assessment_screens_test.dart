@@ -14,6 +14,7 @@ import 'package:eldermin_teacher_app/core/models/assessments/assessment_models.d
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/services/assessment_repository.dart';
 import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -650,6 +651,44 @@ void main() {
       final second = t.widget<EditableText>(find.descendant(of: find.byKey(Key('marks_field_${idOf(2)}')), matching: find.byType(EditableText)));
       expect(second.focusNode.hasFocus, isTrue);
       expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}'))).keyboardType, const TextInputType.numberWithOptions(decimal: true));
+    });
+
+    testWidgets('iOS: marks entry docks Prev / Next / Done above the number pad; Next / Prev follow the mark order, Done closes the keyboard', (t) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      try {
+        await boot(t);
+        keyboard(t, 300);
+        await t.tap(find.byKey(Key('marks_field_${idOf(1)}')));
+        await t.pump();
+        expect(find.byKey(const Key('kbd_toolbar')), findsOneWidget);
+        await t.tap(find.byKey(const Key('kbd_next')));
+        await t.pump();
+        bool focused(int n) => t.widget<EditableText>(find.descendant(of: find.byKey(Key('marks_field_${idOf(n)}')), matching: find.byType(EditableText))).focusNode.hasFocus;
+        expect(focused(2), isTrue, reason: 'Absent / Exempt / remarks are skipped, as with textInputAction.next');
+        await t.tap(find.byKey(const Key('kbd_prev')));
+        await t.pump();
+        expect(focused(1), isTrue);
+        await t.tap(find.byKey(const Key('kbd_done')));
+        await t.pump();
+        expect(focused(1), isFalse);
+        expect(find.byKey(const Key('kbd_toolbar')), findsNothing);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('Android: marks entry has no toolbar (the keyboard has its own Next key)', (t) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await boot(t);
+        keyboard(t, 300);
+        await t.tap(find.byKey(Key('marks_field_${idOf(1)}')));
+        await t.pump();
+        expect(find.byKey(const Key('kbd_toolbar')), findsNothing);
+        expect(t.widget<TextField>(find.byKey(Key('marks_field_${idOf(1)}'))).textInputAction, TextInputAction.next);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     });
 
     for (final w in [320.0, 360.0]) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../tokens/em_colors.dart';
+import 'em_keyboard_toolbar.dart';
 
 /// Brand-tint screen with the soft decorative wash in the top-end corner
 /// (REFERENCE_SPEC section 1). Pair with [EmAppBar] and [EmBottomNav].
@@ -38,38 +39,41 @@ class EmScaffold extends StatelessWidget {
     // circle runs behind it instead of being cut off at the app bar's bottom edge.
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: systemOverlay,
-      child: Scaffold(
-        backgroundColor: EmColors.background,
-        extendBody: extendBody,
-        resizeToAvoidBottomInset: resizeToAvoidBottomInset,
-        bottomNavigationBar: bottomNavigationBar,
-        floatingActionButton: floatingActionButton,
-        body: Stack(
-          children: [
-            if (wash)
-              PositionedDirectional(
-                top: -110,
-                end: -90,
-                child: IgnorePointer(
-                  child: ExcludeSemantics(
-                    child: Container(
-                      key: const Key('em_wash'),
-                      width: 300,
-                      height: 300,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: EmColors.primaryContainer.withOpacity(0.55),
+      child: EmKeyboardAccessory(
+        insetBody: resizeToAvoidBottomInset,
+        child: Scaffold(
+          backgroundColor: EmColors.background,
+          extendBody: extendBody,
+          resizeToAvoidBottomInset: resizeToAvoidBottomInset,
+          bottomNavigationBar: bottomNavigationBar,
+          floatingActionButton: floatingActionButton,
+          body: Stack(
+            children: [
+              if (wash)
+                PositionedDirectional(
+                  top: -110,
+                  end: -90,
+                  child: IgnorePointer(
+                    child: ExcludeSemantics(
+                      child: Container(
+                        key: const Key('em_wash'),
+                        width: 300,
+                        height: 300,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: EmColors.primaryContainer.withOpacity(0.55),
+                        ),
                       ),
                     ),
                   ),
                 ),
+              Positioned.fill(
+                child: appBar == null
+                    ? body
+                    : Column(children: [appBar!, Expanded(child: body)]),
               ),
-            Positioned.fill(
-              child: appBar == null
-                  ? body
-                  : Column(children: [appBar!, Expanded(child: body)]),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
