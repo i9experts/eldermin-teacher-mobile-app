@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/calendar/calendar_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/calendar_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/events_controller.dart';
 import '../../../../core/design/design.dart';
@@ -39,6 +38,7 @@ class EventsScreen extends GetView<EventsController> {
   }
 }
 
+/// Cancelled and past events are told apart in words (a CANCELLED tag; "Past" has its own heading), never by dimming alone.
 class EventCard extends StatelessWidget {
   final SchoolEvent event;
   final bool dim;
@@ -51,23 +51,33 @@ class EventCard extends StatelessWidget {
       key: ValueKey('event_${e.id}'),
       onTap: () => Get.toNamed(Routes.eventDetail.replaceFirst(':id', e.id), arguments: e),
       child: Opacity(
-        opacity: dim ? 0.75 : 1,
+        opacity: dim ? 0.85 : 1,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(child: CustomText(text: e.title, fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.primaryColor)),
-            if (e.cancelled) const AppTag('CANCELLED', style: TagStyle.red),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: Text(e.title, style: EmType.body.copyWith(fontWeight: FontWeight.w700, color: EmColors.ink))),
+            if (e.cancelled) const Padding(padding: EdgeInsetsDirectional.only(start: EmSpacing.s8), child: AppTag('CANCELLED', style: TagStyle.red)),
           ]),
-          const SizedBox(height: 4),
-          Row(children: [
-            const Icon(Icons.schedule_rounded, size: 13, color: AppColors.muted),
-            const SizedBox(width: 4),
-            Expanded(child: CustomText(text: eventWhenText(e), fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600)),
-          ]),
-          if (e.venueName.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 3), child: Row(children: [const Icon(Icons.place_outlined, size: 13, color: AppColors.muted), const SizedBox(width: 4), Expanded(child: CustomText(text: e.venueName, fontSize: 12, color: AppColors.muted))])),
-          const SizedBox(height: 6),
+          const SizedBox(height: EmSpacing.s8),
+          _Line(icon: Icons.schedule_rounded, text: eventWhenText(e), bold: true),
+          if (e.venueName.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: _Line(icon: Icons.place_outlined, text: e.venueName)),
+          const SizedBox(height: EmSpacing.s8),
           AppTag(e.categoryLabel.toUpperCase(), style: TagStyle.neutral),
         ]),
       ),
     );
   }
+}
+
+class _Line extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final bool bold;
+  const _Line({required this.icon, required this.text, this.bold = false});
+
+  @override
+  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(padding: const EdgeInsets.only(top: EmSpacing.s2), child: ExcludeSemantics(child: Icon(icon, size: 16, color: EmColors.textSecondary))),
+        const SizedBox(width: EmSpacing.s8),
+        Expanded(child: Text(text, style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: bold ? FontWeight.w600 : FontWeight.w500))),
+      ]);
 }

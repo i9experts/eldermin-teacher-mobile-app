@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/calendar/calendar_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/calendar_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../components/external_link.dart';
 import '../controllers/events_controller.dart';
 import '../../../../core/design/design.dart';
@@ -27,23 +26,23 @@ class EventDetailScreen extends GetView<EventDetailController> {
             builder: (e) => [
               Row(children: [
                 AppTag(e.categoryLabel.toUpperCase(), style: TagStyle.neutral),
-                if (e.cancelled) ...[const SizedBox(width: 8), const AppTag('CANCELLED', style: TagStyle.red)],
-                if (e.status == 'completed') ...[const SizedBox(width: 8), const AppTag('COMPLETED', style: TagStyle.green)],
+                if (e.cancelled) ...[const SizedBox(width: EmSpacing.s8), const AppTag('CANCELLED', style: TagStyle.red)],
+                if (e.status == 'completed') ...[const SizedBox(width: EmSpacing.s8), const AppTag('COMPLETED', style: TagStyle.green)],
               ]),
-              const SizedBox(height: 10),
-              CustomText(key: const Key('event_title'), text: e.title, fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryColor),
-              const SizedBox(height: 14),
-              if (e.sessions.isEmpty) const AppCard(key: Key('event_no_sessions'), child: CustomText(text: 'Date to be confirmed', fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.muted)),
+              const SizedBox(height: EmSpacing.s12),
+              Text(e.title, key: const Key('event_title'), style: EmType.title.copyWith(color: EmColors.ink)),
+              const SizedBox(height: EmSpacing.block),
+              if (e.sessions.isEmpty) AppCard(key: const Key('event_no_sessions'), child: Text('Date to be confirmed', style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: EmColors.textSecondary))),
               for (final s in e.sessions)
                 AppCard(
                   key: ValueKey('event_session_${s.start.millisecondsSinceEpoch}'),
-                  child: Row(children: [
-                    const Icon(Icons.event_rounded, size: 18, color: AppColors.primaryColor),
-                    const SizedBox(width: 10),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const ExcludeSemantics(child: Icon(Icons.event_rounded, size: 20, color: EmColors.primary)),
+                    const SizedBox(width: EmSpacing.s12),
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        if (s.label.isNotEmpty) CustomText(text: s.label, fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.muted),
-                        CustomText(text: sessionText(s), fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink),
+                        if (s.label.isNotEmpty) Text(s.label, style: EmType.caption.copyWith(fontWeight: FontWeight.w800, color: EmColors.textSecondary)),
+                        Text(sessionText(s), style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: EmColors.ink)),
                       ]),
                     ),
                   ]),
@@ -52,17 +51,17 @@ class EventDetailScreen extends GetView<EventDetailController> {
                 AppCard(
                   key: const Key('event_venue'),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Icon(Icons.place_outlined, size: 18, color: AppColors.primaryColor),
-                    const SizedBox(width: 10),
+                    const ExcludeSemantics(child: Icon(Icons.place_outlined, size: 20, color: EmColors.primary)),
+                    const SizedBox(width: EmSpacing.s12),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      if (e.venueName.isNotEmpty) CustomText(text: e.venueName, fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink),
-                      if (e.venueAddress.isNotEmpty) CustomText(text: e.venueAddress, fontSize: 12, color: AppColors.muted),
+                      if (e.venueName.isNotEmpty) Text(e.venueName, style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: EmColors.ink)),
+                      if (e.venueAddress.isNotEmpty) Text(e.venueAddress, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
                     ])),
                   ]),
                 ),
               if (e.descriptionText.isNotEmpty) ...[
                 const SubHeading('About'),
-                CustomText(key: const Key('event_description'), text: e.descriptionText, fontSize: 13.5, color: AppColors.ink, height: 1.5),
+                Text(e.descriptionText, key: const Key('event_description'), softWrap: true, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400, height: 1.5)),
               ],
               if (e.descriptionLinks.isNotEmpty) ...[
                 const SubHeading('Links'),
@@ -70,7 +69,7 @@ class EventDetailScreen extends GetView<EventDetailController> {
                   InkWell(
                     key: ValueKey('event_link_$u'),
                     onTap: () => ExternalLinks.openWithConfirm(u),
-                    child: Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [const Icon(Icons.open_in_new_rounded, size: 16, color: AppColors.blue), const SizedBox(width: 8), Expanded(child: CustomText(text: Uri.parse(u).host, fontSize: 12.5, color: AppColors.blue))])),
+                    child: ConstrainedBox(constraints: const BoxConstraints(minHeight: EmSpacing.minTouch), child: Row(children: [const Icon(Icons.open_in_new_rounded, size: 18, color: EmColors.primary), const SizedBox(width: EmSpacing.s8), Expanded(child: Text(Uri.parse(u).host, style: EmType.label.copyWith(color: EmColors.primary, decoration: TextDecoration.underline)))])),
                   ),
               ],
             ],
