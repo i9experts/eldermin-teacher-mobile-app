@@ -480,6 +480,61 @@ void main() {
       return c;
     }
 
+    // ---- D9: wording kept, layout probes, keyboard ----
+    testWidgets('the notice, the send confirmation and the Report sent view keep their exact wording', (t) async {
+      await boot(t);
+      expect(find.text("This goes confidentially to your school's safeguarding lead. It is not shared with parents. If a child is in immediate danger contact the emergency services or your safeguarding lead directly."), findsOneWidget);
+    });
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('safeguarding: notice, picker field, chips, validation, send bar, picker sheet', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t);
+            await t.tap(find.byKey(const Key('sg_submit')));
+            await settle(t);
+            await t.pump(const Duration(seconds: 5)); // the snack bar timer
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('sg_notice')), w);
+            expectInsideScreen(t, find.byKey(const Key('sg_submit')), w);
+            expect(t.getSize(find.byKey(const Key('sg_submit'))).height, greaterThanOrEqualTo(48));
+            for (final k in ['sg_student_picker', 'sg_type_bullying', 'sg_sev_high', 'sg_date_picker']) {
+              await t.ensureVisible(find.byKey(Key(k)));
+              expectInsideScreen(t, find.byKey(Key(k)), w);
+              expect(t.getSize(find.byKey(Key(k))).height, greaterThanOrEqualTo(44), reason: k);
+            }
+            await t.ensureVisible(find.byKey(const Key('sg_student_picker')));
+            await t.tap(find.byKey(const Key('sg_student_picker')));
+            await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('sg_picker_search')), w);
+          });
+        }
+      }
+    }
+
+    testWidgets('keyboard open on a 360x640 phone while writing the description: no layout error, the field is kept and scrolled above the keyboard, the send bar rides above it', (t) async {
+      ProbeEnv.set(360, 1.0, TextDirection.ltr);
+      await boot(t);
+      await t.binding.setSurfaceSize(const Size(360, 640));
+      await t.pump(const Duration(milliseconds: 300));
+      await t.scrollUntilVisible(find.byKey(const Key('sg_description')), 100, scrollable: find.byType(Scrollable).first);
+      await t.pump(const Duration(milliseconds: 300));
+      await t.enterText(find.byKey(const Key('sg_description')), 'A short factual note (DUMMY)');
+      await t.pump();
+      t.view.viewInsets = FakeViewPadding(bottom: 300 * t.view.devicePixelRatio);
+      addTearDown(t.view.resetViewInsets);
+      for (var i = 0; i < 8; i++) {
+        await t.pump(const Duration(milliseconds: 100));
+      }
+      expectNoLayoutError(t);
+      expect(find.byKey(const Key('sg_description')), findsOneWidget, reason: 'the focused field stays mounted');
+      expect(t.getRect(find.byKey(const Key('sg_submit'))).bottom, lessThanOrEqualTo(640 - 300 + 0.5));
+      expect(t.getRect(find.byKey(const Key('sg_description'))).bottom, lessThanOrEqualTo(640 - 300 + 0.5));
+    });
+
     testWidgets('the confidentiality notice is at the top; nothing about a case list', (t) async {
       await boot(t);
       expect(find.byKey(const Key('sg_notice')), findsOneWidget);
@@ -653,6 +708,36 @@ void main() {
       return (c, auth);
     }
 
+    // ---- D9 ----
+    testWidgets('the profile has no text input at all (it is read-only plus the photo), so there is no keyboard to cover anything', (t) async {
+      await boot(t);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.byType(TextFormField), findsNothing);
+      expect(find.byKey(const Key('profile_readonly_note')), findsOneWidget);
+    });
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('profile: header, photo buttons, details, Help / About / Delete rows', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t);
+            expectNoLayoutError(t);
+            for (final k in ['profile_avatar', 'avatar_gallery', 'avatar_camera']) {
+              expectInsideScreen(t, find.byKey(Key(k)), w);
+            }
+            expect(t.getSize(find.byKey(const Key('avatar_gallery'))).height, greaterThanOrEqualTo(48));
+            for (final k in ['profile_help', 'profile_about', 'profile_delete_account']) {
+              await t.ensureVisible(find.byKey(Key(k)));
+              expectInsideScreen(t, find.byKey(Key(k)), w);
+              expect(t.getSize(find.byKey(Key(k))).height, greaterThanOrEqualTo(44), reason: k);
+            }
+            expect(find.text('Delete account'), findsOneWidget, reason: 'the destructive entry says what it is in words, not only in the error colour');
+          });
+        }
+      }
+    }
+
     testWidgets('read-only details from the profile; missing values are omitted, not filled with placeholders', (t) async {
       await boot(t);
       expect(find.byKey(const Key('profile_name')), findsOneWidget);
@@ -760,6 +845,38 @@ void main() {
       await settle(t);
       expect(find.text('went:/help/:module/:tabKey'), findsOneWidget);
     });
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('help: search pill, FAQ rows (expanded), support card, article', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            SupportConfig.emailOverride = 'help@school.example';
+            repo.listRows = () async => [a1, g1];
+            final c = Get.put(HelpController(repository: repo));
+            await open(t, const HelpScreen());
+            await t.runAsync(() => c.load());
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('help_search')), w);
+            await t.enterText(find.byKey(const Key('help_search')), 'dash');
+            await t.pump();
+            expectInsideScreen(t, find.byKey(const Key('help_search_clear')), w);
+            expect(t.getSize(find.byKey(const Key('help_search_clear'))).height, greaterThanOrEqualTo(44));
+            await t.enterText(find.byKey(const Key('help_search')), '');
+            await t.pump();
+            final faq = find.byWidgetPredicate((x) => x.key is ValueKey && '${(x.key as ValueKey).value}'.startsWith('faq_')).first;
+            await t.ensureVisible(faq);
+            await t.tap(faq);
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, faq, w);
+            await t.ensureVisible(find.byKey(const Key('help_support_email')));
+            expectInsideScreen(t, find.byKey(const Key('help_support_email')), w);
+          });
+        }
+      }
+    }
 
     testWidgets('HR / payroll articles never appear in the list or in search results; no support card when nothing is configured', (t) async {
       repo.listRows = () async => [hr1, a1, g1];
@@ -933,6 +1050,24 @@ void main() {
   });
 
   group('About screen', () {
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('about: rows and the Help entry', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            final c = Get.put(AboutController(loader: () async => const AppInfo('Eldermin Teacher', '0.1.0', '7')));
+            await open(t, const AboutScreen());
+            await t.runAsync(() => c.load());
+            await settle(t);
+            expectNoLayoutError(t);
+            for (final k in ['about_name', 'about_version', 'about_build', 'about_host', 'about_help']) {
+              expectInsideScreen(t, find.byKey(Key(k)), w);
+            }
+          });
+        }
+      }
+    }
+
     testWidgets('name, version, build and the API host only', (t) async {
       final c = Get.put(AboutController(loader: () async => const AppInfo('Eldermin Teacher', '0.1.0', '7')));
       await open(t, const AboutScreen());
@@ -958,6 +1093,60 @@ void main() {
   group('Delete account screen', () {
     late FakeAccountRepository repo;
     setUp(() => repo = FakeAccountRepository());
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('delete account: explainer, fields, destructive button with its label, done view', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await signIn(t);
+            final c = Get.put(DeleteAccountController(repository: repo));
+            await open(t, const DeleteAccountScreen());
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('delete_explainer')), w);
+            expectInsideScreen(t, find.byKey(const Key('delete_confirm_field')), w);
+            expectInsideScreen(t, find.byKey(const Key('delete_submit')), w);
+            expect(t.getSize(find.byKey(const Key('delete_submit'))).height, greaterThanOrEqualTo(48));
+            // destructive = the error token AND words ("Request account deletion"), never colour alone
+            expect(find.text('Request account deletion'), findsOneWidget);
+            expect(t.widget<EmPrimaryButton>(find.byKey(const Key('delete_submit'))).destructive, isTrue);
+            c.confirmC.text = 'DELETE';
+            c.onConfirmChanged('DELETE');
+            await t.pump();
+            await t.tap(find.byKey(const Key('delete_submit')));
+            await t.runAsync(() => pumpEventQueue());
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('delete_done')), w);
+            expectInsideScreen(t, find.byKey(const Key('delete_done_message')), w);
+          });
+        }
+      }
+    }
+
+    testWidgets('keyboard open on a 360x640 phone while typing DELETE: no layout error, the confirm field is kept above the keyboard and the button rides above it', (t) async {
+      ProbeEnv.set(360, 1.0, TextDirection.ltr);
+      await signIn(t);
+      Get.put(DeleteAccountController(repository: repo));
+      await open(t, const DeleteAccountScreen());
+      await settle(t);
+      await t.binding.setSurfaceSize(const Size(360, 640));
+      await t.pump(const Duration(milliseconds: 300));
+      await t.ensureVisible(find.byKey(const Key('delete_confirm_field')));
+      await t.pump(const Duration(milliseconds: 300));
+      await t.enterText(find.byKey(const Key('delete_confirm_field')), 'DEL');
+      await t.pump();
+      t.view.viewInsets = FakeViewPadding(bottom: 300 * t.view.devicePixelRatio);
+      addTearDown(t.view.resetViewInsets);
+      for (var i = 0; i < 8; i++) {
+        await t.pump(const Duration(milliseconds: 100));
+      }
+      expectNoLayoutError(t);
+      expect(find.byKey(const Key('delete_confirm_field')), findsOneWidget);
+      expect(t.getRect(find.byKey(const Key('delete_submit'))).bottom, lessThanOrEqualTo(640 - 300 + 0.5));
+      expect(t.getRect(find.byKey(const Key('delete_confirm_field'))).bottom, lessThanOrEqualTo(640 - 300 + 0.5));
+    });
 
     testWidgets('explains it is a request; button disabled until DELETE is typed; sends; shows status and keeps the user signed in', (t) async {
       final auth = await signIn(t);

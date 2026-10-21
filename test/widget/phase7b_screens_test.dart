@@ -594,6 +594,26 @@ void main() {
       return c;
     }
 
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('substitutions: tabs, cards and the detail with its Mark complete button', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('fx_tabs')), w);
+            expectInsideScreen(t, find.byKey(const ValueKey('fx_c1')), w);
+            expectOneLine(t, find.text('ASSIGNED'), scale: sc);
+            await t.tap(find.textContaining('My periods covered'));
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const ValueKey('fx_o2')), w);
+            expectInsideScreen(t, find.text('NOT COVERED YET'), w);
+          });
+        }
+      }
+    }
+
     testWidgets('"Covering for others": date groups, period/time/class/subject, who I cover for, status chips', (t) async {
       await boot(t);
       expect(find.text('Covering for others (2)'), findsOneWidget);
@@ -686,6 +706,28 @@ void main() {
       return c;
     }
 
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('My leave: balance cards, long reason / approver note, apply bar', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            lv.history = () async => [
+                  leaveRow('r', status: 'rejected', type: 'casual', from: '2026-10-05', to: '2026-10-07', days: 3, reason: 'Personal errand at the bank and a family matter that cannot be moved to another week', by: 'Hina HR Manager', note: 'Exam week, please apply for another date.'),
+                  leaveRow('p', status: 'pending', from: '2026-11-02', to: '2026-11-04', days: 3),
+                ];
+            await boot(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const ValueKey('leave_bal_annual')), w);
+            expectInsideScreen(t, find.byKey(const Key('leave_apply')), w);
+            expect(t.getSize(find.byKey(const Key('leave_apply'))).height, greaterThanOrEqualTo(48));
+            expectInsideScreen(t, find.byKey(const ValueKey('leave_note_r')), w);
+            expectInsideScreen(t, find.text('REJECTED'), w);
+            expectOneLine(t, find.text('PENDING'), scale: sc);
+          });
+        }
+      }
+    }
+
     testWidgets('balance cards (remaining, used of entitled) and history with status chips, dates, days, reason, approver note', (t) async {
       lv.history = () async => [
             leaveRow('p', status: 'pending', from: '2026-11-02', to: '2026-11-04', days: 3),
@@ -767,6 +809,49 @@ void main() {
         await settle(t);
         return c;
       }
+
+      for (final w in probeWidths) {
+        for (final sc in probeScales) {
+          for (final d in probeDirs) {
+            testWidgets(probeName('apply leave: chips, date fields, validation, half-day chips, send bar', w, sc, d), (t) async {
+              ProbeEnv.set(w, sc, d);
+              final c = await bootApply(t);
+              c.setHalfDay(true);
+              await t.tap(find.byKey(const Key('leave_submit')));
+              await settle(t);
+              await t.pump(const Duration(seconds: 5)); // the snack bar timer
+              expectNoLayoutError(t);
+              for (final k in ['leave_from', 'leave_to', 'leave_submit', 'leave_session_morning', 'leave_session_afternoon']) {
+                await t.ensureVisible(find.byKey(Key(k)));
+                expectInsideScreen(t, find.byKey(Key(k)), w);
+                expect(t.getSize(find.byKey(Key(k))).height, greaterThanOrEqualTo(44), reason: k);
+              }
+              expectInsideScreen(t, find.byKey(const Key('leave_reason')), w);
+            });
+          }
+        }
+      }
+
+      testWidgets('keyboard open on a 360x640 phone while writing the reason: no layout error, the focused reason is kept (not unmounted) and the send bar stays above the keyboard', (t) async {
+        ProbeEnv.set(360, 1.0, TextDirection.ltr);
+        await bootApply(t);
+        await t.binding.setSurfaceSize(const Size(360, 640));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 300));
+        await t.ensureVisible(find.byKey(const Key('leave_reason')));
+        await t.pump(const Duration(milliseconds: 300));
+        await t.enterText(find.byKey(const Key('leave_reason')), 'Family matter'); // focuses the field and puts the caret in it
+        await t.pump();
+        t.view.viewInsets = FakeViewPadding(bottom: 300 * t.view.devicePixelRatio); // the keyboard rises AFTER the field has focus, as on a device
+        addTearDown(t.view.resetViewInsets);
+        for (var i = 0; i < 8; i++) {
+          await t.pump(const Duration(milliseconds: 100)); // the keyboard resize, then the framework's animated scroll of the caret into view
+        }
+        expectNoLayoutError(t);
+        expect(find.byKey(const Key('leave_reason')), findsOneWidget, reason: 'the focused field stays mounted (a disposed field would close the keyboard)');
+        expect(t.getRect(find.byKey(const Key('leave_submit'))).bottom, lessThanOrEqualTo(640 - 300 + 0.5), reason: 'the send bar rides above the keyboard');
+        expect(t.getRect(find.byKey(const Key('leave_reason'))).bottom, lessThanOrEqualTo(640 - 300 + 0.5), reason: 'the focused reason is scrolled above the keyboard');
+      });
 
       testWidgets('submitting empty shows the validation errors under the fields and sends nothing', (t) async {
         final c = await bootApply(t);
