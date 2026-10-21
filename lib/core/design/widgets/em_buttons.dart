@@ -44,7 +44,7 @@ class EmPrimaryButton extends StatelessWidget {
 
 /// White pill with a light border and primary label (reference "Drink 200 ml").
 class EmSecondaryButton extends StatelessWidget {
-  const EmSecondaryButton({super.key, required this.label, required this.onPressed, this.icon, this.expand = false, this.destructive = false});
+  const EmSecondaryButton({super.key, required this.label, required this.onPressed, this.icon, this.expand = false, this.destructive = false, this.loading = false});
 
   final String label;
   final VoidCallback? onPressed;
@@ -52,22 +52,25 @@ class EmSecondaryButton extends StatelessWidget {
   final bool expand;
   final bool destructive;
 
+  /// Shows a spinner next to the label and ignores taps.
+  final bool loading;
+
   @override
   Widget build(BuildContext context) {
     final btn = OutlinedButton(
-      onPressed: onPressed,
+      onPressed: loading ? null : onPressed,
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(64, 52),
         backgroundColor: EmColors.surface,
         foregroundColor: destructive ? EmColors.error : EmColors.primary,
         side: BorderSide(color: destructive ? EmColors.error : EmColors.primaryLight, width: 1.5),
       ),
-      child: _content(label, icon, false, destructive ? EmColors.error : EmColors.primary),
+      child: _content(label, icon, loading, destructive ? EmColors.error : EmColors.primary),
     );
     return Semantics(
       button: true,
       label: label,
-      enabled: onPressed != null,
+      enabled: onPressed != null && !loading,
       excludeSemantics: true,
       onTap: onPressed,
       child: expand ? SizedBox(width: double.infinity, child: btn) : btn,

@@ -16,6 +16,7 @@ class EmSearchPill extends StatelessWidget {
     this.trailing,
     this.semanticLabel = 'Search',
     this.fieldKey,
+    this.color = EmColors.surface,
   });
 
   final TextEditingController? controller;
@@ -28,6 +29,9 @@ class EmSearchPill extends StatelessWidget {
   /// Key of the inner text field (tests enter text through it).
   final Key? fieldKey;
 
+  /// Fill. The default is white (for the tinted page); inside a white sheet pass `EmColors.background` so the pill does not vanish.
+  final Color color;
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -36,7 +40,7 @@ class EmSearchPill extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 52),
             child: DecoratedBox(
-              decoration: const BoxDecoration(color: EmColors.surface, borderRadius: EmRadius.pillAll),
+              decoration: BoxDecoration(color: color, borderRadius: EmRadius.pillAll),
               child: Row(
                 children: [
                   const SizedBox(width: 18),
