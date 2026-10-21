@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/leave/leave_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/utils/leave_rules.dart';
 import '../../../../core/widgets/app_date_picker.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../homework/views/widgets/homework_widgets.dart';
 import '../../ptm/views/widgets/ptm_widgets.dart';
 import '../controllers/leave_apply_controller.dart';
@@ -49,14 +47,14 @@ class LeaveApplyScreen extends GetView<LeaveApplyController> {
     final today = DateTime.now();
     final hint = c.balanceHint;
     final overlaps = c.overlaps;
-    return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 24), children: [
+    return ListView(padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s16, EmSpacing.screenH, EmSpacing.s24), children: [
       if (f != null) ErrorBanner(bannerKey: const Key('leave_submit_error'), message: f),
       FormLabel('Leave type *', error: e['type']),
-      Wrap(spacing: 8, runSpacing: 8, children: [
+      Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s8, children: [
         for (final t in StaffLeaveType.values)
-          ChoiceChip(key: Key('leave_type_${t.wire}'), label: Text(t.label), selected: c.type.value == t, onSelected: (_) => c.setType(t)),
+          EmChip(key: Key('leave_type_${t.wire}'), label: t.label, icon: c.type.value == t ? Icons.check_rounded : null, selected: c.type.value == t, onTap: () => c.setType(t)),
       ]),
-      const SizedBox(height: 14),
+      const SizedBox(height: EmSpacing.block),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -67,7 +65,7 @@ class LeaveApplyScreen extends GetView<LeaveApplyController> {
             }),
           ]),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: EmSpacing.row),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             FormLabel('To *', error: e['to']),
@@ -79,57 +77,40 @@ class LeaveApplyScreen extends GetView<LeaveApplyController> {
           ]),
         ),
       ]),
-      const SizedBox(height: 6),
-      CustomText(key: const Key('leave_days_hint'), text: c.daysHint, fontSize: 11.5, color: AppColors.muted, height: 1.35),
-      const SizedBox(height: 10),
+      const SizedBox(height: EmSpacing.s8),
+      Text(c.daysHint, key: const Key('leave_days_hint'), style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
+      const SizedBox(height: EmSpacing.s8),
       SwitchListTile(
         key: const Key('leave_half_day'),
         contentPadding: EdgeInsets.zero,
-        title: const CustomText(text: 'Half day', fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink),
+        title: Text('Half day', style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: EmColors.ink)),
         value: c.halfDay.value,
         onChanged: c.setHalfDay,
       ),
       if (c.halfDay.value)
-        Row(children: [
+        Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s8, children: [
           for (final s in const ['morning', 'afternoon'])
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(key: Key('leave_session_$s'), label: Text(s == 'morning' ? 'Morning' : 'Afternoon'), selected: c.session.value == s, onSelected: (_) => c.session.value = s),
-            ),
+            EmChip(key: Key('leave_session_$s'), label: s == 'morning' ? 'Morning' : 'Afternoon', icon: c.session.value == s ? Icons.check_rounded : null, selected: c.session.value == s, onTap: () => c.session.value = s),
         ]),
       if (hint != null) _note(const Key('leave_balance_hint'), hint, warn: true),
       if (overlaps.isNotEmpty) _note(const Key('leave_overlap_hint'), 'You already have a ${overlaps.first.status.label.toLowerCase()} request for ${leaveRange(overlaps.first)}. You can still send this one.', warn: true),
-      const SizedBox(height: 10),
+      const SizedBox(height: EmSpacing.s12),
       LabeledField(label: 'Reason', required: true, controller: c.reasonC, fieldKey: const Key('leave_reason'), maxLines: 4, maxLength: kLeaveReasonMax, hint: 'Why do you need leave? (at least $kLeaveReasonMin characters)', error: e['reason'], onChanged: (_) => c.errors.remove('reason')),
-      const CustomText(text: 'Your request goes to the school for a decision. You are notified when it is decided.', fontSize: 11.5, color: AppColors.muted, height: 1.35),
+      Text('Your request goes to the school for a decision. You are notified when it is decided.', style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
     ]);
   }
 
-  Widget _note(Key key, String text, {bool warn = false}) => Container(
-        key: key,
-        margin: const EdgeInsets.only(top: 8),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: warn ? AppColors.amberBg : AppColors.pale, borderRadius: BorderRadius.circular(AppRadius.md)),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(Icons.info_outline_rounded, size: 16, color: warn ? AppColors.amberText : AppColors.blue),
-          const SizedBox(width: 8),
-          Expanded(child: CustomText(text: text, fontSize: 11.5, color: warn ? AppColors.amberText : AppColors.muted, height: 1.35)),
-        ]),
+  Widget _note(Key key, String text, {bool warn = false}) => Padding(
+        padding: const EdgeInsets.only(top: EmSpacing.s8),
+        child: EmInfoBanner(key: key, text: text, tone: warn ? EmTone.warning : EmTone.info, icon: Icons.info_outline_rounded),
       );
 
   Widget _bottom(BuildContext context) => SafeArea(
         top: false,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.line))),
-          child: SizedBox(
-            width: double.infinity,
-            child: Obx(() => ElevatedButton(
-                  key: const Key('leave_submit'),
-                  onPressed: c.saving.value ? null : () => _submit(context),
-                  child: c.saving.value ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const CustomText(text: 'Send request', color: Colors.white, fontWeight: FontWeight.w700),
-                )),
-          ),
+          padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s12, EmSpacing.screenH, EmSpacing.s12),
+          decoration: const BoxDecoration(color: EmColors.surface, border: Border(top: BorderSide(color: EmColors.border))),
+          child: Obx(() => EmPrimaryButton(key: const Key('leave_submit'), label: 'Send request', loading: c.saving.value, onPressed: c.saving.value ? null : () => _submit(context))),
         ),
       );
 

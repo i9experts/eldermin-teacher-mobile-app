@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/leave/leave_models.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
-import '../../../../core/widgets/app_widgets.dart';
+import '../../../../core/widgets/app_widgets.dart' show AppCard, AppEmptyView, AppErrorView, AppTag, RefreshFailedBanner;
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../../core/widgets/shimmer_widgets.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/leave_controller.dart';
@@ -30,6 +29,8 @@ String leaveRange(StaffLeaveRequest l) {
   return days == null ? range : '$range ($days)';
 }
 
+final TextStyle _quiet = EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400, height: 1.4);
+
 String _n(num v) => v == v.roundToDouble() ? v.round().toString() : v.toString();
 
 /// My leave (`/leave`): balance cards and request history.
@@ -40,19 +41,15 @@ class LeaveScreen extends GetView<LeaveController> {
 
   @override
   Widget build(BuildContext context) {
-    return EmScaffold(extendBody: false, 
+    return EmScaffold(
+      extendBody: false,
       appBar: EmAppBar(title: 'My leave'),
       // A bottom bar instead of a floating button: a floating button covered the right edge (status chip) of the last visible card (7b review).
       bottomNavigationBar: SafeArea(
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.line))),
-          child: ElevatedButton.icon(
-            key: const Key('leave_apply'),
-            onPressed: () => Get.toNamed(Routes.leaveApply),
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Apply for leave'),
-          ),
+          padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s12, EmSpacing.screenH, EmSpacing.s12),
+          decoration: const BoxDecoration(color: EmColors.surface, border: Border(top: BorderSide(color: EmColors.border))),
+          child: EmPrimaryButton(key: const Key('leave_apply'), label: 'Apply for leave', icon: Icons.add_rounded, onPressed: () => Get.toNamed(Routes.leaveApply)),
         ),
       ),
       body: Obx(() {
@@ -65,11 +62,11 @@ class LeaveScreen extends GetView<LeaveController> {
           onRefresh: () => c.reload(userInitiated: true),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s16, EmSpacing.screenH, EmSpacing.s24),
             children: [
               const SubHeading('Balance'),
               _balance(),
-              const SizedBox(height: 8),
+              const SizedBox(height: EmSpacing.s8),
               const SubHeading('My requests'),
               _history(),
             ],
@@ -100,11 +97,11 @@ class LeaveScreen extends GetView<LeaveController> {
 
   Widget _balanceCards(LeaveBalanceSummary b) {
     if (!b.hasPolicy) {
-      return const AppCard(key: Key('leave_no_policy'), child: CustomText(text: 'No leave allowance has been set up for you yet, so there is no balance to show. You can still apply: the school decides. Ask HR if this looks wrong.', fontSize: 12.5, color: AppColors.muted, height: 1.4));
+      return AppCard(key: const Key('leave_no_policy'), child: Text('No leave allowance has been set up for you yet, so there is no balance to show. You can still apply: the school decides. Ask HR if this looks wrong.', style: _quiet));
     }
     final shown = b.shown;
-    if (shown.isEmpty) return const AppCard(key: Key('leave_no_balance'), child: CustomText(text: 'Your leave allowance shows no days yet.', fontSize: 12.5, color: AppColors.muted));
-    return Wrap(spacing: 10, runSpacing: 10, children: [for (final k in shown) _BalanceCard(bucket: k)]);
+    if (shown.isEmpty) return AppCard(key: const Key('leave_no_balance'), child: Text('Your leave allowance shows no days yet.', style: _quiet));
+    return Wrap(spacing: EmSpacing.row, runSpacing: EmSpacing.row, children: [for (final k in shown) _BalanceCard(bucket: k)]);
   }
 
   Widget _history() {
@@ -133,7 +130,7 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final w = (MediaQuery.of(context).size.width - 32 - 10) / 2;
+    final w = (MediaQuery.of(context).size.width - EmSpacing.screenH * 2 - EmSpacing.row) / 2;
     final low = bucket.remaining <= 0;
     return SizedBox(
       width: w,
@@ -141,12 +138,16 @@ class _BalanceCard extends StatelessWidget {
         key: ValueKey('leave_bal_${bucket.type.wire}'),
         margin: EdgeInsets.zero,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText(text: bucket.type.label, fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.muted),
-          const SizedBox(height: 4),
-          CustomText(text: _n(bucket.remaining), fontSize: 26, fontWeight: FontWeight.w800, color: low ? AppColors.redText : AppColors.primaryColor),
-          CustomText(text: 'days left', fontSize: 11, color: AppColors.muted),
-          const SizedBox(height: 4),
-          CustomText(text: '${_n(bucket.used)} used of ${_n(bucket.entitled)}', fontSize: 11, color: AppColors.muted),
+          Text(bucket.type.label, style: EmType.caption.copyWith(fontWeight: FontWeight.w800, color: EmColors.textSecondary)),
+          const SizedBox(height: EmSpacing.s4),
+          // none left = an alert glyph next to the number, not only the error colour
+          Row(children: [
+            if (low) const Padding(padding: EdgeInsetsDirectional.only(end: EmSpacing.s4), child: Icon(Icons.error_outline_rounded, size: 20, color: EmColors.error)),
+            Flexible(child: Text(_n(bucket.remaining), style: EmType.title.copyWith(fontWeight: FontWeight.w800, color: low ? EmColors.error : EmColors.primary))),
+          ]),
+          Text('days left', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+          const SizedBox(height: EmSpacing.s4),
+          Text('${_n(bucket.used)} used of ${_n(bucket.entitled)}', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ]),
       ),
     );
@@ -164,22 +165,21 @@ class _RequestCard extends StatelessWidget {
     return AppCard(
       key: ValueKey('leave_${l.id}'),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: CustomText(text: '${l.typeLabel} leave', fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.primaryColor)),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Text('${l.typeLabel} leave', style: EmType.body.copyWith(fontWeight: FontWeight.w800, color: EmColors.ink))),
+          const SizedBox(width: EmSpacing.s8),
           AppTag(l.status.label.toUpperCase(), style: leaveStatusTag(l.status)),
         ]),
-        const SizedBox(height: 4),
-        CustomText(text: leaveRange(l), fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.ink),
-        if (l.reason.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: CustomText(text: l.reason, fontSize: 12, color: AppColors.muted, height: 1.35)),
+        const SizedBox(height: EmSpacing.s4),
+        Text(leaveRange(l), style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: EmColors.ink)),
+        if (l.reason.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: Text(l.reason, style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
         if (l.status != StaffLeaveStatus.pending && (l.approverName.isNotEmpty || note.isNotEmpty))
           Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: CustomText(
+            padding: const EdgeInsets.only(top: EmSpacing.s8),
+            child: Text(
+              [if (l.approverName.isNotEmpty) '${l.status == StaffLeaveStatus.rejected ? 'Decided' : 'Decision'} by ${l.approverName}', if (note.isNotEmpty) '"$note"'].join(': '),
               key: ValueKey('leave_note_${l.id}'),
-              text: [if (l.approverName.isNotEmpty) '${l.status == StaffLeaveStatus.rejected ? 'Decided' : 'Decision'} by ${l.approverName}', if (note.isNotEmpty) '"$note"'].join(': '),
-              fontSize: 11.5,
-              color: AppColors.muted,
-              height: 1.35,
+              style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400),
             ),
           ),
       ]),
