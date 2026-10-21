@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/messaging/notification_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/message_time.dart';
-import '../../../../core/widgets/app_widgets.dart';
+import '../../../../core/widgets/app_widgets.dart' show RefreshFailedBanner;
 import '../../../../core/widgets/screen_state_view.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/controllers/home_shell_controller.dart';
 import '../controllers/notifications_controller.dart';
@@ -86,15 +84,15 @@ class _ListState extends State<_List> {
         emptyIcon: Icons.notifications_none_rounded,
         emptyTitle: unreadOnly ? 'No unread notifications' : 'No notifications yet',
         emptySubtitle: unreadOnly ? "You're all caught up." : 'Updates about messages, meetings, substitutions and leave appear here.',
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s12, EmSpacing.screenH, EmSpacing.s24),
         header: [
-          SegmentedControl(key: const Key('notif_filter'), options: const ['All', 'Unread'], selectedIndex: unreadOnly ? 1 : 0, onChanged: (i) => c.setUnreadOnly(i == 1)),
-          const SizedBox(height: 12),
+          EmSegmentedTabs<bool>(key: const Key('notif_filter'), segments: const [EmSegment(false, 'All'), EmSegment(true, 'Unread')], selected: unreadOnly, onChanged: c.setUnreadOnly),
+          const SizedBox(height: EmSpacing.s16),
           if (refreshError != null) RefreshFailedBanner(key: const Key('notif_refresh_error'), message: refreshError, onRetry: c.reload),
         ],
         builder: (_) => [
           for (final g in c.groups) ...[
-            Padding(padding: const EdgeInsets.only(top: 6, bottom: 8), child: CustomText(text: g.heading, color: AppColors.primaryColor, fontSize: 12, fontWeight: FontWeight.w800)),
+            Padding(padding: const EdgeInsets.only(top: EmSpacing.s8, bottom: EmSpacing.s8), child: Text(g.heading, style: EmType.label.copyWith(color: EmColors.primary, fontWeight: FontWeight.w700))),
             for (final n in g.items) _Row(n: n, now: now, onTap: () => _open(n)),
           ],
           _footer(),
@@ -104,15 +102,15 @@ class _ListState extends State<_List> {
   }
 
   Widget _footer() {
-    if (c.loadingMore.value) return const Padding(padding: EdgeInsets.all(16), child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))));
+    if (c.loadingMore.value) return const Padding(padding: EdgeInsets.all(EmSpacing.s16), child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))));
     if (c.moreFailed.value) {
       return Padding(
-        padding: const EdgeInsets.all(8),
-        child: Center(child: TextButton(key: const Key('notif_more_retry'), onPressed: c.loadMore, child: const Text("Couldn't load more. Tap to retry"))),
+        padding: const EdgeInsets.all(EmSpacing.s8),
+        child: Center(child: EmTextAction(key: const Key('notif_more_retry'), label: "Couldn't load more. Tap to retry", icon: Icons.refresh_rounded, onPressed: c.loadMore)),
       );
     }
-    if (!c.hasMore) return const Padding(padding: EdgeInsets.all(14), child: Center(child: CustomText(key: Key('notif_end'), text: 'You have reached the end', fontSize: 11, color: AppColors.faint)));
-    return const SizedBox(height: 24);
+    if (!c.hasMore) return Padding(padding: const EdgeInsets.all(EmSpacing.s16), child: Center(child: Text('You have reached the end', key: const Key('notif_end'), style: EmType.caption.copyWith(color: EmColors.textSecondary))));
+    return const SizedBox(height: EmSpacing.s24);
   }
 
   void _open(AppNotification n) {
@@ -138,35 +136,40 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final at = n.createdAt;
-    final (icon, color) = _iconFor(n.type);
-    return AppCard(
-      key: Key('notif_${n.id}'),
-      onTap: onTap,
-      padding: const EdgeInsets.all(12),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(width: 36, height: 36, decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: color, size: 18)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(child: CustomText(text: n.title, fontWeight: n.isRead ? FontWeight.w600 : FontWeight.w800, fontSize: 13, color: AppColors.primaryColor, maxLines: 2, overflow: TextOverflow.ellipsis)),
-              if (!n.isRead) Container(key: Key('notif_unread_${n.id}'), margin: const EdgeInsets.only(left: 8, top: 4), width: 9, height: 9, decoration: const BoxDecoration(color: AppColors.blue, shape: BoxShape.circle)),
+    final (icon, tone) = _iconFor(n.type);
+    // Unread = a dot AND a heavier title (and "Unread" is spoken); read rows are the plain weight with no dot.
+    return Padding(
+      padding: const EdgeInsets.only(bottom: EmSpacing.row),
+      child: EmCard(
+        key: Key('notif_${n.id}'),
+        onTap: onTap,
+        padding: const EdgeInsets.all(EmSpacing.s12),
+        semanticLabel: [if (!n.isRead) 'Unread', n.title, if (n.body.isNotEmpty) n.body, if (at != null) relativeTime(now, at)].join(', '),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 40, height: 40, decoration: BoxDecoration(color: tone.background, borderRadius: EmRadius.smAll), child: Icon(icon, color: tone.foreground, size: 20)),
+          const SizedBox(width: EmSpacing.s12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: Text(n.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: n.isRead ? FontWeight.w500 : FontWeight.w800))),
+                if (!n.isRead) Container(key: Key('notif_unread_${n.id}'), margin: const EdgeInsetsDirectional.only(start: EmSpacing.s8, top: EmSpacing.s4), width: 10, height: 10, decoration: const BoxDecoration(color: EmColors.primary, shape: BoxShape.circle)),
+              ]),
+              if (n.body.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s2), child: Text(n.body, maxLines: 3, overflow: TextOverflow.ellipsis, style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
+              if (at != null) Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: Text('${relativeTime(now, at)} · ${absoluteTime(at)}', style: EmType.caption.copyWith(color: EmColors.textSecondary))),
             ]),
-            if (n.body.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 2), child: CustomText(text: n.body, fontSize: 12, color: AppColors.muted, maxLines: 3, overflow: TextOverflow.ellipsis)),
-            if (at != null) Padding(padding: const EdgeInsets.only(top: 4), child: CustomText(text: '${relativeTime(now, at)} · ${absoluteTime(at)}', fontSize: 10, color: AppColors.faint)),
-          ]),
-        ),
-      ]),
+          ),
+        ]),
+      ),
     );
   }
 
-  static (IconData, Color) _iconFor(String type) => switch (type) {
-        'message' => (Icons.chat_bubble_outline_rounded, AppColors.blue),
-        'ptm' => (Icons.handshake_outlined, AppColors.sky),
-        'substitution' => (Icons.swap_horiz_rounded, AppColors.amberText),
-        'lesson_plan' => (Icons.edit_note_rounded, AppColors.green),
-        'homework' => (Icons.menu_book_outlined, AppColors.blue),
-        'leave_status' || 'leave_decision' => (Icons.event_busy_outlined, AppColors.amberText),
-        _ => (Icons.notifications_none_rounded, AppColors.muted),
+  static (IconData, EmTone) _iconFor(String type) => switch (type) {
+        'message' => (Icons.chat_bubble_outline_rounded, EmTone.info),
+        'ptm' => (Icons.handshake_outlined, EmTone.info),
+        'substitution' => (Icons.swap_horiz_rounded, EmTone.warning),
+        'lesson_plan' => (Icons.edit_note_rounded, EmTone.success),
+        'homework' => (Icons.menu_book_outlined, EmTone.info),
+        'leave_status' || 'leave_decision' => (Icons.event_busy_outlined, EmTone.warning),
+        _ => (Icons.notifications_none_rounded, EmTone.neutral),
       };
 }
