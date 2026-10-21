@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/messaging/student_leave_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
@@ -71,10 +70,10 @@ String leaveRangeText(StudentLeaveRequest l) {
   return days == null || days == 1 ? range : '$range ($days days)';
 }
 
-TagStyle leaveStatusStyle(LeaveStatus s) => switch (s) {
-      LeaveStatus.pending => TagStyle.amber,
-      LeaveStatus.approved => TagStyle.green,
-      LeaveStatus.rejected => TagStyle.red,
+EmTone leaveStatusStyle(LeaveStatus s) => switch (s) {
+      LeaveStatus.pending => EmTone.warning,
+      LeaveStatus.approved => EmTone.success,
+      LeaveStatus.rejected => EmTone.error,
     };
 
 class LeaveCard extends StatelessWidget {
@@ -99,7 +98,7 @@ class LeaveCard extends StatelessWidget {
         if (l.reason.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: Text(l.reason, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
         const SizedBox(height: EmSpacing.s8),
         Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          AppTag(l.typeLabel, style: TagStyle.info),
+          AppTag(l.typeLabel, style: EmTone.info),
           if (l.requestedByName.isNotEmpty) Text('Requested by ${l.requestedByName}', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ]),
       ]),

@@ -41,7 +41,7 @@ class _WavePainter extends CustomPainter {
   const _WavePainter();
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = EmColors.primaryLight.withOpacity(0.35);
+    final paint = Paint()..color = EmColors.primaryLight.withAlpha(89);
     final y = size.height * 0.55;
     final path = Path()
       ..moveTo(0, y)

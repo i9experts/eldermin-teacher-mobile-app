@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/home/teaching.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/utils/fixture_rules.dart';
 import '../../../../core/widgets/app_widgets.dart';
@@ -11,11 +10,11 @@ import '../../../routes/app_routes.dart';
 import '../controllers/fixtures_controller.dart';
 import '../../../../core/design/design.dart';
 
-TagStyle fixtureStatusStyle(String s) => switch (s) {
-      'open' => TagStyle.amber,
-      'assigned' => TagStyle.info,
-      'completed' => TagStyle.green,
-      _ => TagStyle.neutral,
+EmTone fixtureStatusStyle(String s) => switch (s) {
+      'open' => EmTone.warning,
+      'assigned' => EmTone.info,
+      'completed' => EmTone.success,
+      _ => EmTone.neutral,
     };
 
 String fixtureStatusLabel(String s, {required bool iAmOriginalTeacher}) => switch (s) {

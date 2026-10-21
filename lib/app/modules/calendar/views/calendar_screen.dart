@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../../core/models/calendar/calendar_models.dart';
 import '../../../../core/models/json_helpers.dart' show wireDay;
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/calendar_format.dart';
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
@@ -284,16 +283,16 @@ class _CircularCard extends StatelessWidget {
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (isNew) Semantics(label: 'New', child: Container(key: ValueKey('circular_new_${x.id}'), margin: const EdgeInsetsDirectional.only(end: EmSpacing.s8, top: EmSpacing.s4), width: 10, height: 10, decoration: const BoxDecoration(color: EmColors.primary, shape: BoxShape.circle))),
           Expanded(child: Text(x.title, style: EmType.body.copyWith(fontWeight: isNew ? FontWeight.w800 : FontWeight.w600, color: EmColors.ink))),
-          if (x.urgent) const Padding(padding: EdgeInsetsDirectional.only(start: EmSpacing.s8), child: AppTag('URGENT', style: TagStyle.red)),
+          if (x.urgent) const Padding(padding: EdgeInsetsDirectional.only(start: EmSpacing.s8), child: AppTag('URGENT', style: EmTone.error)),
         ]),
         const SizedBox(height: EmSpacing.s8),
         Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          AppTag(x.categoryLabel.toUpperCase(), style: TagStyle.neutral),
+          AppTag(x.categoryLabel.toUpperCase(), style: EmTone.neutral),
           if (when != null) Text(fullDay(when.toLocal()), style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ]),
         if (x.bodyText.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: Text(x.bodyText, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
-        if (needs) Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: AppTag('ACKNOWLEDGMENT REQUESTED', key: ValueKey('circular_needs_ack_${x.id}'), style: TagStyle.amber)),
-        if (done) Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: AppTag('ACKNOWLEDGED', key: ValueKey('circular_acked_${x.id}'), style: TagStyle.green)),
+        if (needs) Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: AppTag('ACKNOWLEDGMENT REQUESTED', key: ValueKey('circular_needs_ack_${x.id}'), style: EmTone.warning)),
+        if (done) Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: AppTag('ACKNOWLEDGED', key: ValueKey('circular_acked_${x.id}'), style: EmTone.success)),
       ]),
     );
   }

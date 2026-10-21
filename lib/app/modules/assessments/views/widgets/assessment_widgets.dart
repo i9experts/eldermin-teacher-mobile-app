@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/models/assessments/assessment_models.dart';
 import '../../../../../core/design/design.dart';
-import '../../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../../core/utils/classroom_format.dart';
 import '../../../../../core/widgets/app_widgets.dart';
 import '../../controllers/assessments_controller.dart';
@@ -16,22 +15,22 @@ class AssessmentTags extends StatelessWidget {
     final tags = <Widget>[];
     switch (a.status) {
       case AssessmentStatus.draft:
-        tags.add(const AppTag('DRAFT', style: TagStyle.amber));
+        tags.add(const AppTag('DRAFT', style: EmTone.warning));
       case AssessmentStatus.scheduled:
-        tags.add(const AppTag('SCHEDULED', style: TagStyle.neutral));
+        tags.add(const AppTag('SCHEDULED', style: EmTone.neutral));
       case AssessmentStatus.ongoing:
-        tags.add(const AppTag('ONGOING', style: TagStyle.amber));
+        tags.add(const AppTag('ONGOING', style: EmTone.warning));
       case AssessmentStatus.completed:
-        tags.add(const AppTag('COMPLETED', style: TagStyle.info));
+        tags.add(const AppTag('COMPLETED', style: EmTone.info));
       case AssessmentStatus.cancelled:
-        tags.add(const AppTag('CANCELLED', style: TagStyle.red));
+        tags.add(const AppTag('CANCELLED', style: EmTone.error));
       case AssessmentStatus.published:
         break;
       default:
-        if (a.status.isNotEmpty) tags.add(AppTag(a.status.toUpperCase(), style: TagStyle.neutral));
+        if (a.status.isNotEmpty) tags.add(AppTag(a.status.toUpperCase(), style: EmTone.neutral));
     }
-    if (a.isResultPublished) tags.add(const AppTag('RESULTS PUBLISHED', style: TagStyle.green));
-    if (a.isOnline) tags.add(const AppTag('ONLINE QUIZ', style: TagStyle.info));
+    if (a.isResultPublished) tags.add(const AppTag('RESULTS PUBLISHED', style: EmTone.success));
+    if (a.isOnline) tags.add(const AppTag('ONLINE QUIZ', style: EmTone.info));
     return Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, children: tags);
   }
 }

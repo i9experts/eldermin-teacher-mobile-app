@@ -60,7 +60,7 @@ class GalleryColorsSection extends StatelessWidget {
     ('border', EmColors.border, EmColors.ink),
   ];
 
-  static String hex(Color c) => '#${(c.value & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
+  static String hex(Color c) => '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
 
   @override
   Widget build(BuildContext context) {

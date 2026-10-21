@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/assessment_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../utils/toast_util.dart';
@@ -102,7 +101,7 @@ class _CardTileState extends State<_CardTile> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Text('${card.rollNumber.isEmpty ? '' : '${card.rollNumber}. '}${card.studentName}', style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
-          if (card.published) ...[const SizedBox(width: EmSpacing.s8), const AppTag('PUBLISHED', style: TagStyle.green)],
+          if (card.published) ...[const SizedBox(width: EmSpacing.s8), const AppTag('PUBLISHED', style: EmTone.success)],
         ]),
         const SizedBox(height: EmSpacing.s4),
         Text(

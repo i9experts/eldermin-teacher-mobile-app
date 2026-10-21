@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/design/design.dart';
 import '../../../../../core/models/academic/syllabus_models.dart';
-import '../../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../../core/widgets/app_widgets.dart';
 
 /// Progress bar with "covered of total · percent" text.
@@ -85,9 +84,9 @@ class SyllabusTile extends StatelessWidget {
           Expanded(child: Text(s.subjectName.isEmpty ? '(No subject)' : s.subjectName, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
           const SizedBox(width: EmSpacing.s8),
           Wrap(spacing: EmSpacing.s4, runSpacing: EmSpacing.s4, children: [
-            if (s.isBehind) const AppTag('BEHIND SCHEDULE', style: TagStyle.red),
-            if (s.trackStatus == 'completed' || s.progress.isComplete) const AppTag('COMPLETED', style: TagStyle.green),
-            if (s.status == 'draft') const AppTag('DRAFT', style: TagStyle.neutral),
+            if (s.isBehind) const AppTag('BEHIND SCHEDULE', style: EmTone.error),
+            if (s.trackStatus == 'completed' || s.progress.isComplete) const AppTag('COMPLETED', style: EmTone.success),
+            if (s.status == 'draft') const AppTag('DRAFT', style: EmTone.neutral),
           ]),
         ]),
         const SizedBox(height: EmSpacing.s4),

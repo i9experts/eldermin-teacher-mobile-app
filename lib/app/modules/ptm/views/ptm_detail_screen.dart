@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/ptm/ptm_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/utils/ptm_rules.dart';
 import '../../../../core/widgets/app_widgets.dart';
@@ -126,7 +125,7 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
           key: const Key('ptm_outcome'),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              AppTag(m.status == PtmStatus.completed ? 'PARENT ATTENDED' : 'NO-SHOW', style: m.status == PtmStatus.completed ? TagStyle.green : TagStyle.red),
+              AppTag(m.status == PtmStatus.completed ? 'PARENT ATTENDED' : 'NO-SHOW', style: m.status == PtmStatus.completed ? EmTone.success : EmTone.error),
             ]),
             const SizedBox(height: EmSpacing.s8),
             Text(m.meetingNotes.isEmpty ? 'No notes were recorded.' : m.meetingNotes, style: EmType.label.copyWith(color: m.meetingNotes.isEmpty ? EmColors.textSecondary : EmColors.ink, fontWeight: FontWeight.w400)),

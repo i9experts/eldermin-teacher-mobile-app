@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/models/academic/syllabus_models.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
@@ -108,7 +107,7 @@ class _PlannerState extends State<SyllabusWeeklyPlannerScreen> with WidgetsBindi
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Text('${e.subjectName} · ${e.classLabel}', style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
           const SizedBox(width: EmSpacing.s8),
-          AppTag('WEEK ${k.week}', style: TagStyle.info),
+          AppTag('WEEK ${k.week}', style: EmTone.info),
         ]),
         const SizedBox(height: EmSpacing.s8),
         if (k.rows.isEmpty) Text(s == null && off != 0 ? 'Not available for this week.' : 'Nothing planned for this week.', key: ValueKey('planner_none_${e.syllabusId}'), style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
@@ -143,7 +142,7 @@ class _PlannerState extends State<SyllabusWeeklyPlannerScreen> with WidgetsBindi
           if (where.isNotEmpty) Text(where, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ]),
       ),
-      if (r.sub.plannedWeek != null) ...[const SizedBox(width: EmSpacing.s8), AppTag('W${r.sub.plannedWeek}', style: TagStyle.neutral)],
+      if (r.sub.plannedWeek != null) ...[const SizedBox(width: EmSpacing.s8), AppTag('W${r.sub.plannedWeek}', style: EmTone.neutral)],
     ]);
   }
 }

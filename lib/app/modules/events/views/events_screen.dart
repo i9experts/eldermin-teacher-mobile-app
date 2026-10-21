@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/calendar/calendar_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/calendar_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
@@ -55,13 +54,13 @@ class EventCard extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(child: Text(e.title, style: EmType.body.copyWith(fontWeight: FontWeight.w700, color: EmColors.ink))),
-            if (e.cancelled) const Padding(padding: EdgeInsetsDirectional.only(start: EmSpacing.s8), child: AppTag('CANCELLED', style: TagStyle.red)),
+            if (e.cancelled) const Padding(padding: EdgeInsetsDirectional.only(start: EmSpacing.s8), child: AppTag('CANCELLED', style: EmTone.error)),
           ]),
           const SizedBox(height: EmSpacing.s8),
           _Line(icon: Icons.schedule_rounded, text: eventWhenText(e), bold: true),
           if (e.venueName.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: _Line(icon: Icons.place_outlined, text: e.venueName)),
           const SizedBox(height: EmSpacing.s8),
-          AppTag(e.categoryLabel.toUpperCase(), style: TagStyle.neutral),
+          AppTag(e.categoryLabel.toUpperCase(), style: EmTone.neutral),
         ]),
       ),
     );

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/assessment_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
@@ -70,7 +69,7 @@ class QuizAttemptsScreen extends GetView<QuizAttemptsController> {
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Text(a.studentName.isEmpty ? '(Student)' : a.studentName, style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
           const SizedBox(width: EmSpacing.s8),
-          AppTag(pending == 1 ? '1 ANSWER TO MARK' : '$pending ANSWERS TO MARK', style: TagStyle.amber),
+          AppTag(pending == 1 ? '1 ANSWER TO MARK' : '$pending ANSWERS TO MARK', style: EmTone.warning),
         ]),
         const SizedBox(height: EmSpacing.s4),
         Text([a.assessmentTitle, a.subject, a.classLabel].where((e) => e.isNotEmpty).join(' · '), style: quiet),

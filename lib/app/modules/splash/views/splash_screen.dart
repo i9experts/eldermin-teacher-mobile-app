@@ -163,7 +163,7 @@ class _LoadingDots extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: EmSpacing.s4),
                 decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: EmColors.primaryLight.withOpacity(0.35 + 0.65 * t)),
+                    color: EmColors.primaryLight.withAlpha((255 * (0.35 + 0.65 * t)).round())),
               );
             }),
           );

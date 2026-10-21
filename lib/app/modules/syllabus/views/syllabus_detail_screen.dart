@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/academic/syllabus_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
@@ -135,7 +134,7 @@ class SyllabusDetailScreen extends GetView<SyllabusDetailController> {
                 child: CoverageBox(covered: sub.isCovered, busy: pending.contains('s:${s.id}:${u.no}:${t.no}:${sub.no}'), onTap: () => _tick(context, list.markSubTopic(s.id, u.no, t.no, sub.no, !sub.isCovered))),
               ),
               Expanded(child: Text(sub.name, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400))),
-              if (sub.plannedWeek != null) ...[const SizedBox(width: EmSpacing.s8), AppTag('WEEK ${sub.plannedWeek}', style: TagStyle.neutral)],
+              if (sub.plannedWeek != null) ...[const SizedBox(width: EmSpacing.s8), AppTag('WEEK ${sub.plannedWeek}', style: EmTone.neutral)],
             ]),
         if (open && t.lessons.isNotEmpty) ...[
           Padding(padding: const EdgeInsetsDirectional.fromSTEB(EmSpacing.s8, EmSpacing.s8, 0, EmSpacing.s4), child: Text('LESSONS (READ ONLY)', style: EmType.label.copyWith(color: EmColors.textSecondary))),

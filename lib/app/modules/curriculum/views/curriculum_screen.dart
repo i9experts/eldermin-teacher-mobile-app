@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/reference_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../routes/app_routes.dart';
@@ -57,7 +56,7 @@ class CurriculumScreen extends GetView<CurriculumController> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Text(k.name.isEmpty ? k.subjectName : k.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
-          if (mine) ...[const SizedBox(width: EmSpacing.s8), const AppTag('YOUR SUBJECT', style: TagStyle.info)],
+          if (mine) ...[const SizedBox(width: EmSpacing.s8), const AppTag('YOUR SUBJECT', style: EmTone.info)],
         ]),
         const SizedBox(height: EmSpacing.s4),
         Text([k.gradeLevel, k.subjectName, if (k.academicYearLabel.isNotEmpty) k.academicYearLabel].where((e) => e.isNotEmpty).join(' · '), style: quiet),

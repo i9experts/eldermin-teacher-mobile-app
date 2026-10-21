@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/design/design.dart';
 import '../../../../../core/models/behaviour/behaviour_models.dart';
-import '../../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../../core/utils/classroom_format.dart';
 import '../../../../../core/widgets/app_widgets.dart';
 
@@ -62,9 +61,9 @@ class BehaviourTile extends StatelessWidget {
                 Padding(padding: const EdgeInsets.only(top: EmSpacing.s2), child: Text(r.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
               const SizedBox(height: EmSpacing.s8),
               Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                if (r.category.isNotEmpty) AppTag(categoryLabel(r.category).toUpperCase(), style: TagStyle.neutral),
-                if (k == BehaviourKind.demerit && (r.severity == 'high' || r.severity == 'critical')) AppTag(r.severity.toUpperCase(), style: TagStyle.red),
-                if (r.resolved) const AppTag('RESOLVED', style: TagStyle.green),
+                if (r.category.isNotEmpty) AppTag(categoryLabel(r.category).toUpperCase(), style: EmTone.neutral),
+                if (k == BehaviourKind.demerit && (r.severity == 'high' || r.severity == 'critical')) AppTag(r.severity.toUpperCase(), style: EmTone.error),
+                if (r.resolved) const AppTag('RESOLVED', style: EmTone.success),
                 if (meta.isNotEmpty) Text(meta, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
               ]),
             ]),
@@ -92,10 +91,10 @@ class TarbiyahCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = switch (a.overallRating) {
-      'excellent' || 'good' => TagStyle.green,
-      'satisfactory' => TagStyle.amber,
-      'needs_improvement' || 'critical' => TagStyle.red,
-      _ => TagStyle.neutral,
+      'excellent' || 'good' => EmTone.success,
+      'satisfactory' => EmTone.warning,
+      'needs_improvement' || 'critical' => EmTone.error,
+      _ => EmTone.neutral,
     };
     return AppCard(
       key: ValueKey('tarbiyah_${a.id}'),

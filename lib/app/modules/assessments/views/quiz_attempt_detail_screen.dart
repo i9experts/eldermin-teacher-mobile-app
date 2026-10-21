@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/assessment_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/confirm_dialog.dart';
@@ -116,7 +115,7 @@ class QuizAttemptDetailScreen extends GetView<QuizAttemptDetailController> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Text('Question $n${q == null ? '' : ' · ${marksText(q.marks)} marks'}', style: quiet.copyWith(fontWeight: FontWeight.w600))),
-          if (!manual) ...[const SizedBox(width: EmSpacing.s8), AppTag(ans.isCorrect == true ? 'CORRECT' : 'INCORRECT', style: ans.isCorrect == true ? TagStyle.green : TagStyle.red)],
+          if (!manual) ...[const SizedBox(width: EmSpacing.s8), AppTag(ans.isCorrect == true ? 'CORRECT' : 'INCORRECT', style: ans.isCorrect == true ? EmTone.success : EmTone.error)],
         ]),
         const SizedBox(height: EmSpacing.s4),
         Text(q?.text ?? '(Question not available)', style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600, height: 1.4)),

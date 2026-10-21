@@ -45,8 +45,8 @@ void main() {
       expect(CalendarEventType.holiday.color, EmColors.error);
       expect(CalendarEventType.exam.color, EmColors.primaryDark);
       expect(CalendarEventType.academicTerm.color, EmColors.categoryTeal);
-      expect(CalendarEntry.tryParse(calRow('a', 'A', type: 'training', color: '#123456'))!.color.value, 0xFF123456);
-      expect(CalendarEntry.tryParse(calRow('a', 'A', type: 'training', color: 'red'))!.color.value, CalendarEventType.training.color.value);
+      expect(CalendarEntry.tryParse(calRow('a', 'A', type: 'training', color: '#123456'))!.color.toARGB32(), 0xFF123456);
+      expect(CalendarEntry.tryParse(calRow('a', 'A', type: 'training', color: 'red'))!.color.toARGB32(), CalendarEventType.training.color.toARGB32());
       expect(CalendarEntry.tryParse(calRow('a', 'A', type: 'zzz'))!.type, CalendarEventType.other);
     });
 

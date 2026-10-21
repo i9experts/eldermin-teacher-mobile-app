@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/assessment_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
@@ -74,7 +73,7 @@ class AssessmentDetailScreen extends GetView<AssessmentDetailController> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Text(s.subject, style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
-          if (mine) ...[const SizedBox(width: EmSpacing.s8), const AppTag('YOUR SUBJECT', style: TagStyle.info)],
+          if (mine) ...[const SizedBox(width: EmSpacing.s8), const AppTag('YOUR SUBJECT', style: EmTone.info)],
         ]),
         const SizedBox(height: EmSpacing.s4),
         Text('Out of ${marksText(s.totalMarks)} · pass ${marksText(s.passingMarks)}', style: quiet),

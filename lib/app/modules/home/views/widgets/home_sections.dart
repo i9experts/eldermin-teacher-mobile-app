@@ -49,7 +49,7 @@ Widget _iconChip(IconData icon, {Color bg = EmColors.primaryTint, Color fg = EmC
       child: ExcludeSemantics(child: Icon(icon, color: fg, size: 22)),
     );
 
-/// Existing [TagStyle]-style status -> [EmTone] (container + dark text).
+/// Existing [EmTone]-style status -> [EmTone] (container + dark text).
 EmChip _chip(String label, EmTone tone, {Key? key}) => EmChip.status(key: key, label: label, tone: tone);
 
 /// Today's periods: past dimmed, current highlighted "NOW", next "NEXT".

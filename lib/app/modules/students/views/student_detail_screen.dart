@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../../../core/models/classroom/attendance_models.dart';
 import '../../../../core/models/classroom/student_360.dart';
 import '../../../../core/services/permission_service.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/timetable_week.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
@@ -162,7 +161,7 @@ class _ProfileCard extends StatelessWidget {
             Text(s.fullName, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.heading.copyWith(color: EmColors.ink)),
             if (lines.isNotEmpty) Text(lines, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
             if (ids.isNotEmpty) Text(ids, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
-            if (!s.isActive) ...[const SizedBox(height: EmSpacing.s8), AppTag(s.status.replaceAll('_', ' '), style: TagStyle.amber)],
+            if (!s.isActive) ...[const SizedBox(height: EmSpacing.s8), AppTag(s.status.replaceAll('_', ' '), style: EmTone.warning)],
           ]),
         ),
       ]),
@@ -331,7 +330,7 @@ class _BehaviourCard extends StatelessWidget {
                   if (i.description.isNotEmpty) Text(i.description, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
                 ]),
               ),
-              if (i.type == 'negative' && !i.resolved) ...[const SizedBox(width: EmSpacing.s8), const AppTag('Open', style: TagStyle.amber)],
+              if (i.type == 'negative' && !i.resolved) ...[const SizedBox(width: EmSpacing.s8), const AppTag('Open', style: EmTone.warning)],
             ]),
           ),
         link,
@@ -389,8 +388,8 @@ class _GuardiansCard extends StatelessWidget {
               const ExcludeSemantics(child: Icon(Icons.person_outline_rounded, size: 20, color: EmColors.primary)),
               const SizedBox(width: EmSpacing.row),
               Expanded(child: Text(g.name, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600))),
-              if (g.relationLabel.isNotEmpty) AppTag(g.relationLabel, style: TagStyle.neutral),
-              if (g.isPrimary) ...[const SizedBox(width: EmSpacing.s8), const AppTag('Primary', style: TagStyle.info)],
+              if (g.relationLabel.isNotEmpty) AppTag(g.relationLabel, style: EmTone.neutral),
+              if (g.isPrimary) ...[const SizedBox(width: EmSpacing.s8), const AppTag('Primary', style: EmTone.info)],
             ]),
           ),
       ]),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/reference_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../controllers/curriculum_controller.dart';
@@ -45,7 +44,7 @@ class CurriculumDetailScreen extends GetView<CurriculumDetailController> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Expanded(child: Text(s.code.isEmpty ? 'SLO' : s.code, style: EmType.label.copyWith(color: EmColors.ink))),
-                if (s.bloomsLevel.isNotEmpty) ...[const SizedBox(width: EmSpacing.s8), AppTag(s.bloomsLevel.toUpperCase(), style: TagStyle.info)],
+                if (s.bloomsLevel.isNotEmpty) ...[const SizedBox(width: EmSpacing.s8), AppTag(s.bloomsLevel.toUpperCase(), style: EmTone.info)],
               ]),
               const SizedBox(height: EmSpacing.s4),
               Text(s.description, style: body),

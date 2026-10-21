@@ -1,8 +1,6 @@
 import '../design/design.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import '../theme/app_theme.dart' show AppColors;
-// import '../../app/config/app_colors.dart' show AppColors;
 
 /// Wraps a skeleton layout in the shimmer sweep animation. Wrap once per
 /// screen around the whole loading-state layout below, not around each
@@ -15,8 +13,8 @@ class AppShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColors.shimmerBase,
-      highlightColor: AppColors.shimmerHighlight,
+      baseColor: EmColors.shimmerBase,
+      highlightColor: EmColors.shimmerHighlight,
       child: child,
     );
   }

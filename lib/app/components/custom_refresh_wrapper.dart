@@ -1,6 +1,4 @@
-import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
 
-import 'common_image_view.dart';
 // import '../config/app_colors.dart';
 import '../config/app_images.dart';
 import 'package:flutter/material.dart';
@@ -164,11 +162,11 @@ class _CustomRefreshWrapperState extends State<CustomRefreshWrapper>
                       startAngle: 0,
                       endAngle: 6.28,
                       colors: const [
-                        AppColors.primaryColor,
-                        AppColors.primaryColorLight,
-                        AppColors.accentColor,
-                        AppColors.primaryColorLight,
-                        AppColors.primaryColor,
+                        EmColors.primaryDark,
+                        EmColors.primaryMid,
+                        EmColors.accent,
+                        EmColors.primaryMid,
+                        EmColors.primaryDark,
                       ],
                       stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
                     ).createShader(rect),
@@ -179,7 +177,7 @@ class _CustomRefreshWrapperState extends State<CustomRefreshWrapper>
                         strokeWidth: 2,
                         value: _isRefreshing ? null : progress,
                         // color is masked by ShaderMask
-                        color: AppColors.background,
+                        color: EmColors.background,
                       ),
                     ),
                   ),
@@ -190,20 +188,17 @@ class _CustomRefreshWrapperState extends State<CustomRefreshWrapper>
                     height: 35,
                     padding: const EdgeInsets.all(EmSpacing.s8),
                     decoration: BoxDecoration(
-                      color: AppColors.white,
+                      color: EmColors.surface,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.black.withOpacity(0.12),
+                          color: EmColors.ink.withAlpha(31),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: CommonImageView(
-                      imagePath: AppImages.logoImage,
-                      fit: BoxFit.contain,
-                    ),
+                    child: Image.asset(AppImages.logoImage, fit: BoxFit.contain),
                   ),
                 ],
               ),

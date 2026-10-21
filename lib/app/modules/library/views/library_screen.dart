@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/assessments/reference_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../home/models/section_state.dart';
@@ -114,7 +113,7 @@ class _BookTile extends StatelessWidget {
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Text(b.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
           const SizedBox(width: EmSpacing.s8),
-          AppTag(b.isAvailable ? '${b.availableCopies} OF ${b.totalCopies} AVAILABLE' : 'ALL ISSUED', style: b.isAvailable ? TagStyle.green : TagStyle.amber),
+          AppTag(b.isAvailable ? '${b.availableCopies} OF ${b.totalCopies} AVAILABLE' : 'ALL ISSUED', style: b.isAvailable ? EmTone.success : EmTone.warning),
         ]),
         const SizedBox(height: EmSpacing.s4),
         Text([b.author, if (b.publishYear != null) '${b.publishYear}'].where((e) => e.isNotEmpty).join(' · '), style: quiet),

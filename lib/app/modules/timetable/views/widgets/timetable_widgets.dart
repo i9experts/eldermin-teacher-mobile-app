@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/design/design.dart';
-import '../../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../../core/utils/home_time.dart';
 import '../../../../../core/utils/timetable_week.dart';
 import '../../../../../core/widgets/app_widgets.dart';
@@ -46,11 +45,11 @@ class PeriodTile extends StatelessWidget {
           if (tags) ...[
             const SizedBox(width: EmSpacing.s8),
             Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
-              if (current) const AppTag('NOW', style: TagStyle.green),
-              if (item.phase == PeriodPhase.next) const AppTag('NEXT', style: TagStyle.amber),
+              if (current) const AppTag('NOW', style: EmTone.success),
+              if (item.phase == PeriodPhase.next) const AppTag('NEXT', style: EmTone.warning),
               if (p.weekCycleTag != null) ...[
                 if (current || item.phase == PeriodPhase.next) const SizedBox(height: EmSpacing.s4),
-                AppTag('Week ${p.weekCycleTag}', style: TagStyle.neutral),
+                AppTag('Week ${p.weekCycleTag}', style: EmTone.neutral),
               ],
             ]),
           ],

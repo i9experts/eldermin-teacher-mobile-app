@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../../core/models/ptm/ptm_models.dart';
-import '../../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../../core/utils/classroom_format.dart';
 import '../../../../../core/utils/ptm_rules.dart';
 import '../../../../../core/widgets/app_widgets.dart';
@@ -11,13 +10,13 @@ import '../../../messages/controllers/class_roster_picker.dart';
 import '../../../students/views/widgets/student_widgets.dart';
 import '../../../../../core/design/design.dart';
 
-TagStyle ptmStatusStyle(PtmStatus s) => switch (s) {
-      PtmStatus.requested => TagStyle.amber,
-      PtmStatus.confirmed => TagStyle.info,
-      PtmStatus.completed => TagStyle.green,
-      PtmStatus.cancelled => TagStyle.neutral,
-      PtmStatus.noShow => TagStyle.red,
-      PtmStatus.unknown => TagStyle.neutral,
+EmTone ptmStatusStyle(PtmStatus s) => switch (s) {
+      PtmStatus.requested => EmTone.warning,
+      PtmStatus.confirmed => EmTone.info,
+      PtmStatus.completed => EmTone.success,
+      PtmStatus.cancelled => EmTone.neutral,
+      PtmStatus.noShow => EmTone.error,
+      PtmStatus.unknown => EmTone.neutral,
     };
 
 class PtmStatusTag extends StatelessWidget {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/home_time.dart';
 import '../../../../core/utils/timetable_week.dart';
 import '../../../../core/widgets/app_widgets.dart';
@@ -98,7 +97,7 @@ class TimetableScreen extends GetView<TimetableController> {
         padding: const EdgeInsets.only(top: EmSpacing.s8, bottom: EmSpacing.s8),
         child: Row(children: [
           Flexible(child: Text('${weekdayShort(d)} ${dayMonthShort(d)}', style: EmType.bodyLarge.copyWith(color: EmColors.ink))),
-          if (isToday) ...[const SizedBox(width: EmSpacing.s8), const AppTag('Today', style: TagStyle.info)],
+          if (isToday) ...[const SizedBox(width: EmSpacing.s8), const AppTag('Today', style: EmTone.info)],
           const Spacer(),
           Text(items.isEmpty ? 'No classes' : '${items.length} ${items.length == 1 ? 'period' : 'periods'}', style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ]),

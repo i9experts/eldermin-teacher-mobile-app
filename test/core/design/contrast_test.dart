@@ -36,10 +36,10 @@ void main() {
     });
   });
 
-  group('TagStyle pairs are AA', () {
-    final tags = {'info': TagStyle.info, 'amber': TagStyle.amber, 'green': TagStyle.green, 'red': TagStyle.red, 'neutral': TagStyle.neutral, 'leave': TagStyle.leave};
+  group('EmTone pairs are AA', () {
+    final tags = {'info': EmTone.info, 'amber': EmTone.warning, 'green': EmTone.success, 'red': EmTone.error, 'neutral': EmTone.neutral, 'leave': EmTone.leave};
     tags.forEach((name, t) {
-      test(name, () => expect(contrastRatio(t.fg, t.bg), greaterThanOrEqualTo(4.5)));
+      test(name, () => expect(contrastRatio(t.foreground, t.background), greaterThanOrEqualTo(4.5)));
     });
   });
 
@@ -99,32 +99,6 @@ void main() {
     });
   });
 
-  group('legacy AppColors alias the tokens', () {
-    test('key aliases', () {
-      expect(AppColors.primaryColor, EmColors.primaryDark);
-      expect(AppColors.blue, EmColors.primary);
-      expect(AppColors.muted, EmColors.textSecondary);
-      expect(AppColors.faint, EmColors.textTertiary);
-      expect(AppColors.line, EmColors.border);
-      expect(AppColors.pale, EmColors.primaryContainer);
-      expect(AppColors.redText, EmColors.error);
-      expect(AppColors.amberText, EmColors.warning);
-      expect(AppColors.amber, EmColors.accent);
-      expect(AppColors.ink, EmColors.ink);
-    });
-    test('purple/pink family now aliases the semantic status tokens', () {
-      expect(AppColors.purple, EmColors.statusLeave);
-      expect(AppColors.purpleBg, EmColors.statusLeaveContainer);
-      expect(AppColors.lightPurple, EmColors.statusLeaveContainer);
-      expect(AppColors.categoryPurple, EmColors.statusLeave);
-    });
-    test('every text-bearing legacy colour used on white is AA', () {
-      for (final c in [AppColors.primaryColor, AppColors.blue, AppColors.muted, AppColors.faint, AppColors.redText, AppColors.amberText, AppColors.greenText, AppColors.ink]) {
-        expect(contrastRatio(c, Colors.white), greaterThanOrEqualTo(4.5));
-      }
-    });
-  });
-
   group('calendar colours', () {
     test('every default event colour is AA text on white and on the scaffold tint', () {
       for (final t in CalendarEventType.values) {
@@ -133,7 +107,7 @@ void main() {
       }
     });
     test('default event colours are distinct', () {
-      final v = CalendarEventType.values.map((t) => t.color.value).toSet();
+      final v = CalendarEventType.values.map((t) => t.color.toARGB32()).toSet();
       expect(v.length, CalendarEventType.values.length);
     });
     test('foreground helper: white on dark fills, ink on light fills', () {
@@ -145,9 +119,9 @@ void main() {
       Map<String, dynamic> row(String color) => {'_id': 'a', 'title': 'A', 'startDate': '2026-01-05', 'endDate': '2026-01-05', 'type': 'training', 'color': color};
       final dark = CalendarEntry.tryParse(row('#101010'))!;
       final light = CalendarEntry.tryParse(row('#F0F0A0'))!;
-      expect(dark.color.value, 0xFF101010);
+      expect(dark.color.toARGB32(), 0xFF101010);
       expect(dark.onColor, Colors.white);
-      expect(light.color.value, 0xFFF0F0A0);
+      expect(light.color.toARGB32(), 0xFFF0F0A0);
       expect(light.onColor, const Color(0xFF12263A));
     });
     test('foreground helper is AA for every default event colour', () {

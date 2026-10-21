@@ -61,7 +61,7 @@ class EmScaffold extends StatelessWidget {
                         height: 300,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: EmColors.primaryContainer.withOpacity(0.55),
+                          color: EmColors.primaryContainer.withAlpha(140),
                         ),
                       ),
                     ),

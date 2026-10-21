@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/calendar/calendar_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/calendar_format.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
@@ -25,9 +24,9 @@ class EventDetailScreen extends GetView<EventDetailController> {
             onRetry: () => c.load(userInitiated: true),
             builder: (e) => [
               Row(children: [
-                AppTag(e.categoryLabel.toUpperCase(), style: TagStyle.neutral),
-                if (e.cancelled) ...[const SizedBox(width: EmSpacing.s8), const AppTag('CANCELLED', style: TagStyle.red)],
-                if (e.status == 'completed') ...[const SizedBox(width: EmSpacing.s8), const AppTag('COMPLETED', style: TagStyle.green)],
+                AppTag(e.categoryLabel.toUpperCase(), style: EmTone.neutral),
+                if (e.cancelled) ...[const SizedBox(width: EmSpacing.s8), const AppTag('CANCELLED', style: EmTone.error)],
+                if (e.status == 'completed') ...[const SizedBox(width: EmSpacing.s8), const AppTag('COMPLETED', style: EmTone.success)],
               ]),
               const SizedBox(height: EmSpacing.s12),
               Text(e.title, key: const Key('event_title'), style: EmType.title.copyWith(color: EmColors.ink)),

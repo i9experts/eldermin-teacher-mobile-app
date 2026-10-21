@@ -88,7 +88,7 @@ class _BarPainter extends CustomPainter {
 
     // dashed grid: horizontal
     final grid = Paint()
-      ..color = EmColors.primaryLight.withOpacity(0.6)
+      ..color = EmColors.primaryLight.withAlpha(153)
       ..strokeWidth = 1;
     for (var i = 0; i <= yTicks; i++) {
       final y = plot.bottom - plot.height * i / yTicks;
@@ -112,7 +112,7 @@ class _BarPainter extends CustomPainter {
         topLeft: Radius.circular(barW / 2),
         topRight: Radius.circular(barW / 2),
       );
-      canvas.drawRRect(track, Paint()..color = EmColors.primaryContainer.withOpacity(0.55));
+      canvas.drawRRect(track, Paint()..color = EmColors.primaryContainer.withAlpha(140));
       // bar
       final h = plot.height * (d.value / maxValue).clamp(0.0, 1.0) * progress;
       if (h > 0) {

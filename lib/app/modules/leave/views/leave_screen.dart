@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/leave/leave_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart' show AppCard, AppEmptyView, AppErrorView, AppTag, RefreshFailedBanner;
 import '../../../../core/widgets/screen_state_view.dart';
@@ -11,13 +10,13 @@ import '../../home/models/section_state.dart';
 import '../controllers/leave_controller.dart';
 import '../../../../core/design/design.dart';
 
-TagStyle leaveStatusTag(StaffLeaveStatus s) => switch (s) {
-      StaffLeaveStatus.pending => TagStyle.amber,
-      StaffLeaveStatus.approved => TagStyle.green,
-      StaffLeaveStatus.rejected => TagStyle.red,
-      StaffLeaveStatus.cancelled => TagStyle.neutral,
-      StaffLeaveStatus.onHold => TagStyle.info,
-      StaffLeaveStatus.unknown => TagStyle.neutral,
+EmTone leaveStatusTag(StaffLeaveStatus s) => switch (s) {
+      StaffLeaveStatus.pending => EmTone.warning,
+      StaffLeaveStatus.approved => EmTone.success,
+      StaffLeaveStatus.rejected => EmTone.error,
+      StaffLeaveStatus.cancelled => EmTone.neutral,
+      StaffLeaveStatus.onHold => EmTone.info,
+      StaffLeaveStatus.unknown => EmTone.neutral,
     };
 
 String leaveRange(StaffLeaveRequest l) {

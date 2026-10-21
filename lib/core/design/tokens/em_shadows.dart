@@ -9,16 +9,16 @@ class EmShadows {
 
   /// White card / icon circle on the tinted scaffold.
   static final List<BoxShadow> soft = [
-    BoxShadow(color: EmColors.primaryDark.withOpacity(0.05), blurRadius: 16, offset: const Offset(0, 4)),
+    BoxShadow(color: EmColors.primaryDark.withAlpha(13), blurRadius: 16, offset: const Offset(0, 4)),
   ];
 
   /// Bottom navigation bar (casts upwards).
   static final List<BoxShadow> nav = [
-    BoxShadow(color: EmColors.primaryDark.withOpacity(0.07), blurRadius: 20, offset: const Offset(0, -4)),
+    BoxShadow(color: EmColors.primaryDark.withAlpha(18), blurRadius: 20, offset: const Offset(0, -4)),
   ];
 
   /// The only clearly elevated element: the diamond FAB.
   static final List<BoxShadow> fab = [
-    BoxShadow(color: EmColors.primaryDark.withOpacity(0.28), blurRadius: 20, offset: const Offset(0, 8)),
+    BoxShadow(color: EmColors.primaryDark.withAlpha(71), blurRadius: 20, offset: const Offset(0, 8)),
   ];
 }

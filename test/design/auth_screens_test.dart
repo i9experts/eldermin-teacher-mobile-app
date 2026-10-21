@@ -208,7 +208,7 @@ void main() {
       expect(y, contains('android_12:'));
       expect(y, contains('icon_background_color: "#18457A"'));
       // the native navy is the token
-      expect(EmColors.primaryDark.value & 0xFFFFFF, 0x18457A);
+      expect(EmColors.primaryDark.toARGB32() & 0xFFFFFF, 0x18457A);
     });
   });
 }

@@ -1,20 +1,19 @@
 import '../design/design.dart';
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
 
 class AppTag extends StatelessWidget {
   final String label;
-  final TagStyle style;
-  const AppTag(this.label, {super.key, this.style = TagStyle.info});
+  final EmTone style;
+  const AppTag(this.label, {super.key, this.style = EmTone.info});
 
   /// Status pill: tone container + dark text (AA), caption size so it stays readable at large text scales.
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(color: style.bg, borderRadius: EmRadius.pillAll),
+      decoration: BoxDecoration(color: style.background, borderRadius: EmRadius.pillAll),
       child: Padding(
         padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s12, vertical: EmSpacing.s4),
-        child: Text(label, style: EmType.caption.copyWith(color: style.fg, fontWeight: FontWeight.w600)),
+        child: Text(label, style: EmType.caption.copyWith(color: style.foreground, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -110,7 +109,7 @@ class ListCardRow extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: EmRadius.smAll),
+            decoration: BoxDecoration(color: iconColor.withAlpha(26), borderRadius: EmRadius.smAll),
             child: ExcludeSemantics(child: Icon(icon, color: iconColor, size: 20)),
           ),
           const SizedBox(width: EmSpacing.s12),

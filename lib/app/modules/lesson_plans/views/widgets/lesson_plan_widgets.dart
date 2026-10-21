@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/models/academic/lesson_plan_models.dart';
 import '../../../../../core/design/design.dart';
-import '../../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../../core/utils/classroom_format.dart';
 import '../../../../../core/widgets/app_widgets.dart';
 
@@ -12,12 +11,12 @@ class PlanStatusTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => switch (status) {
-        LessonPlanStatus.draft => const AppTag('DRAFT', style: TagStyle.neutral),
-        LessonPlanStatus.submitted => const AppTag('AWAITING APPROVAL', style: TagStyle.info),
-        LessonPlanStatus.approved => const AppTag('APPROVED', style: TagStyle.green),
-        LessonPlanStatus.rejected => const AppTag('REJECTED', style: TagStyle.red),
-        LessonPlanStatus.overdue => const AppTag('OVERDUE', style: TagStyle.amber),
-        LessonPlanStatus.unknown => const AppTag('UNKNOWN', style: TagStyle.neutral),
+        LessonPlanStatus.draft => const AppTag('DRAFT', style: EmTone.neutral),
+        LessonPlanStatus.submitted => const AppTag('AWAITING APPROVAL', style: EmTone.info),
+        LessonPlanStatus.approved => const AppTag('APPROVED', style: EmTone.success),
+        LessonPlanStatus.rejected => const AppTag('REJECTED', style: EmTone.error),
+        LessonPlanStatus.overdue => const AppTag('OVERDUE', style: EmTone.warning),
+        LessonPlanStatus.unknown => const AppTag('UNKNOWN', style: EmTone.neutral),
       };
 }
 

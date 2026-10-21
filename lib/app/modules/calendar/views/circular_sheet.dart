@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/calendar/calendar_models.dart';
-import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/widgets/app_widgets.dart' show AppTag;
 import '../../../common/action_failure.dart';
@@ -41,8 +40,8 @@ class CircularDetail extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s16, EmSpacing.screenH, EmSpacing.s32),
       children: [
         Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          AppTag(x.categoryLabel.toUpperCase(), style: TagStyle.neutral),
-          if (x.urgent) const AppTag('URGENT', style: TagStyle.red),
+          AppTag(x.categoryLabel.toUpperCase(), style: EmTone.neutral),
+          if (x.urgent) const AppTag('URGENT', style: EmTone.error),
           if (when != null) Text(fullDay(when.toLocal()), style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ]),
         const SizedBox(height: EmSpacing.s12),

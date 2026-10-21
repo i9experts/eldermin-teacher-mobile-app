@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/design/design.dart';
 import '../../../../../core/models/homework/homework_models.dart';
-import '../../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../../core/utils/classroom_format.dart';
 import '../../../../../core/widgets/app_widgets.dart';
 
@@ -15,15 +14,15 @@ class PhaseTag extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (assignment.phaseOn(today)) {
       case HomeworkPhase.draft:
-        return const AppTag('DRAFT', style: TagStyle.neutral);
+        return const AppTag('DRAFT', style: EmTone.neutral);
       case HomeworkPhase.active:
-        return const AppTag('ASSIGNED', style: TagStyle.info);
+        return const AppTag('ASSIGNED', style: EmTone.info);
       case HomeworkPhase.dueToday:
-        return const AppTag('DUE TODAY', style: TagStyle.amber);
+        return const AppTag('DUE TODAY', style: EmTone.warning);
       case HomeworkPhase.overdue:
-        return const AppTag('OVERDUE', style: TagStyle.red);
+        return const AppTag('OVERDUE', style: EmTone.error);
       case HomeworkPhase.other:
-        return AppTag(assignment.status.toUpperCase(), style: TagStyle.neutral);
+        return AppTag(assignment.status.toUpperCase(), style: EmTone.neutral);
     }
   }
 }
@@ -105,19 +104,19 @@ class SubmissionTags extends StatelessWidget {
     final tags = <Widget>[];
     switch (s.state) {
       case SubmissionState.graded:
-        tags.add(const AppTag('GRADED', style: TagStyle.green));
+        tags.add(const AppTag('GRADED', style: EmTone.success));
       case SubmissionState.submitted:
-        tags.add(const AppTag('TO GRADE', style: TagStyle.info));
+        tags.add(const AppTag('TO GRADE', style: EmTone.info));
       case SubmissionState.late:
-        tags.add(const AppTag('TO GRADE', style: TagStyle.info));
+        tags.add(const AppTag('TO GRADE', style: EmTone.info));
       case SubmissionState.pending:
-        tags.add(const AppTag('NOT HANDED IN', style: TagStyle.neutral));
+        tags.add(const AppTag('NOT HANDED IN', style: EmTone.neutral));
       case SubmissionState.missed:
-        tags.add(const AppTag('MISSED', style: TagStyle.red));
+        tags.add(const AppTag('MISSED', style: EmTone.error));
       case SubmissionState.unknown:
-        tags.add(AppTag(s.statusWire.toUpperCase(), style: TagStyle.neutral));
+        tags.add(AppTag(s.statusWire.toUpperCase(), style: EmTone.neutral));
     }
-    if (s.wasLate) tags.add(const AppTag('LATE', style: TagStyle.amber));
+    if (s.wasLate) tags.add(const AppTag('LATE', style: EmTone.warning));
     return Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, children: tags);
   }
 }
