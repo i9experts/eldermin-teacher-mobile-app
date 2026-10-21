@@ -149,7 +149,9 @@ Future<void> msgScenario(WidgetTester t) async {
     await waitFor(t, find.byKey(const Key('new_student_picker')));
     await settle(t, 800);
     await t.tap(find.byKey(const Key('new_student_picker')));
-    await waitFor(t, find.text(pname('S8')));
+    await waitFor(t, find.byKey(const Key('new_picker_search')));
+    // D8: the picker header grew (search pill), so the 8th student is below the lazily built rows: scroll to it
+    await t.scrollUntilVisible(find.text(pname('S8')), 200, scrollable: find.byType(Scrollable).last);
     await settle(t, 600);
     await t.tap(find.text(pname('S8')).first);
     await waitFor(t, find.text('P7 Kamran Five (DUMMY)'));
