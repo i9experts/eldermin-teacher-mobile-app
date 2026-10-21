@@ -269,6 +269,7 @@ Future<void> concern(WidgetTester t, {required bool withStudent, required String
     await settle(t, 1000);
   }
   await t.tap(find.byKey(const Key('sg_type_bullying')));
+  await t.scrollUntilVisible(find.byKey(const Key('sg_sev_high')), 150, scrollable: find.byType(Scrollable).first); // D9: taller chips, the severity row is below the lazily built rows
   await t.tap(find.byKey(const Key('sg_sev_high')));
   await t.enterText(find.byKey(const Key('sg_title')), 'P7C-SG-DUMMY summary from $who');
   await t.enterText(find.byKey(const Key('sg_description')), 'P7C-SG-DUMMY description typed by $who, not a real concern.');

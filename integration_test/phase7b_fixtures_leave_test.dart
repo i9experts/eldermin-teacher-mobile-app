@@ -135,7 +135,8 @@ void main() {
     step('leave states');
     await stub(t, '/__stub/mode?feature=leavehistory&value=500');
     await pullToRefresh(t);
-    await waitFor(t, find.byKey(const Key('leave_history_error')));
+    // since Phase 7 follow-up 5e a failed refresh keeps the loaded history under a "Refresh failed" banner (the full error view is only for a first load)
+    await waitFor(t, find.byKey(const Key('refresh_failed_banner')));
     await shot(t, '7b_50_leave_history_error_balance_kept');
     await stub(t, '/__stub/mode?feature=leavehistory&value=403');
     await stub(t, '/__stub/mode?feature=leavebalance&value=403');
