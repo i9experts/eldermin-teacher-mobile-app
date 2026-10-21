@@ -248,6 +248,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                 fillColor: EmColors.background,
                 contentPadding: const EdgeInsets.symmetric(horizontal: EmSpacing.s16, vertical: EmSpacing.s12),
                 border: OutlineInputBorder(borderRadius: EmRadius.tileAll, borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(borderRadius: EmRadius.tileAll, borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: EmRadius.tileAll, borderSide: const BorderSide(color: EmColors.primary, width: 2)),
               ),
             ),
           ),
