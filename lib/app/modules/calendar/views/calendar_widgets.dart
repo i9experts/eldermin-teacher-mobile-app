@@ -1,12 +1,11 @@
-import '../../../../core/design/tokens/em_colors.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/design/design.dart';
 import '../../../../core/models/calendar/calendar_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/calendar_format.dart';
-import '../../../../core/widgets/app_widgets.dart';
-import '../../../components/custom_text.dart';
+import '../../../../core/widgets/app_widgets.dart' show AppCard;
 
-/// One calendar entry as a card: colour bar (colour of its type), title, type tag, time / span.
+/// One calendar entry as a card: colour bar (colour of its type), title, type label (dot + ink text), time / span. The bar is decoration:
+/// the type is always also said in words.
 class CalendarEntryCard extends StatelessWidget {
   final CalendarEntry entry;
   final VoidCallback? onTap;
@@ -21,23 +20,22 @@ class CalendarEntryCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Container(width: 5, decoration: BoxDecoration(color: e.color, borderRadius: const BorderRadius.horizontal(left: Radius.circular(AppRadius.md)))),
+          Container(width: EmSpacing.s8 - EmSpacing.s2, decoration: BoxDecoration(color: e.color, borderRadius: const BorderRadiusDirectional.horizontal(start: Radius.circular(EmRadius.card)))),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(EmSpacing.s12),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Expanded(child: CustomText(text: e.title, fontWeight: FontWeight.w800, fontSize: 13.5, color: AppColors.primaryColor)),
-                  const SizedBox(width: 8),
+                Text(e.title, maxLines: 3, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w700)),
+                const SizedBox(height: EmSpacing.s4),
+                Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s4, crossAxisAlignment: WrapCrossAlignment.center, children: [
                   _TypeChip(type: e.type, color: e.color),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    const ExcludeSemantics(child: Icon(Icons.schedule_rounded, size: 16, color: EmColors.textSecondary)),
+                    const SizedBox(width: EmSpacing.s4),
+                    Flexible(child: Text(entrySubtitle(e), style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w600))),
+                  ]),
                 ]),
-                const SizedBox(height: 3),
-                Row(children: [
-                  const Icon(Icons.schedule_rounded, size: 13, color: AppColors.muted),
-                  const SizedBox(width: 4),
-                  Expanded(child: CustomText(text: entrySubtitle(e), fontSize: 11.5, color: AppColors.muted, fontWeight: FontWeight.w600)),
-                ]),
-                if (e.description.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: CustomText(text: e.description, fontSize: 11.5, color: AppColors.muted, height: 1.35, maxLines: 2, overflow: TextOverflow.ellipsis)),
+                if (e.description.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s4), child: Text(e.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
               ]),
             ),
           ),
@@ -53,14 +51,13 @@ class CalendarTypeLabel extends StatelessWidget {
   final Color color;
   final String label;
   final double dotSize;
-  final double fontSize;
-  const CalendarTypeLabel({super.key, required this.color, required this.label, this.dotSize = 9, this.fontSize = 10.5});
+  const CalendarTypeLabel({super.key, required this.color, required this.label, this.dotSize = 10});
 
   @override
   Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
         Container(key: const Key('cal_type_dot'), width: dotSize, height: dotSize, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 6),
-        Flexible(child: CustomText(text: label.toUpperCase(), fontSize: fontSize, fontWeight: FontWeight.w800, color: EmColors.ink, maxLines: 1, overflow: TextOverflow.ellipsis)),
+        const SizedBox(width: EmSpacing.s8),
+        Flexible(child: Text(label.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: EmType.caption.copyWith(fontWeight: FontWeight.w800, color: EmColors.ink))),
       ]);
 }
 
@@ -71,9 +68,9 @@ class _TypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: EmColors.primaryTint, borderRadius: BorderRadius.circular(AppRadius.pill)),
-        child: CalendarTypeLabel(color: color, label: type.label, dotSize: 8, fontSize: 9),
+        padding: const EdgeInsets.symmetric(horizontal: EmSpacing.s8, vertical: EmSpacing.s4),
+        decoration: const BoxDecoration(color: EmColors.primaryTint, borderRadius: EmRadius.pillAll),
+        child: CalendarTypeLabel(color: color, label: type.label, dotSize: 8),
       );
 }
 
@@ -87,13 +84,13 @@ class CalendarLegend extends StatelessWidget {
     final list = types.toSet().toList()..sort((a, b) => a.index.compareTo(b.index));
     if (list.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Wrap(spacing: 12, runSpacing: 4, children: [
+      padding: const EdgeInsets.symmetric(vertical: EmSpacing.s8),
+      child: Wrap(spacing: EmSpacing.s12, runSpacing: EmSpacing.s4, children: [
         for (final t in list)
           Row(mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 9, height: 9, decoration: BoxDecoration(color: t.color, shape: BoxShape.circle)),
-            const SizedBox(width: 5),
-            CustomText(text: t.label, fontSize: 10.5, color: AppColors.muted, fontWeight: FontWeight.w600),
+            Container(width: 10, height: 10, decoration: BoxDecoration(color: t.color, shape: BoxShape.circle)),
+            const SizedBox(width: EmSpacing.s4 + EmSpacing.s2),
+            Text(t.label, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w600)),
           ]),
       ]),
     );
