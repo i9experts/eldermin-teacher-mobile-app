@@ -67,7 +67,7 @@ class _IntroScreenState extends State<IntroScreen> {
                 child: TextButton(
                   key: const Key('intro_skip'),
                   onPressed: c.finish,
-                  child: Text('Skip', style: EmType.label.copyWith(color: EmColors.textSecondary, fontSize: 14)),
+                  child: Text('Skip', style: EmType.body.copyWith(color: EmColors.textSecondary)),
                 ),
               ),
             ),
@@ -88,7 +88,7 @@ class _IntroScreenState extends State<IntroScreen> {
                           children: [
                             EmHeroCard(
                               wave: true,
-                              padding: const EdgeInsetsDirectional.symmetric(vertical: 36, horizontal: 24),
+                              padding: const EdgeInsetsDirectional.symmetric(vertical: EmSpacing.s40, horizontal: EmSpacing.s24),
                               child: Center(
                                 child: Container(
                                   width: 112,
@@ -101,10 +101,10 @@ class _IntroScreenState extends State<IntroScreen> {
                             const SizedBox(height: EmSpacing.s32),
                             Semantics(
                               header: true,
-                              child: Text(s.title, textAlign: TextAlign.center, style: EmType.title.copyWith(color: EmColors.ink, fontSize: 24)),
+                              child: Text(s.title, textAlign: TextAlign.center, style: EmType.title.copyWith(color: EmColors.ink)),
                             ),
                             const SizedBox(height: EmSpacing.s12),
-                            Text(s.body, textAlign: TextAlign.center, style: EmType.bodyLarge.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400, fontSize: 15, height: 1.5)),
+                            Text(s.body, textAlign: TextAlign.center, style: EmType.bodyLarge.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400, height: 1.5)),
                           ],
                         ),
                       ),
@@ -122,7 +122,7 @@ class _IntroScreenState extends State<IntroScreen> {
                       for (var i = 0; i < _slides.length; i++)
                         AnimatedContainer(
                           duration: EmMotion.normal,
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          margin: const EdgeInsets.symmetric(horizontal: EmSpacing.s4),
                           width: c.page.value == i ? 24 : 8,
                           height: 8,
                           decoration: BoxDecoration(

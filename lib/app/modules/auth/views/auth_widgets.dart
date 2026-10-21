@@ -46,7 +46,7 @@ class AuthPageShell extends StatelessWidget {
                       const SizedBox(height: EmSpacing.s20),
                       Semantics(
                         header: true,
-                        child: Text(title, textAlign: TextAlign.center, style: EmType.display.copyWith(color: EmColors.ink, fontSize: 26)),
+                        child: Text(title, textAlign: TextAlign.center, style: EmType.display.copyWith(color: EmColors.ink)),
                       ),
                       const SizedBox(height: EmSpacing.s8),
                       Text(subtitle, textAlign: TextAlign.center, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
@@ -86,7 +86,7 @@ class AuthBanner extends StatelessWidget {
           children: [
             Icon(isError ? Icons.error_outline_rounded : Icons.info_outline_rounded, color: tone.foreground, size: 20),
             const SizedBox(width: EmSpacing.s8),
-            Expanded(child: Text(message, style: EmType.body.copyWith(color: tone.foreground, fontSize: 13))),
+            Expanded(child: Text(message, style: EmType.label.copyWith(color: tone.foreground))),
           ],
         ),
       ),

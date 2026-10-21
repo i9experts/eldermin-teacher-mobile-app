@@ -119,7 +119,7 @@ class _ModuleCard extends StatelessWidget {
           if (!entry.built) const Flexible(child: EmChip.status(label: 'Coming soon', tone: EmTone.neutral)),
         ]),
         const Spacer(),
-        Text(entry.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: entry.built ? EmColors.ink : EmColors.textSecondary, fontSize: 15)),
+        Text(entry.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: entry.built ? EmColors.ink : EmColors.textSecondary)),
         Text(entry.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
       ]),
     );

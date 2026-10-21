@@ -29,10 +29,10 @@ Widget _row({
         if (leading != null) ...[leading, const SizedBox(width: EmSpacing.s12)],
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink, fontSize: 15)),
+            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink)),
             if (subtitle.isNotEmpty) ...[
               const SizedBox(height: 2),
-              Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400, fontSize: 13)),
+              Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
             ],
           ]),
         ),
@@ -143,11 +143,11 @@ class ClassTeacherCard extends StatelessWidget {
                 const SizedBox(height: EmSpacing.s8),
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Padding(
-                    padding: const EdgeInsetsDirectional.only(top: 5),
+                    padding: const EdgeInsetsDirectional.only(top: EmSpacing.s4),
                     child: Container(width: 8, height: 8, decoration: BoxDecoration(color: done ? EmColors.success : EmColors.accent, shape: BoxShape.circle)),
                   ),
                   const SizedBox(width: EmSpacing.s8),
-                  Expanded(child: Text(trend, style: EmType.body.copyWith(color: EmColors.ink, fontSize: 13))),
+                  Expanded(child: Text(trend, style: EmType.label.copyWith(color: EmColors.ink))),
                 ]),
               ]),
             ),

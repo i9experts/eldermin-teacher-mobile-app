@@ -123,7 +123,7 @@ class _CaughtUp extends StatelessWidget {
           ),
           const SizedBox(width: EmSpacing.s12),
           Expanded(
-            child: Text("You're all caught up - no unread messages", maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink, fontSize: 15)),
+            child: Text("You're all caught up - no unread messages", maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink)),
           ),
         ]),
       );

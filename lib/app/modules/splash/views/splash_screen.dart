@@ -97,9 +97,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: EmType.display.copyWith(
-                                    color: EmColors.onPrimaryDark,
-                                    fontSize: 28)),
+                                style: EmType.display.copyWith(color: EmColors.onPrimaryDark)),
                           ),
                         ),
                         const SizedBox(height: EmSpacing.s8),
@@ -162,7 +160,7 @@ class _LoadingDots extends StatelessWidget {
               return Container(
                 width: 8,
                 height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
+                margin: const EdgeInsets.symmetric(horizontal: EmSpacing.s4),
                 decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: EmColors.primaryLight.withOpacity(0.35 + 0.65 * t)),

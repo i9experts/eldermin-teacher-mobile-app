@@ -75,7 +75,7 @@ class SectionView<T> extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(emptyTitle, style: EmType.bodyLarge.copyWith(color: EmColors.ink)),
-                if (emptySubtitle != null) Text(emptySubtitle!, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400, fontSize: 13)),
+                if (emptySubtitle != null) Text(emptySubtitle!, style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
               ]),
             ),
           ]),
