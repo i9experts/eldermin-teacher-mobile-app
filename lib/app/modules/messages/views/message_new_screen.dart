@@ -176,7 +176,7 @@ class _PickerSheet extends StatelessWidget {
           final sel = p.selectedClass.value;
           return cs.length > 1 ? Padding(padding: const EdgeInsets.only(bottom: EmSpacing.s12), child: ClassPicker(classes: cs, selected: sel, onSelect: p.selectClass)) : const SizedBox.shrink();
         }),
-        EmSearchPill(fieldKey: const Key('new_picker_search'), hint: 'Search by name or roll number', onChanged: (v) => p.query.value = v),
+        EmSearchPill(color: EmColors.background, fieldKey: const Key('new_picker_search'), hint: 'Search by name or roll number', onChanged: (v) => p.query.value = v),
         const SizedBox(height: EmSpacing.s12),
         Expanded(
           child: Obx(() {
