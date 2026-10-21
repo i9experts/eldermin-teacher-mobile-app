@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/home/teaching.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_theme.dart' show TagStyle;
 import '../../../../core/utils/classroom_format.dart';
 import '../../../../core/utils/fixture_rules.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/fixtures_controller.dart';
 import '../../../../core/design/design.dart';
@@ -65,13 +64,16 @@ class FixturesScreen extends GetView<FixturesController> {
           emptySubtitle: 'Periods you cover for a colleague, or that a colleague covers for you, appear here.',
           header: [
             if (st.hasData) ...[
-              SegmentedControl(
+              EmSegmentedTabs<FixtureTab>(
                 key: const Key('fx_tabs'),
-                options: ['Covering for others (${c.rows(FixtureTab.covering).length})', 'My periods covered (${c.rows(FixtureTab.covered).length})'],
-                selectedIndex: tab.index,
-                onChanged: (i) => c.selectTab(FixtureTab.values[i]),
+                segments: [
+                  EmSegment(FixtureTab.covering, 'Covering for others (${c.rows(FixtureTab.covering).length})'),
+                  EmSegment(FixtureTab.covered, 'My periods covered (${c.rows(FixtureTab.covered).length})'),
+                ],
+                selected: tab,
+                onChanged: c.selectTab,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: EmSpacing.s16),
             ],
           ],
           builder: (_) {
@@ -79,7 +81,7 @@ class FixturesScreen extends GetView<FixturesController> {
             if (rows.isEmpty) {
               return [
                 Padding(
-                  padding: const EdgeInsets.only(top: 24),
+                  padding: const EdgeInsets.only(top: EmSpacing.s24),
                   child: AppEmptyView(
                     key: const Key('fx_tab_empty'),
                     icon: Icons.swap_horiz_rounded,
@@ -96,7 +98,7 @@ class FixturesScreen extends GetView<FixturesController> {
                 for (final s in d.rows) FixtureCard(fixture: s, tab: tab, onTap: () => Get.toNamed(Routes.fixtureDetailOf(s.id))),
               ],
               for (final s in g.undated) FixtureCard(fixture: s, tab: tab, onTap: () => Get.toNamed(Routes.fixtureDetailOf(s.id))),
-              if (c.cut.value) const CustomText(key: Key('fx_cut'), text: 'Showing the first 200 substitutions.', fontSize: 11, color: AppColors.muted, textAlign: TextAlign.center),
+              if (c.cut.value) Text('Showing the first 200 substitutions.', key: const Key('fx_cut'), textAlign: TextAlign.center, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
             ];
           },
         );
@@ -123,14 +125,14 @@ class FixtureCard extends StatelessWidget {
       onTap: onTap,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: CustomText(text: periodLine(s).isEmpty ? 'Period' : periodLine(s), fontWeight: FontWeight.w800, fontSize: 13.5, color: AppColors.primaryColor)),
-          const SizedBox(width: 8),
+          Expanded(child: Text(periodLine(s).isEmpty ? 'Period' : periodLine(s), style: EmType.body.copyWith(fontWeight: FontWeight.w800, color: EmColors.ink))),
+          const SizedBox(width: EmSpacing.s8),
           AppTag(fixtureStatusLabel(s.status, iAmOriginalTeacher: !covering), style: fixtureStatusStyle(s.status)),
         ]),
-        const SizedBox(height: 4),
-        CustomText(text: detailLine(s).isEmpty ? '-' : detailLine(s), fontSize: 12, color: AppColors.ink, fontWeight: FontWeight.w700),
-        const SizedBox(height: 3),
-        CustomText(text: who, fontSize: 11.5, color: AppColors.muted),
+        const SizedBox(height: EmSpacing.s4),
+        Text(detailLine(s).isEmpty ? '-' : detailLine(s), style: EmType.label.copyWith(color: EmColors.ink, fontWeight: FontWeight.w700)),
+        const SizedBox(height: EmSpacing.s4),
+        Text(who, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
       ]),
     );
   }
@@ -187,7 +189,7 @@ class _FixtureDetailScreenState extends State<FixtureDetailScreen> {
           onRetry: () => c.reload(userInitiated: true),
           builder: (_) {
             if (s == null) {
-              return [const Padding(padding: EdgeInsets.only(top: 24), child: AppEmptyView(key: Key('fx_not_found'), icon: Icons.search_off_rounded, title: 'Substitution not found', subtitle: 'It is not in your recent substitutions (the last 14 days and later).'))];
+              return [const Padding(padding: EdgeInsets.only(top: EmSpacing.s24), child: AppEmptyView(key: Key('fx_not_found'), icon: Icons.search_off_rounded, title: 'Substitution not found', subtitle: 'It is not in your recent substitutions (the last 14 days and later).'))];
             }
             final mine = iAmSubstitute(s, c.myStaffId);
             final d = fixtureDay(s);
@@ -195,11 +197,12 @@ class _FixtureDetailScreenState extends State<FixtureDetailScreen> {
             return [
               AppCard(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    Expanded(child: CustomText(key: const Key('fx_title'), text: periodLine(s).isEmpty ? 'Period' : periodLine(s), fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.primaryColor)),
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Expanded(child: Text(periodLine(s).isEmpty ? 'Period' : periodLine(s), key: const Key('fx_title'), style: EmType.bodyLarge.copyWith(fontWeight: FontWeight.w800, color: EmColors.ink))),
+                    const SizedBox(width: EmSpacing.s8),
                     AppTag(fixtureStatusLabel(s.status, iAmOriginalTeacher: !mine), style: fixtureStatusStyle(s.status)),
                   ]),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: EmSpacing.s12),
                   _line(Icons.event_rounded, d == null ? 'Date not set' : '${shortDay(d)} ${d.year}'),
                   _line(Icons.groups_rounded, s.classLabel.isEmpty ? 'Class not set' : s.classLabel),
                   if (s.subject.isNotEmpty) _line(Icons.menu_book_rounded, s.subject),
@@ -211,14 +214,7 @@ class _FixtureDetailScreenState extends State<FixtureDetailScreen> {
                 ]),
               ),
               if (canMarkComplete(s, c.myStaffId))
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    key: const Key('fx_complete'),
-                    onPressed: c.completing.value != null ? null : () => _complete(s),
-                    child: working ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Mark complete'),
-                  ),
-                ),
+                EmPrimaryButton(key: const Key('fx_complete'), label: 'Mark complete', loading: working, onPressed: c.completing.value != null ? null : () => _complete(s)),
             ];
           },
         );
@@ -227,7 +223,7 @@ class _FixtureDetailScreenState extends State<FixtureDetailScreen> {
   }
 
   Widget _line(IconData icon, String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, size: 16, color: AppColors.muted), const SizedBox(width: 8), Expanded(child: CustomText(text: text, fontSize: 13, color: AppColors.ink))]),
+        padding: const EdgeInsets.only(bottom: EmSpacing.s8),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Padding(padding: const EdgeInsets.only(top: EmSpacing.s2), child: ExcludeSemantics(child: Icon(icon, size: 18, color: EmColors.textSecondary))), const SizedBox(width: EmSpacing.s8), Expanded(child: Text(text, style: EmType.label.copyWith(color: EmColors.ink, fontWeight: FontWeight.w500)))]),
       );
 }
