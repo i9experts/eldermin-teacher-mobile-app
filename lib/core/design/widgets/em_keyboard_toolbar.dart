@@ -12,9 +12,17 @@ import '../tokens/em_typography.dart';
 ///
 /// The wrapped scaffold sees the bar's height as extra keyboard inset, so the focused field and the bottom bars stay
 /// above the bar instead of under it.
+///
+/// Two hosts: [EmScaffold] (a full-screen route: the bar is stacked over the scaffold) and [EmKeyboardAccessory.overlay] for modal
+/// routes that are not a full-screen scaffold ([EmBottomSheet], [EmDialog]): the bar is an entry of the navigator's overlay, docked on
+/// the keyboard above the sheet / dialog, and the sheet / dialog sees the extra inset the same way.
 class EmKeyboardAccessory extends StatefulWidget {
-  const EmKeyboardAccessory({super.key, required this.child, this.insetBody = true});
+  const EmKeyboardAccessory({super.key, required this.child, this.insetBody = true}) : overlay = false;
 
+  /// Host for a modal sheet or dialog (see the class comment).
+  const EmKeyboardAccessory.overlay({super.key, required this.child}) : overlay = true, insetBody = true;
+
+  final bool overlay;
   final Widget child;
 
   /// False for a scaffold that does not resize for the keyboard: the bar is still shown, the body is not shifted.
@@ -33,10 +41,34 @@ class _EmKeyboardAccessoryState extends State<EmKeyboardAccessory> {
     FocusManager.instance.addListener(_onFocus);
   }
 
+  OverlayEntry? _entry;
+
   @override
   void dispose() {
     FocusManager.instance.removeListener(_onFocus);
+    _entry?.remove();
+    _entry = null;
     super.dispose();
+  }
+
+  /// Overlay host: insert / remove / refresh the bar's entry after the frame (never during build).
+  void _syncEntry(bool show) {
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (show && _entry == null) {
+        final overlay = Overlay.maybeOf(context);
+        if (overlay == null) return;
+        _entry = OverlayEntry(
+          builder: (ctx) => Positioned(left: 0, right: 0, bottom: MediaQuery.of(ctx).viewInsets.bottom, child: const _Bar()),
+        );
+        overlay.insert(_entry!);
+      } else if (!show && _entry != null) {
+        _entry!.remove();
+        _entry = null;
+      } else {
+        _entry?.markNeedsBuild();
+      }
+    });
   }
 
   void _onFocus() {
@@ -65,6 +97,10 @@ class _EmKeyboardAccessoryState extends State<EmKeyboardAccessory> {
     final mq = MediaQuery.of(context);
     final show = defaultTargetPlatform == TargetPlatform.iOS && mq.viewInsets.bottom > 0 && _numericFieldFocused();
     final inner = show && widget.insetBody ? mq.copyWith(viewInsets: mq.viewInsets.copyWith(bottom: mq.viewInsets.bottom + barHeight)) : mq;
+    if (widget.overlay) {
+      _syncEntry(show);
+      return MediaQuery(data: inner, child: widget.child);
+    }
     return Stack(
       fit: StackFit.expand,
       children: [

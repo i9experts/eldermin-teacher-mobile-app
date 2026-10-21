@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../tokens/em_colors.dart';
 import '../tokens/em_radius.dart';
 import '../tokens/em_typography.dart';
+import 'em_keyboard_toolbar.dart';
 
 /// Modal sheet: surface, top radius 28, drag handle, optional title, scrollable
 /// content capped at 90% of the screen, safe-area padding.
@@ -21,7 +22,7 @@ class EmBottomSheet extends StatelessWidget {
       useSafeArea: true,
       backgroundColor: EmColors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(EmRadius.hero))),
-      builder: (_) => EmBottomSheet(title: title, footer: footer, child: child),
+      builder: (_) => EmKeyboardAccessory.overlay(child: EmBottomSheet(title: title, footer: footer, child: child)),
     );
   }
 
@@ -36,15 +37,17 @@ class EmBottomSheet extends StatelessWidget {
       backgroundColor: EmColors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(EmRadius.hero))),
       builder: (ctx) {
-        final body = builder(ctx);
+        final body = Builder(builder: builder); // built under the accessory, so it sees the bar as keyboard inset
         final handle = Padding(
           padding: const EdgeInsets.only(top: 12, bottom: 4),
           child: ExcludeSemantics(child: Container(width: 40, height: 4, decoration: const BoxDecoration(color: EmColors.border, borderRadius: EmRadius.pillAll))),
         );
-        if (heightFactor == null) return Column(mainAxisSize: MainAxisSize.min, children: [handle, Flexible(child: body)]);
-        return SizedBox(
-          height: MediaQuery.sizeOf(ctx).height * heightFactor,
-          child: Column(children: [handle, Expanded(child: body)]),
+        if (heightFactor == null) return EmKeyboardAccessory.overlay(child: Column(mainAxisSize: MainAxisSize.min, children: [handle, Flexible(child: body)]));
+        return EmKeyboardAccessory.overlay(
+          child: SizedBox(
+            height: MediaQuery.sizeOf(ctx).height * heightFactor,
+            child: Column(children: [handle, Expanded(child: body)]),
+          ),
         );
       },
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../tokens/em_colors.dart';
 import '../tokens/em_spacing.dart';
 import '../tokens/em_typography.dart';
+import 'em_keyboard_toolbar.dart';
 
 /// Visual weight of a dialog action.
 enum EmDialogTone { neutral, primary, destructive }
@@ -44,12 +45,14 @@ class EmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Semantics(header: true, child: Text(title)),
-      content: content ?? (message == null ? null : Text(message!, style: EmType.bodyRegular.copyWith(color: EmColors.textSecondary, height: 1.5))),
-      actionsPadding: const EdgeInsetsDirectional.fromSTEB(EmSpacing.s16, 0, EmSpacing.s16, EmSpacing.s12),
-      actionsOverflowButtonSpacing: EmSpacing.s4,
-      actions: actions,
+    return EmKeyboardAccessory.overlay(
+      child: AlertDialog(
+        title: Semantics(header: true, child: Text(title)),
+        content: content ?? (message == null ? null : Text(message!, style: EmType.bodyRegular.copyWith(color: EmColors.textSecondary, height: 1.5))),
+        actionsPadding: const EdgeInsetsDirectional.fromSTEB(EmSpacing.s16, 0, EmSpacing.s16, EmSpacing.s12),
+        actionsOverflowButtonSpacing: EmSpacing.s4,
+        actions: actions,
+      ),
     );
   }
 }
