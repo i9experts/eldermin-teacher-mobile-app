@@ -100,6 +100,25 @@ void main() {
       return c;
     }
 
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('inbox: long guardian / subject / preview, unread dot, closed tag', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t, open: ThreadsResult(items: [
+              thread('a', guardian: 'Mrs Malik-Abdulrahman Al Sayed', student: 'Zara Malik', subject: 'Homework this week and the science fair', preview: 'Thank you ma\'am ${'for your help ' * 10}', unread: true, at: DateTime.utc(2026, 10, 5, 8, 48)),
+              thread('b', guardian: 'Mr Ali', preview: 'See you Thursday', status: 'closed', at: DateTime.utc(2026, 10, 4, 9)),
+            ]));
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('thread_a')), w);
+            expectInsideScreen(t, find.byKey(const Key('unread_a')), w);
+            expectInsideScreen(t, find.byKey(const Key('messages_new')), w);
+            expect(t.getSize(find.byKey(const Key('messages_new'))).height, greaterThanOrEqualTo(44));
+          });
+        }
+      }
+    }
+
     testWidgets('lists conversations: guardian, student, subject, preview, unread dot, closed tag, relative time', (t) async {
       await boot(t, open: ThreadsResult(items: [
         thread('a', guardian: 'Mrs Malik', student: 'Zara Malik', subject: 'Homework', preview: 'Thank you ma\'am', unread: true, at: DateTime.utc(2026, 10, 5, 8, 48)),
@@ -250,6 +269,75 @@ void main() {
       expect(find.text('Please call'), findsOneWidget);
     });
 
+    // ---- D8: bubbles, long text, keyboard, probes ----
+    testWidgets('sent and received bubbles differ by more than colour: edge, tail corner and the spoken sender', (t) async {
+      await boot(t);
+      BoxDecoration deco(String key) => (t.widget<Container>(find.byKey(Key(key))).decoration as BoxDecoration);
+      final theirs = deco('msg_m1'), mine = deco('msg_m2');
+      expect(theirs.color, isNot(mine.color));
+      final a = theirs.borderRadius as BorderRadiusDirectional, b = mine.borderRadius as BorderRadiusDirectional;
+      expect(a.bottomStart.x, lessThan(a.bottomEnd.x), reason: 'received: small corner at the bottom start (the tail)');
+      expect(b.bottomEnd.x, lessThan(b.bottomStart.x), reason: 'sent: small corner at the bottom end (the tail)');
+      final sem = t.getSemantics(find.text('Walaikum assalam'));
+      expect(sem.label, contains('You'));
+      expect(t.getSemantics(find.text('Assalamu alaikum')).label, contains('Guardian'));
+      // the sent bubble is at the end edge, the received one at the start edge, in LTR and in RTL
+      final w = t.getSize(find.byType(MessageThreadScreen)).width;
+      expect(t.getRect(find.byKey(const Key('msg_m2'))).right, greaterThan(w / 2));
+      expect(t.getRect(find.byKey(const Key('msg_m1'))).left, lessThan(w / 2));
+    });
+
+    testWidgets('timestamps and the failed row are readable (caption size, not a 10 dp whisper)', (t) async {
+      await boot(t);
+      final style = t.widget<Text>(find.descendant(of: find.byType(Tooltip), matching: find.byType(Text)).first).style!;
+      expect(style.fontSize, greaterThanOrEqualTo(12));
+    });
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('thread: long unbroken text + link, failed send, composer', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            final long = 'https://example.com/${'a-very-long-path-segment' * 8}';
+            await boot(t, data: (id) => ThreadMessages(thread: thread(id), messages: [serverMsg('m1', long, at: DateTime.utc(2026, 10, 5, 8)), serverMsg('m2', 'Thanks ${'word ' * 60}', mine: true, at: DateTime.utc(2026, 10, 5, 9))]));
+            repo.send = (id, body) async => fail7(503);
+            await t.enterText(find.byKey(const Key('chat_input')), 'Please call');
+            await t.pump();
+            await t.tap(find.byKey(const Key('chat_send')));
+            await t.runAsync(() => Future<void>.delayed(Duration.zero));
+            await settle(t);
+            expectNoLayoutError(t);
+            for (final k in ['msg_m1', 'msg_m2']) {
+              expectInsideScreen(t, find.byKey(Key(k)), w);
+            }
+            expectInsideScreen(t, find.byKey(const Key('chat_input')), w);
+            expectInsideScreen(t, find.byKey(const Key('chat_send')), w);
+            expect(t.getSize(find.byKey(const Key('chat_send'))).height, greaterThanOrEqualTo(48));
+            expectInsideScreen(t, find.byKey(const Key('msg_failed')), w);
+            for (final label in ['Retry', 'Remove']) {
+              expectInsideScreen(t, find.text(label), w);
+              expectOneLine(t, find.text(label), scale: sc);
+            }
+          });
+        }
+      }
+    }
+
+    testWidgets('keyboard open on a 360x640 phone: the composer stays above the keyboard and the newest message stays visible', (t) async {
+      ProbeEnv.set(360, 1.0, TextDirection.ltr);
+      await boot(t);
+      await t.binding.setSurfaceSize(const Size(360, 640));
+      t.view.viewInsets = FakeViewPadding(bottom: 300 * t.view.devicePixelRatio);
+      addTearDown(t.view.resetViewInsets);
+      await t.tap(find.byKey(const Key('chat_input')));
+      await t.pump(const Duration(milliseconds: 400));
+      expectNoLayoutError(t);
+      final input = t.getRect(find.byKey(const Key('chat_input')));
+      expect(input.bottom, lessThanOrEqualTo(640 - 300 + 0.5), reason: 'the input rides above the keyboard');
+      expect(t.getRect(find.byKey(const Key('chat_send'))).bottom, lessThanOrEqualTo(640 - 300 + 0.5));
+      expect(t.getRect(find.text('Walaikum assalam')).bottom, lessThanOrEqualTo(input.top + 0.5), reason: 'the newest message is not under the composer');
+    });
+
     testWidgets('closed thread: read-only composer with the explanation, no input', (t) async {
       await boot(t, data: (id) => ThreadMessages(thread: thread(id, status: 'closed'), messages: [serverMsg('m1', 'Bye')]));
       expect(find.byKey(const Key('chat_closed_banner')), findsOneWidget);
@@ -378,6 +466,27 @@ void main() {
       expect(Get.currentRoute, Routes.messageThreadOf('new1'));
     });
 
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('new message: selected student, guardian chips, errors, send bar', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            repo.guardians = (id) async => [const GuardianName(userId: oid1, name: 'Mrs Malik-Abdulrahman Al Sayed'), const GuardianName(userId: '64e000000000000000000a02', name: 'Mr Malik')];
+            await boot(t, initial: s1);
+            await t.tap(find.byKey(const Key('new_submit')));
+            await t.runAsync(() => pumpEventQueueSafe());
+            await settle(t);
+            await t.pump(const Duration(seconds: 5)); // the snack bar timer
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('guardian_$oid1')), w);
+            expectInsideScreen(t, find.byKey(const Key('new_submit')), w);
+            expect(t.getSize(find.byKey(const Key('guardian_$oid1'))).height, greaterThanOrEqualTo(44));
+            expect(t.getSize(find.byKey(const Key('new_submit'))).height, greaterThanOrEqualTo(48));
+          });
+        }
+      }
+    }
+
     testWidgets('from the inbox: pick a student in the sheet, then the guardian appears', (t) async {
       repo.guardians = (id) async => [const GuardianName(userId: oid1, name: 'Mrs Malik')];
       await boot(t);
@@ -457,6 +566,36 @@ void main() {
       final button = t.widget<EmIconCircleButton>(find.byKey(const Key('notif_mark_all'))); // D5: the text action became an icon circle
       expect(button.onTap, isNull);
     });
+
+    testWidgets('D8: unread = dot + heavier title + spoken "Unread" (not colour alone); read rows have none of the three', (t) async {
+      await boot(t, items: [notif('n1', title: 'New message from Mrs Malik', at: DateTime(2026, 10, 5, 8)), notif('n2', title: 'Substitution assigned', read: true, at: DateTime(2026, 10, 5, 7))]);
+      FontWeight? weight(String title) => t.widget<Text>(find.text(title)).style!.fontWeight;
+      expect(find.byKey(const Key('notif_unread_n1')), findsOneWidget);
+      expect(weight('New message from Mrs Malik')!.value, greaterThan(weight('Substitution assigned')!.value));
+      expect(t.getSemantics(find.byKey(const Key('notif_n1'))).label, startsWith('Unread'));
+      expect(t.getSemantics(find.byKey(const Key('notif_n2'))).label, isNot(contains('Unread')));
+      expect(t.widget(find.byKey(const Key('notif_mark_all'))), isA<EmIconCircleButton>());
+    });
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('notifications: long title + body, unread dot, filter', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t, items: [
+              notif('n1', title: 'A very long notification title that has to wrap across several lines on a narrow phone', at: DateTime(2026, 10, 5, 8)),
+              notif('n2', title: 'Substitution assigned', read: true, at: DateTime(2026, 10, 4, 7)),
+            ]);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('notif_filter')), w);
+            expectInsideScreen(t, find.byKey(const Key('notif_unread_n1')), w);
+            expectInsideScreen(t, find.byKey(const Key('notif_mark_all')), w);
+            expectOneLine(t, find.text('Unread'), scale: sc);
+            expect(t.getSize(find.byKey(const Key('notif_mark_all'))).height, greaterThanOrEqualTo(44));
+          });
+        }
+      }
+    }
 
     testWidgets('tapping a message notification marks it read and opens the thread; an unknown type stays on the inbox', (t) async {
       await boot(t, items: [

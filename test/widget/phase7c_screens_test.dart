@@ -25,6 +25,7 @@ import 'package:eldermin_teacher_app/app/modules/profile/views/profile_screen.da
 import 'package:eldermin_teacher_app/app/modules/safeguarding/controllers/safeguarding_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/safeguarding/views/safeguarding_screen.dart';
 import 'package:eldermin_teacher_app/app/routes/app_routes.dart';
+import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:eldermin_teacher_app/core/models/calendar/calendar_models.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/student_models.dart';
 import 'package:eldermin_teacher_app/core/constants/support_config.dart';
@@ -38,6 +39,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:table_calendar/table_calendar.dart';
 import '../support/auth_harness.dart';
 import '../support/design_harness.dart' show loadDesignFonts;
 import '../support/layout_probe.dart';
@@ -131,6 +133,72 @@ void main() {
       expect(find.textContaining('Fee'), findsNothing);
       expect(find.textContaining('outstanding'), findsNothing);
     });
+
+    // ---- D8: today vs selected, label-height assertions, probes ----
+    testWidgets('today and the selected day differ by more than colour: outlined ring + bold number vs solid circle + white number', (t) async {
+      repo.events = (f, to) async => [entry('x', 'Mid-term exam', type: 'exam', start: '2026-10-09T00:00:00.000Z')];
+      await boot(t);
+      final style = t.widget<TableCalendar<CalendarEntry>>(find.byKey(const Key('cal_grid'))).calendarStyle;
+      final today = style.todayDecoration as BoxDecoration, selected = style.selectedDecoration as BoxDecoration;
+      expect(today.border, isNotNull, reason: 'today is a ring');
+      expect(selected.border, isNull, reason: 'the selected day is a solid fill');
+      expect(selected.color, EmColors.primary);
+      expect(style.todayTextStyle.fontWeight!.value, greaterThanOrEqualTo(FontWeight.w700.value));
+      expect(style.selectedTextStyle.color, EmColors.onPrimary);
+      expect(contrastRatio(EmColors.onPrimary, EmColors.primary), greaterThanOrEqualTo(4.5));
+    });
+
+    testWidgets('an event type label keeps the dot + ink text rule even for a server colour that would fail contrast', (t) async {
+      repo.events = (f, to) async => [entry('x', 'Mid-term exam', type: 'exam', start: '2026-10-09T00:00:00.000Z')];
+      await boot(t);
+      final label = t.widget<Text>(find.descendant(of: find.byKey(const ValueKey('cal_entry_x')), matching: find.text('EXAM')));
+      expect(label.style!.color, EmColors.ink);
+      expect(find.descendant(of: find.byKey(const ValueKey('cal_entry_x')), matching: find.byKey(const Key('cal_type_dot'))), findsOneWidget);
+    });
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('calendar: month, agenda, entry sheet, circulars', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            repo.events = (f, to) async => [
+                  entry('h', 'Autumn break and the long winter holiday announcement', type: 'holiday', start: '2026-10-09T00:00:00.000Z', end: '2026-10-11T00:00:00.000Z', description: 'School closed. ${'More detail. ' * 12}'),
+                  entry('x', 'Mid-term exam', type: 'exam', start: '2026-10-09T00:00:00.000Z'),
+                ];
+            repo.circulars = () async => [circ('c1', 'Fire drill: please read the whole notice before Friday morning', ack: true, urgent: true), circ('c2', 'Library hours')];
+            await boot(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('cal_mode')), w);
+            expectInsideScreen(t, find.byKey(const Key('cal_grid')), w);
+            expectInsideScreen(t, find.byKey(const ValueKey('cal_entry_h')), w);
+            await t.tap(find.text('Agenda'));
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('agenda_prev')), w);
+            expectInsideScreen(t, find.byKey(const Key('agenda_next')), w);
+            expect(t.getSize(find.byKey(const Key('agenda_next'))).height, greaterThanOrEqualTo(44));
+            await t.tap(find.byKey(const ValueKey('cal_entry_h')));
+            await settle(t);
+            expectNoLayoutError(t);
+            expect(find.byKey(const Key('cal_entry_sheet')), findsOneWidget);
+            await t.tapAt(const Offset(5, 5)); // dismiss the sheet
+            await settle(t);
+            await t.tap(find.byKey(const Key('tab_circulars')));
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const ValueKey('circular_c1')), w);
+            expectInsideScreen(t, find.byKey(const Key('circulars_pending_badge')), w);
+            await t.tap(find.byKey(const ValueKey('circular_c1')));
+            await settle(t);
+            expectNoLayoutError(t);
+            expect(find.byKey(const Key('circular_sheet')), findsOneWidget);
+            await t.scrollUntilVisible(find.byKey(const Key('circular_ack_button')), 200, scrollable: find.descendant(of: find.byKey(const Key('circular_sheet')), matching: find.byType(Scrollable)).first);
+            expectInsideScreen(t, find.byKey(const Key('circular_ack_button')), w);
+            expect(t.getSize(find.byKey(const Key('circular_ack_button'))).height, greaterThanOrEqualTo(48));
+          });
+        }
+      }
+    }
 
     testWidgets('tapping another day of the grid changes the list; a day without entries says so', (t) async {
       repo.events = (f, to) async => [entry('o', 'Sports week', start: '2026-10-20T00:00:00.000Z')];
@@ -349,6 +417,25 @@ void main() {
         expect(find.byKey(Key(e.value)), findsOneWidget, reason: '${e.key}');
       }
     });
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('events: list + detail with long title / venue / link', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            repo.list = () async => [ev('e1', 'Annual Day and the Prize Distribution Ceremony for all grades', sessions: [session('Day 1', '2026-10-20T09:00:00.000Z', '2026-10-20T12:00:00.000Z')]), ev('e2', 'Sports Day', status: 'cancelled')];
+            final lc = Get.put(EventsController(repository: repo));
+            await open(t, const EventsScreen());
+            await t.runAsync(() => lc.load());
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const ValueKey('event_e1')), w);
+            expectInsideScreen(t, find.text('CANCELLED'), w);
+            expectOneLine(t, find.text('CANCELLED'), scale: sc);
+          });
+        }
+      }
+    }
 
     testWidgets('detail: sessions, venue, plain-text description, link needs confirmation; nothing about tickets', (t) async {
       repo.one = (id) async => ev(id, 'Annual Day', description: '<p>Our <b>annual day</b>.</p><script>x()</script><a href="https://example.test/p">programme</a>');

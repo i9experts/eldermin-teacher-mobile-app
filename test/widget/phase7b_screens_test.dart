@@ -103,6 +103,28 @@ void main() {
       expect(find.text('Ali Raza'), findsNothing, reason: 'upcoming is another tab');
     });
 
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('PTM list: tabs with counts, long student name, overdue hint', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t, list: (s, f, to) async => f != null ? [meeting('up', status: 'confirmed', day: '2026-10-10', student: 'Muhammad Abdulrahman Al Sayed Al Malik')] : [meeting('open_past', status: 'requested', day: '2026-10-05', student: 'Hira Noor')]);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('ptm_tabs')), w);
+            expectInsideScreen(t, find.byKey(const Key('ptm_new')), w);
+            await t.tap(find.textContaining('Upcoming'));
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const ValueKey('ptm_up')), w);
+            await t.tap(find.textContaining('Past'));
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('ptm_overdue_hint')), w);
+          });
+        }
+      }
+    }
+
     testWidgets('each tab shows its own meetings; an open meeting in the past says the outcome is missing', (t) async {
       await boot(t);
       await t.tap(find.text('Upcoming (1)'));
@@ -208,6 +230,54 @@ void main() {
     }
 
     bool shown(String key) => find.byKey(Key(key)).evaluate().isNotEmpty;
+
+    // D8: the "not your meeting" note keeps its wording and key; each sheet and every button stays on screen at 320-430 x 1.0/1.3 x LTR/RTL
+    testWidgets('someone else\'s meeting keeps the note wording and key', (t) async {
+      await boot(t, meeting('o', teacherId: 'other-staff'));
+      expect(find.byKey(const Key('ptm_not_mine')), findsOneWidget);
+      expect(find.text('This meeting belongs to another teacher, so you can only view it.'), findsOneWidget);
+    });
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('PTM detail: buttons and the reschedule / cancel / outcome sheets', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t, meeting('a', status: 'requested', student: 'Muhammad Abdulrahman Al Sayed', points: const ['Maths progress and the upcoming science fair preparation']), history: [meeting('h1', status: 'completed', day: '2026-09-01')]);
+            expectNoLayoutError(t);
+            for (final k in ['ptm_confirm', 'ptm_outcome_btn', 'ptm_reschedule', 'ptm_message', 'ptm_cancel']) {
+              await t.ensureVisible(find.byKey(Key(k)));
+              expectInsideScreen(t, find.byKey(Key(k)), w);
+              expect(t.getSize(find.byKey(Key(k))).height, greaterThanOrEqualTo(48), reason: k);
+            }
+            Future<void> sheet(String open, List<String> inside) async {
+              await t.ensureVisible(find.byKey(Key(open)));
+              await t.tap(find.byKey(Key(open)));
+              await settle(t);
+              expectNoLayoutError(t);
+              for (final k in inside) {
+                expectInsideScreen(t, find.byKey(Key(k)), w);
+                expect(t.getSize(find.byKey(Key(k))).height, greaterThanOrEqualTo(48), reason: k);
+              }
+              await t.tap(find.byKey(Key(inside.first)));
+              await settle(t);
+            }
+            await sheet('ptm_reschedule', ['reschedule_keep', 'reschedule_save']);
+            await sheet('ptm_cancel', ['cancel_keep', 'cancel_confirm']);
+            await t.ensureVisible(find.byKey(const Key('ptm_outcome_btn')));
+            await t.tap(find.byKey(const Key('ptm_outcome_btn')));
+            await settle(t);
+            await t.tap(find.byKey(const Key('outcome_add_item')));
+            await settle(t);
+            expectNoLayoutError(t);
+            expectInsideScreen(t, find.byKey(const Key('outcome_save')), w);
+            expectInsideScreen(t, find.byKey(const Key('outcome_close')), w);
+            expectInsideScreen(t, find.byKey(const Key('outcome_attended')), w);
+            expectInsideScreen(t, find.byKey(const Key('outcome_noshow')), w);
+          });
+        }
+      }
+    }
 
     testWidgets('requested + mine: Confirm, Record outcome, Reschedule, Message guardian, Cancel', (t) async {
       await boot(t, meeting('a', status: 'requested'));
@@ -425,6 +495,27 @@ void main() {
       await show(t, const PtmNewScreen());
       await settle(t);
       return c;
+    }
+
+    for (final w in probeWidths) {
+      for (final sc in probeScales) {
+        for (final d in probeDirs) {
+          testWidgets(probeName('PTM create: pick fields, validation messages, submit bar', w, sc, d), (t) async {
+            ProbeEnv.set(w, sc, d);
+            await boot(t);
+            await t.tap(find.byKey(const Key('ptm_new_submit')));
+            await settle(t);
+            await t.pump(const Duration(seconds: 5)); // the snack bar timer
+            expectNoLayoutError(t);
+            for (final k in ['ptm_new_student', 'ptm_new_day', 'ptm_new_start', 'ptm_new_end', 'ptm_new_submit']) {
+              expectInsideScreen(t, find.byKey(Key(k)), w);
+              expect(t.getSize(find.byKey(Key(k))).height, greaterThanOrEqualTo(44), reason: k);
+            }
+            await t.ensureVisible(find.byKey(const Key('ptm_new_add_point')));
+            expectInsideScreen(t, find.byKey(const Key('ptm_new_add_point')), w);
+          });
+        }
+      }
     }
 
     testWidgets('submitting the empty form reports the problems and sends nothing', (t) async {
