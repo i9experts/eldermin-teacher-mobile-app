@@ -217,7 +217,12 @@ void main() {
       expect(find.text('Assalamu alaikum'), findsOneWidget);
       expect(find.text('Walaikum assalam'), findsOneWidget);
       final theirs = t.getTopLeft(find.text('Assalamu alaikum')).dx, mine = t.getTopLeft(find.text('Walaikum assalam')).dx;
-      expect(mine, greaterThan(theirs));
+      // D8: the bubbles follow the reading direction (sent = end edge), so in RTL the sent bubble is the left one
+      if (ProbeEnv.dir == TextDirection.rtl) {
+        expect(mine, lessThan(theirs));
+      } else {
+        expect(mine, greaterThan(theirs));
+      }
       expect(find.byKey(const Key('chat_input')), findsOneWidget);
       expect(find.byKey(const Key('chat_closed_banner')), findsNothing);
     });
@@ -283,8 +288,13 @@ void main() {
       expect(t.getSemantics(find.text('Assalamu alaikum')).label, contains('Guardian'));
       // the sent bubble is at the end edge, the received one at the start edge, in LTR and in RTL
       final w = t.getSize(find.byType(MessageThreadScreen)).width;
-      expect(t.getRect(find.byKey(const Key('msg_m2'))).right, greaterThan(w / 2));
-      expect(t.getRect(find.byKey(const Key('msg_m1'))).left, lessThan(w / 2));
+      if (ProbeEnv.dir == TextDirection.rtl) {
+        expect(t.getRect(find.byKey(const Key('msg_m2'))).left, lessThan(w / 2));
+        expect(t.getRect(find.byKey(const Key('msg_m1'))).right, greaterThan(w / 2));
+      } else {
+        expect(t.getRect(find.byKey(const Key('msg_m2'))).right, greaterThan(w / 2));
+        expect(t.getRect(find.byKey(const Key('msg_m1'))).left, lessThan(w / 2));
+      }
     });
 
     testWidgets('timestamps and the failed row are readable (caption size, not a 10 dp whisper)', (t) async {
