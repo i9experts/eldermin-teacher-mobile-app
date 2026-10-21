@@ -40,7 +40,7 @@ class MessagesScreen extends GetView<MessagesController> {
             ),
           ]),
           Text('Talk to parents inside the app. Contact details are never shared.',
-              style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400, fontSize: 13)),
+              style: EmType.label.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
           const SizedBox(height: EmSpacing.s12),
           EmSegmentedTabs<InboxFilter>(
             key: const Key('messages_filter'),
@@ -91,7 +91,7 @@ class ThreadRow extends StatelessWidget {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Expanded(child: Text(who, maxLines: 1, overflow: TextOverflow.ellipsis, style: EmType.bodyLarge.copyWith(color: EmColors.ink, fontSize: 15, fontWeight: unread ? FontWeight.w700 : FontWeight.w600))),
+                Expanded(child: Text(who, maxLines: 1, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: unread ? FontWeight.w700 : FontWeight.w600))),
                 if (when != null) ...[
                   const SizedBox(width: EmSpacing.s8),
                   Tooltip(
@@ -108,14 +108,14 @@ class ThreadRow extends StatelessWidget {
                     t.lastMessagePreview.isEmpty ? 'No messages yet' : t.lastMessagePreview,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: EmType.body.copyWith(color: unread ? EmColors.ink : EmColors.textSecondary, fontWeight: unread ? FontWeight.w600 : FontWeight.w400, fontSize: 13),
+                    style: EmType.label.copyWith(color: unread ? EmColors.ink : EmColors.textSecondary, fontWeight: unread ? FontWeight.w600 : FontWeight.w400),
                   ),
                 ),
                 if (t.isClosed) const Padding(padding: EdgeInsetsDirectional.only(start: EmSpacing.s8), child: EmChip.status(label: 'Closed', tone: EmTone.neutral)),
                 if (unread)
                   Container(
                     key: Key('unread_${t.id}'),
-                    margin: const EdgeInsetsDirectional.only(start: EmSpacing.s8, top: 4),
+                    margin: const EdgeInsetsDirectional.only(start: EmSpacing.s8, top: EmSpacing.s4),
                     width: 10,
                     height: 10,
                     decoration: const BoxDecoration(color: EmColors.primary, shape: BoxShape.circle),

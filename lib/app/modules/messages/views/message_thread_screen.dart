@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/messaging/chat_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/message_time.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/shimmer_widgets.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../../utils/toast_util.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/chat_controller.dart';
@@ -161,8 +159,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         return const AppEmptyView(key: Key('chat_not_found'), icon: Icons.chat_bubble_outline_rounded, title: 'Conversation not found', subtitle: 'It may have been removed, or it is not one of yours.');
       case SectionStatus.data:
         return Column(children: [
-          if (c.pollFailing.value) const _Banner(key: Key('chat_poll_failing'), text: "Can't refresh right now. Showing what we have; trying again.", color: AppColors.amberBg, fg: AppColors.amberText),
-          if (c.truncated.value) const _Banner(key: Key('chat_truncated'), text: 'This conversation is very long: only its latest 500 messages are shown.', color: AppColors.amberBg, fg: AppColors.amberText),
+          if (c.pollFailing.value) const _Banner(key: Key('chat_poll_failing'), text: "Can't refresh right now. Showing what we have; trying again."),
+          if (c.truncated.value) const _Banner(key: Key('chat_truncated'), text: 'This conversation is very long: only its latest 500 messages are shown.'),
           Expanded(child: Stack(children: [_list(), _newChip()])),
           _composer(),
         ]);
@@ -173,15 +171,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         final n = c.newIncoming.value;
         if (n == 0) return const SizedBox.shrink();
         return Positioned(
-          bottom: 10,
+          bottom: EmSpacing.s12,
           left: 0,
           right: 0,
           child: Center(
             child: ActionChip(
               key: const Key('chat_new_chip'),
-              backgroundColor: AppColors.primaryColor,
-              avatar: const Icon(Icons.arrow_downward_rounded, color: Colors.white, size: 16),
-              label: CustomText(text: n == 1 ? 'New message' : '$n new messages', color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+              backgroundColor: EmColors.primary,
+              side: BorderSide.none,
+              avatar: const Icon(Icons.arrow_downward_rounded, color: EmColors.onPrimary, size: 16),
+              label: Text(n == 1 ? 'New message' : '$n new messages', style: EmType.caption.copyWith(color: EmColors.onPrimary, fontWeight: FontWeight.w700)),
               onPressed: () => _toBottom(),
             ),
           ),
@@ -200,12 +199,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       final at = m.createdAt;
       final key = at == null ? null : dayKey(at);
       if (key != null && key != lastDay) {
-        children.add(Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Center(child: CustomText(text: dayHeading(now, at!), fontSize: 11, color: AppColors.faint, fontWeight: FontWeight.w700))));
+        children.add(Padding(padding: const EdgeInsets.symmetric(vertical: EmSpacing.s12), child: Center(child: Text(dayHeading(now, at!), style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w700)))));
         lastDay = key;
       }
       children.add(_Bubble(message: m, now: now, onRetry: () => c.retry(m.clientId), onDiscard: () => c.discard(m.clientId)));
     }
-    return ListView(key: const Key('chat_list'), controller: _scroll, padding: const EdgeInsets.fromLTRB(14, 8, 14, 16), children: children);
+    return ListView(key: const Key('chat_list'), controller: _scroll, padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s8, EmSpacing.screenH, EmSpacing.s16), children: children);
   }
 
   Widget _composer() {
@@ -215,12 +214,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         child: Container(
           key: const Key('chat_closed_banner'),
           width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: const BoxDecoration(color: AppColors.canvas, border: Border(top: BorderSide(color: AppColors.line))),
-          child: const Row(children: [
-            Icon(Icons.lock_outline_rounded, size: 18, color: AppColors.muted),
-            SizedBox(width: 10),
-            Expanded(child: CustomText(text: 'This conversation is closed. You can read it, but no one can send new messages.', color: AppColors.muted, fontSize: 12)),
+          padding: const EdgeInsets.all(EmSpacing.s16),
+          decoration: const BoxDecoration(color: EmColors.surface, border: Border(top: BorderSide(color: EmColors.border))),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Padding(padding: EdgeInsets.only(top: EmSpacing.s2), child: Icon(Icons.lock_outline_rounded, size: 20, color: EmColors.textSecondary)),
+            const SizedBox(width: EmSpacing.s12),
+            Expanded(child: Text('This conversation is closed. You can read it, but no one can send new messages.', style: EmType.caption.copyWith(color: EmColors.textSecondary))),
           ]),
         ),
       );
@@ -228,8 +227,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-        decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.line))),
+        padding: const EdgeInsets.fromLTRB(EmSpacing.s12, EmSpacing.s8, EmSpacing.s8, EmSpacing.s8),
+        decoration: const BoxDecoration(color: EmColors.surface, border: Border(top: BorderSide(color: EmColors.border))),
         child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Expanded(
             child: TextField(
@@ -239,25 +238,28 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
               maxLines: 5,
               maxLength: NewThreadRequest.messageMax,
               textCapitalization: TextCapitalization.sentences,
+              style: EmType.body.copyWith(color: EmColors.ink),
               decoration: InputDecoration(
                 isDense: true,
                 counterText: '',
                 hintText: 'Write a message',
+                hintStyle: EmType.body.copyWith(color: EmColors.textTertiary),
                 filled: true,
-                fillColor: AppColors.canvas,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                fillColor: EmColors.background,
+                contentPadding: const EdgeInsets.symmetric(horizontal: EmSpacing.s16, vertical: EmSpacing.s12),
+                border: OutlineInputBorder(borderRadius: EmRadius.tileAll, borderSide: BorderSide.none),
               ),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: EmSpacing.s8),
           ValueListenableBuilder<TextEditingValue>(
             valueListenable: c.composer,
             builder: (_, v, __) => IconButton.filled(
               key: const Key('chat_send'),
-              style: IconButton.styleFrom(backgroundColor: AppColors.primaryColor, disabledBackgroundColor: AppColors.buttonDisableColor),
+              tooltip: 'Send message',
+              style: IconButton.styleFrom(backgroundColor: EmColors.primary, disabledBackgroundColor: EmColors.disabled, minimumSize: const Size(EmSpacing.minTouch, EmSpacing.minTouch)),
               onPressed: v.text.trim().isEmpty ? null : c.submit,
-              icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+              icon: Icon(Icons.send_rounded, color: v.text.trim().isEmpty ? EmColors.onDisabled : EmColors.onPrimary, size: 20),
             ),
           ),
         ]),
@@ -268,13 +270,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
 class _Banner extends StatelessWidget {
   final String text;
-  final Color color;
-  final Color fg;
-  const _Banner({super.key, required this.text, required this.color, required this.fg});
+  const _Banner({super.key, required this.text});
   @override
-  Widget build(BuildContext context) => Container(width: double.infinity, color: color, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), child: CustomText(text: text, color: fg, fontSize: 11, fontWeight: FontWeight.w700));
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s8, EmSpacing.screenH, 0), child: EmInfoBanner(text: text, tone: EmTone.warning, icon: Icons.sync_problem_rounded));
 }
 
+/// A message bubble. Sent vs received is told apart by more than colour: sent bubbles sit at the end edge with the small "tail" corner at their
+/// bottom end, received bubbles at the start edge with the tail at their bottom start; a screen reader hears "You" or "Guardian" first.
 class _Bubble extends StatelessWidget {
   final ChatMessage message;
   final DateTime now;
@@ -287,35 +289,44 @@ class _Bubble extends StatelessWidget {
     final m = message;
     final mine = m.fromMe;
     final failed = m.state == SendState.failed;
-    final bg = mine ? (failed ? AppColors.redBg : AppColors.primaryColor) : Colors.white;
-    final fg = mine ? (failed ? AppColors.redText : Colors.white) : AppColors.ink;
+    final bg = mine ? (failed ? EmColors.errorContainer : EmColors.primary) : EmColors.surface;
+    final fg = mine ? (failed ? EmColors.onErrorContainer : EmColors.onPrimary) : EmColors.ink;
     final at = m.createdAt;
+    const big = Radius.circular(EmRadius.md);
+    const tail = Radius.circular(EmSpacing.s4);
     return Align(
-      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: mine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
         child: Column(crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start, children: [
           Container(
             key: Key('msg_${m.key}'),
-            margin: const EdgeInsets.only(top: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            margin: const EdgeInsets.only(top: EmSpacing.s4),
+            padding: const EdgeInsets.symmetric(horizontal: EmSpacing.s12, vertical: EmSpacing.s8 + EmSpacing.s2),
             decoration: BoxDecoration(
               color: bg,
-              borderRadius: BorderRadius.only(topLeft: const Radius.circular(16), topRight: const Radius.circular(16), bottomLeft: Radius.circular(mine ? 16 : 4), bottomRight: Radius.circular(mine ? 4 : 16)),
-              border: Border.all(color: failed ? AppColors.redText.withOpacity(0.4) : (mine ? AppColors.primaryColor : AppColors.line)),
+              borderRadius: BorderRadiusDirectional.only(topStart: big, topEnd: big, bottomStart: mine ? big : tail, bottomEnd: mine ? tail : big),
+              border: Border.all(color: failed ? EmColors.error : (mine ? EmColors.primary : EmColors.border)),
             ),
-            child: Text(m.body, style: TextStyle(color: fg, fontSize: 14, height: 1.35)),
+            child: Semantics(
+              label: mine ? 'You' : 'Guardian',
+              child: Text(m.body, softWrap: true, style: EmType.body.copyWith(color: fg, fontWeight: FontWeight.w500)),
+            ),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 2, bottom: 2),
+            padding: const EdgeInsets.symmetric(vertical: EmSpacing.s2),
             child: switch (m.state) {
-              SendState.sending => const CustomText(key: Key('msg_sending'), text: 'Sending…', fontSize: 10, color: AppColors.faint),
-              SendState.failed => Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, children: [
-                  CustomText(key: const Key('msg_failed'), text: 'Not sent — ${m.failureText}', fontSize: 11, color: AppColors.redText, fontWeight: FontWeight.w700),
-                  if (m.canRetry) InkWell(key: Key('retry_${m.clientId}'), onTap: onRetry, child: const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: CustomText(text: 'Retry', fontSize: 11, color: AppColors.blue, fontWeight: FontWeight.w800))),
-                  InkWell(key: Key('discard_${m.clientId}'), onTap: onDiscard, child: const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: CustomText(text: 'Remove', fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w700))),
+              SendState.sending => Text('Sending…', key: const Key('msg_sending'), style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+              SendState.failed => Wrap(crossAxisAlignment: WrapCrossAlignment.center, alignment: WrapAlignment.end, spacing: EmSpacing.s4, children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.error_outline_rounded, size: 16, color: EmColors.error),
+                    const SizedBox(width: EmSpacing.s4),
+                    Flexible(child: Text('Not sent — ${m.failureText}', key: const Key('msg_failed'), style: EmType.caption.copyWith(color: EmColors.error, fontWeight: FontWeight.w700))),
+                  ]),
+                  if (m.canRetry) EmTextAction(key: Key('retry_${m.clientId}'), label: 'Retry', onPressed: onRetry),
+                  EmTextAction(key: Key('discard_${m.clientId}'), label: 'Remove', destructive: true, onPressed: onDiscard),
                 ]),
-              SendState.sent => at == null ? const SizedBox.shrink() : Tooltip(message: absoluteTime(at), child: CustomText(text: bubbleTime(now, at), fontSize: 10, color: AppColors.faint)),
+              SendState.sent => at == null ? const SizedBox.shrink() : Tooltip(message: absoluteTime(at), child: Text(bubbleTime(now, at), style: EmType.caption.copyWith(color: EmColors.textSecondary))),
             },
           ),
         ]),

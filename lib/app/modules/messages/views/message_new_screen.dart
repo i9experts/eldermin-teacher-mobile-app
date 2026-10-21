@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/messaging/chat_models.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/shimmer_widgets.dart';
 import '../../../components/confirm_dialog.dart';
-import '../../../components/custom_text.dart';
 import '../../../common/action_failure.dart';
 import '../../../routes/app_routes.dart';
 import '../../behaviour/views/widgets/behaviour_widgets.dart';
@@ -56,38 +54,39 @@ class MessageNewScreen extends GetView<NewThreadController> {
     final failure = c.failure.value;
     final student = c.student.value;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s16, EmSpacing.screenH, EmSpacing.s24),
       children: [
         if (failure != null) ErrorBanner(bannerKey: const Key('new_submit_error'), message: _failureText(failure)),
         FormLabel('Student *', error: errors['student']),
         InkWell(
           key: const Key('new_student_picker'),
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: EmRadius.mdAll,
           onTap: () => _pickStudent(context),
           child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: errors['student'] == null ? AppColors.line : AppColors.redText)),
+            constraints: const BoxConstraints(minHeight: EmSpacing.minTouch),
+            padding: const EdgeInsets.all(EmSpacing.s12),
+            decoration: BoxDecoration(color: EmColors.surface, borderRadius: EmRadius.mdAll, border: Border.all(color: errors['student'] == null ? EmColors.border : EmColors.error)),
             child: Row(children: [
-              if (student != null) ...[StudentAvatar(student: student, size: 34), const SizedBox(width: 10)] else const Padding(padding: EdgeInsets.only(right: 10), child: Icon(Icons.person_search_rounded, color: AppColors.primaryColor)),
+              if (student != null) ...[StudentAvatar(student: student, size: 34), const SizedBox(width: EmSpacing.s12)] else const Padding(padding: EdgeInsetsDirectional.only(end: EmSpacing.s12), child: Icon(Icons.person_search_rounded, color: EmColors.primary)),
               Expanded(
                 child: student == null
-                    ? const CustomText(text: 'Choose a student from your classes', color: AppColors.faint, fontSize: 13)
+                    ? Text('Choose a student from your classes', style: EmType.label.copyWith(color: EmColors.textSecondary))
                     : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        CustomText(key: const Key('new_selected_student'), text: student.fullName, fontWeight: FontWeight.w800, color: AppColors.primaryColor, fontSize: 13),
-                        CustomText(text: student.classLabel, color: AppColors.muted, fontSize: 11),
+                        Text(student.fullName, key: const Key('new_selected_student'), style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: EmColors.primary)),
+                        Text(student.classLabel, style: EmType.caption.copyWith(color: EmColors.textSecondary)),
                       ]),
               ),
-              const Icon(Icons.expand_more_rounded, color: AppColors.muted),
+              const Icon(Icons.expand_more_rounded, color: EmColors.textSecondary),
             ]),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: EmSpacing.block),
         if (student != null) ...[
           FormLabel('Guardian *', error: errors['guardian']),
           _guardians(),
-          const SizedBox(height: 6),
+          const SizedBox(height: EmSpacing.s8),
           const ParentVisibleNote(text: 'You message guardians inside the app. Their phone number and email are not shown to you.'),
-          const SizedBox(height: 14),
+          const SizedBox(height: EmSpacing.block),
         ],
         LabeledField(label: 'Subject', required: true, controller: c.subjectC, fieldKey: const Key('new_subject'), maxLength: NewThreadRequest.subjectMax, hint: 'e.g. Homework this week', error: errors['subject'], onChanged: (_) => c.errors.remove('subject')),
         LabeledField(label: 'Message', required: true, controller: c.messageC, fieldKey: const Key('new_message'), maxLines: 5, maxLength: NewThreadRequest.messageMax, hint: 'Write your message', error: errors['message'], onChanged: (_) => c.errors.remove('message')),
@@ -107,16 +106,17 @@ class MessageNewScreen extends GetView<NewThreadController> {
       case SectionStatus.error:
         return ErrorBanner(bannerKey: const Key('new_guardians_error'), message: st.message ?? 'Something went wrong', onRetry: c.loadGuardians);
       case SectionStatus.empty:
-        return const AppCard(key: Key('new_guardians_empty'), child: CustomText(text: 'No guardian account is registered for this student, so there is nobody to message in the app.', color: AppColors.muted, fontSize: 12));
+        return AppCard(key: const Key('new_guardians_empty'), child: Text('No guardian account is registered for this student, so there is nobody to message in the app.', style: EmType.caption.copyWith(color: EmColors.textSecondary)));
       case SectionStatus.data:
         final sel = c.guardian.value;
-        return Wrap(spacing: 8, runSpacing: 8, children: [
+        return Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s8, children: [
           for (final g in st.data!)
-            ChoiceChip(
+            EmChip(
               key: Key('guardian_${g.userId}'),
-              label: Text(g.display),
+              label: g.display,
+              icon: sel?.userId == g.userId ? Icons.check_rounded : null,
               selected: sel?.userId == g.userId,
-              onSelected: (_) => c.selectGuardian(g),
+              onTap: () => c.selectGuardian(g),
             ),
         ]);
     }
@@ -126,18 +126,14 @@ class MessageNewScreen extends GetView<NewThreadController> {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-        decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.line))),
-        child: SizedBox(
-          width: double.infinity,
-          child: Obx(() => ElevatedButton(
-                key: const Key('new_submit'),
-                onPressed: c.saving.value ? null : () => _submit(context),
-                child: c.saving.value
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const CustomText(text: 'Send message', color: Colors.white, fontWeight: FontWeight.w700),
-              )),
-        ),
+        padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s12, EmSpacing.screenH, EmSpacing.s12),
+        decoration: const BoxDecoration(color: EmColors.surface, border: Border(top: BorderSide(color: EmColors.border))),
+        child: Obx(() => EmPrimaryButton(
+              key: const Key('new_submit'),
+              label: 'Send message',
+              loading: c.saving.value,
+              onPressed: c.saving.value ? null : () => _submit(context),
+            )),
       ),
     );
   }
@@ -171,28 +167,17 @@ class _PickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = controller.picker;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s16, EmSpacing.screenH, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const CustomText(text: 'Choose a student', fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primaryColor),
-        const SizedBox(height: 10),
+        Text('Choose a student', style: EmType.heading.copyWith(color: EmColors.ink)),
+        const SizedBox(height: EmSpacing.s12),
         Obx(() {
           final cs = p.classes;
           final sel = p.selectedClass.value;
-          return cs.length > 1 ? Padding(padding: const EdgeInsets.only(bottom: 10), child: ClassPicker(classes: cs, selected: sel, onSelect: p.selectClass)) : const SizedBox.shrink();
+          return cs.length > 1 ? Padding(padding: const EdgeInsets.only(bottom: EmSpacing.s12), child: ClassPicker(classes: cs, selected: sel, onSelect: p.selectClass)) : const SizedBox.shrink();
         }),
-        TextField(
-          key: const Key('new_picker_search'),
-          onChanged: (v) => p.query.value = v,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: 'Search by name or roll number',
-            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-            filled: true,
-            fillColor: AppColors.pale,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
-          ),
-        ),
-        const SizedBox(height: 10),
+        EmSearchPill(fieldKey: const Key('new_picker_search'), hint: 'Search by name or roll number', onChanged: (v) => p.query.value = v),
+        const SizedBox(height: EmSpacing.s12),
         Expanded(
           child: Obx(() {
             final st = p.state;
