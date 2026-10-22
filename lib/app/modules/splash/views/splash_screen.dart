@@ -62,7 +62,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   late final CurvedAnimation _bgOut;
   late final CurvedAnimation _textOut;
 
-  late final EmNetworkDrive _drive;
+  late EmNetworkDrive _drive;
   Timer? _exitTimer;
   Timer? _slowTimer;
   bool _reduced = false;
@@ -75,6 +75,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    EmLogoHandoff.splashShowing = true;
     _intro = AnimationController(vsync: this, duration: EmSplashTimeline.intro);
     _time = AnimationController(vsync: this, duration: EmMotion.ambientPeriod);
     _caption = AnimationController(vsync: this, duration: EmMotion.slow);
@@ -108,8 +109,12 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     _bgOut = CurvedAnimation(parent: _exit, curve: const Interval(0, 1));
     _textOut = CurvedAnimation(parent: _exit, curve: const Interval(0, 1));
 
-    _drive = EmNetworkDrive(
-      to: EmNetworkPalette.standard,
+    _drive = _driveTo(EmNetworkPalette.standard);
+  }
+
+  EmNetworkDrive _driveTo(EmNetworkPalette to) {
+    return EmNetworkDrive(
+      to: to,
       morph: _morph,
       charge: _charge,
       dashPhase: _dash,
@@ -144,6 +149,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   @override
   void dispose() {
+    EmLogoHandoff.splashShowing = false;
     _exitTimer?.cancel();
     _slowTimer?.cancel();
     if (EmLogoHandoff.flying.value) {
@@ -191,6 +197,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       _textOut.curve = Interval(0, 180 / _exitDuration.inMilliseconds);
       _bgOut.curve = Interval(120 / _exitDuration.inMilliseconds, 480 / _exitDuration.inMilliseconds);
       _morph.curve = EmMotion.emphasized;
+      // land in the destination's palette (reversed on a navy hero)
+      setState(() => _drive = _driveTo(EmLogoHandoff.anchorPalette));
       EmLogoHandoff.flying.value = true;
     } else {
       _textOut.curve = const Interval(0, 1);

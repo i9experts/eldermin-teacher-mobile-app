@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'logomark_geometry.dart';
 
 /// Where the splash's logo lands. A destination screen wraps its header logo
 /// in [EmLogoAnchor]; the splash overlay reads the anchor's rect each frame
@@ -8,6 +9,13 @@ class EmLogoHandoff {
   EmLogoHandoff._();
 
   static GlobalKey? _anchor;
+
+  /// Palette the destination logo is drawn in (the flying logo morphs to it).
+  static EmNetworkPalette anchorPalette = EmNetworkPalette.standard;
+
+  /// True while a [SplashScreen] overlay is mounted: a destination that animates
+  /// its entrance waits for [flying] instead of playing it hidden under the overlay.
+  static bool splashShowing = false;
 
   /// True while the splash overlay is flying its logo to the anchor.
   static final ValueNotifier<bool> flying = ValueNotifier<bool>(false);
@@ -30,13 +38,18 @@ class EmLogoHandoff {
   @visibleForTesting
   static void reset() {
     _anchor = null;
+    anchorPalette = EmNetworkPalette.standard;
+    splashShowing = false;
     flying.value = false;
   }
 }
 
 class EmLogoAnchor extends StatefulWidget {
-  const EmLogoAnchor({super.key, required this.child});
+  const EmLogoAnchor({super.key, required this.child, this.palette = EmNetworkPalette.standard});
   final Widget child;
+
+  /// Colours of the logo inside [child] (reversed on a navy hero).
+  final EmNetworkPalette palette;
 
   @override
   State<EmLogoAnchor> createState() => _EmLogoAnchorState();
@@ -49,6 +62,7 @@ class _EmLogoAnchorState extends State<EmLogoAnchor> {
   void initState() {
     super.initState();
     EmLogoHandoff._anchor = _key;
+    EmLogoHandoff.anchorPalette = widget.palette;
   }
 
   @override

@@ -4,6 +4,7 @@ export 'motion/constellation_painter.dart';
 export 'motion/logo_handoff.dart';
 export 'motion/logomark_geometry.dart';
 export 'motion/node_network_painter.dart';
+export 'motion/node_scene.dart';
 export 'motion/reduce_motion.dart';
 export 'motion/splash_timeline.dart';
 export 'font_license.dart';
