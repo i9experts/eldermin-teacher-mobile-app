@@ -1,3 +1,4 @@
+import '../../../../core/design/motion/splash_timeline.dart';
 import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
@@ -43,7 +44,7 @@ class AuthController extends GetxController with WidgetsBindingObserver {
     required PermissionService permissions,
     TokenStore tokenStore = const SecureTokenStore(),
     Set<String> allowedRoles = kAllowedRoles,
-    Duration minSplash = const Duration(milliseconds: 1500),
+    Duration minSplash = EmSplashTimeline.minHold,
     Future<void> Function()? resetScopedControllers,
     DateTime Function()? clock,
     Duration refreshInterval = kProfileRefreshInterval,

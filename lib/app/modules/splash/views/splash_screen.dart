@@ -48,6 +48,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   late final AnimationController _intro;
   late final AnimationController _time;
   late final AnimationController _exit;
+  late final AnimationController _caption;
 
   late final Animation<double> _charge;
   late final Animation<double> _pulse;
@@ -63,6 +64,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   late final EmNetworkDrive _drive;
   Timer? _exitTimer;
+  Timer? _slowTimer;
   bool _reduced = false;
   bool _configured = false;
   bool _exiting = false;
@@ -75,6 +77,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     super.initState();
     _intro = AnimationController(vsync: this, duration: EmSplashTimeline.intro);
     _time = AnimationController(vsync: this, duration: EmMotion.ambientPeriod);
+    _caption = AnimationController(vsync: this, duration: EmMotion.slow);
+    _slowTimer = Timer(EmSplashTimeline.slowInitAfter, () {
+      if (mounted && !_exiting) _caption.forward();
+    });
     _exit = AnimationController(vsync: this, duration: EmMotion.hero)
       ..addListener(_onExitTick)
       ..addStatusListener(_onExitStatus);
@@ -139,6 +145,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   @override
   void dispose() {
     _exitTimer?.cancel();
+    _slowTimer?.cancel();
     if (EmLogoHandoff.flying.value) {
       // never notify listeners while the tree is being torn down
       SchedulerBinding.instance.addPostFrameCallback((_) => EmLogoHandoff.flying.value = false);
@@ -146,6 +153,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     _morph.dispose();
     _bgOut.dispose();
     _textOut.dispose();
+    _caption.dispose();
     _intro.dispose();
     _time.dispose();
     _exit.dispose();
@@ -172,6 +180,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   void _startExit() {
     if (_exiting) return;
     _exiting = true;
+    _slowTimer?.cancel();
     _time.stop();
     final fly = widget.flyToHeader && !_reduced;
     _mode = fly ? _Exit.flight : _Exit.fade;
@@ -270,6 +279,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: EmType.body.copyWith(color: EmColors.primaryLight, fontWeight: FontWeight.w400)),
+                          ),
+                          const SizedBox(height: EmSpacing.s16),
+                          // slow init only (EmSplashTimeline.slowInitAfter); space is reserved so nothing shifts
+                          FadeTransition(
+                            opacity: _caption,
+                            child: Text('Connecting…',
+                                key: const Key('splash_connecting'),
+                                textAlign: TextAlign.center,
+                                style: EmType.caption.copyWith(color: EmColors.primaryLight)),
                           ),
                         ],
                       ),

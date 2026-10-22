@@ -190,4 +190,52 @@ void main() {
     expect(t.widget<EmLogomark>(find.byType(EmLogomark)).drive, isNotNull);
     expect(find.byType(RepaintBoundary), findsWidgets);
   });
+
+  group('slow-init caption', () {
+    double captionOpacity(WidgetTester t) => t
+        .widget<FadeTransition>(find.ancestor(of: find.byKey(const Key('splash_connecting')), matching: find.byType(FadeTransition)).first)
+        .opacity
+        .value;
+
+    testWidgets('fast init (exit well before 3 s): the caption never shows', (t) async {
+      final ready = ValueNotifier(false);
+      final log = <String>[];
+      await _pump(t, _Gate(ready: ready, flyToHeader: true, log: log));
+      await t.pump(ms(950)); // the minimum hold
+      expect(captionOpacity(t), 0);
+      ready.value = true;
+      for (var i = 0; i < 200; i++) {
+        await t.pump(ms(16));
+        if (find.byKey(const Key('splash_connecting')).evaluate().isNotEmpty) expect(captionOpacity(t), 0);
+      }
+      expect(log, ['exited']);
+    });
+
+    testWidgets('slow init: appears at ~3 s, stays; the Loading label is there throughout', (t) async {
+      final handle = t.ensureSemantics();
+      final ready = ValueNotifier(false);
+      await _pump(t, _Gate(ready: ready, flyToHeader: true, log: []));
+      expect(find.bySemanticsLabel('Loading'), findsOneWidget);
+      await t.pump(ms(2900));
+      expect(captionOpacity(t), 0);
+      expect(find.bySemanticsLabel('Loading'), findsOneWidget);
+      await t.pump(ms(200)); // 3.1 s: fading in
+      await t.pump(ms(400));
+      expect(captionOpacity(t), 1);
+      expect(t.widget<Text>(find.byKey(const Key('splash_connecting'))).data, 'Connecting…');
+      expect(find.bySemanticsLabel('Loading'), findsOneWidget);
+      // AA on navy, from the token pair
+      final style = t.widget<Text>(find.byKey(const Key('splash_connecting'))).style!;
+      expect(style.color, EmColors.primaryLight);
+      expect(contrastRatio(EmColors.primaryLight, EmColors.primaryDark), greaterThanOrEqualTo(4.5));
+      // init finally completes: the caption goes with the rest of the text and the splash exits as usual
+      ready.value = true;
+      await t.pump();
+      await t.pump(ms(20));
+      await t.pump(ms(16));
+      await t.pump(ms(700));
+      expect(find.byType(SplashScreen), findsNothing);
+      handle.dispose();
+    });
+  });
 }

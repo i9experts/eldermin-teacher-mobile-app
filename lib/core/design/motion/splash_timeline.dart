@@ -8,6 +8,13 @@ class EmSplashTimeline {
   /// Intro motion, from the first Flutter frame.
   static const Duration intro = Duration(milliseconds: 1500);
 
+  /// Shortest the splash is held while init runs: one motion beat (link charge
+  /// plus the start of the pulse). Slower init just keeps the motion looping.
+  static const Duration minHold = Duration(milliseconds: 950);
+
+  /// Init still pending after this long: a small "Connecting…" caption fades in.
+  static const Duration slowInitAfter = Duration(seconds: 3);
+
   // Windows inside [intro], in ms.
   static const ({int begin, int end}) charge = (begin: 40, end: 790);
   static const ({int begin, int end}) pulse = (begin: 680, end: 1300);
