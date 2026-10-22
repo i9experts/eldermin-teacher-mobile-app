@@ -149,13 +149,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   @override
   void dispose() {
-    EmLogoHandoff.splashShowing = false;
     _exitTimer?.cancel();
     _slowTimer?.cancel();
-    if (EmLogoHandoff.flying.value) {
-      // never notify listeners while the tree is being torn down
-      SchedulerBinding.instance.addPostFrameCallback((_) => EmLogoHandoff.flying.value = false);
-    }
+    // never notify listeners while the tree is being torn down
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      EmLogoHandoff.flying.value = false;
+      EmLogoHandoff.overlay.value = false;
+    });
     _morph.dispose();
     _bgOut.dispose();
     _textOut.dispose();

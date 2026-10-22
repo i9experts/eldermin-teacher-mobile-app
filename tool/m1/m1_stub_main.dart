@@ -30,6 +30,7 @@ import 'package:eldermin_teacher_app/main.dart' show AuthGate;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Chosen at launch, so one build serves every recording: entrypoint args
 // (Android: `am start --esa dart-entrypoint-args slow`), else the file below
@@ -119,7 +120,11 @@ Future<void> main(List<String> args) async {
   registerFontLicenses();
   // for the recording log: does Flutter see the OS reduce-motion setting?
   File('${Directory.systemTemp.path}/m1_flags').writeAsStringSync('disableAnimations=${WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations}');
-  if (!_intro) await AppPreferences.setIntroSeen();
+  if (_intro) {
+    (await SharedPreferences.getInstance()).remove('eldermin_teacher_intro_seen'); // show the first-launch intro again
+  } else {
+    await AppPreferences.setIntroSeen();
+  }
   _startPerfLog();
   runApp(GetMaterialApp(
     title: 'Eldermin Teacher',

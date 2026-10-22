@@ -14,8 +14,11 @@ class EmLogoHandoff {
   static EmNetworkPalette anchorPalette = EmNetworkPalette.standard;
 
   /// True while a [SplashScreen] overlay is mounted: a destination that animates
-  /// its entrance waits for [flying] instead of playing it hidden under the overlay.
-  static bool splashShowing = false;
+  /// its entrance waits for [flying] (or for the overlay to go) instead of playing it
+  /// hidden under the overlay.
+  static final ValueNotifier<bool> overlay = ValueNotifier<bool>(false);
+  static bool get splashShowing => overlay.value;
+  static set splashShowing(bool v) => overlay.value = v;
 
   /// True while the splash overlay is flying its logo to the anchor.
   static final ValueNotifier<bool> flying = ValueNotifier<bool>(false);
@@ -39,7 +42,7 @@ class EmLogoHandoff {
   static void reset() {
     _anchor = null;
     anchorPalette = EmNetworkPalette.standard;
-    splashShowing = false;
+    overlay.value = false;
     flying.value = false;
   }
 }

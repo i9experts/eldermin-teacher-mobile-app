@@ -119,22 +119,30 @@ class _AuthGateState extends State<AuthGate> {
       final ready = _ready(auth);
       // Already resolved when first built (or the splash finished): no overlay.
       // Back to unknown after the hand-off: a plain splash, as before.
-      if (!_splashActive) {
-        if (_holdLogin && auth.status.value == AuthStatus.authenticated) return const LoginScreen();
-        return ready ? _destination(auth) : const SplashScreen();
-      }
+      // Always a Stack, destination first: when the overlay is removed the destination keeps its place in
+      // the tree (re-parenting it would remount it and replay its entrance).
       final toHeader = auth.status.value == AuthStatus.unauthenticated && !auth.tokenLoginInProgress.value;
+      final Widget base;
+      if (_holdLogin && auth.status.value == AuthStatus.authenticated && !_splashActive) {
+        base = const LoginScreen();
+      } else if (ready) {
+        base = _destination(auth);
+      } else {
+        // not resolved: the overlay is the splash; after the hand-off a plain one, as before
+        base = _splashActive ? const SizedBox.shrink() : const SplashScreen();
+      }
       return Stack(
         fit: StackFit.expand,
         children: [
-          if (ready) _destination(auth) else const SizedBox.shrink(),
-          SplashScreen(
-            ready: ready,
-            flyToHeader: toHeader,
-            onExited: () {
-              if (mounted) setState(() => _splashActive = false);
-            },
-          ),
+          base,
+          if (_splashActive)
+            SplashScreen(
+              ready: ready,
+              flyToHeader: toHeader,
+              onExited: () {
+                if (mounted) setState(() => _splashActive = false);
+              },
+            ),
         ],
       );
     });
