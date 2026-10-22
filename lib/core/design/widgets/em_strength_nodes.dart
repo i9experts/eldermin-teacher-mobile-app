@@ -21,7 +21,7 @@ class EmStrengthNodes extends StatelessWidget {
       child: Row(
         children: [
           TweenAnimationBuilder<double>(
-            tween: Tween(end: level.toDouble()),
+            tween: Tween(begin: 0, end: level.toDouble()),
             duration: reduced ? Duration.zero : EmMotion.fast * 2,
             curve: Curves.easeOut,
             builder: (context, v, _) => RepaintBoundary(child: CustomPaint(size: const Size(120, 20), painter: StrengthPainter(v))),

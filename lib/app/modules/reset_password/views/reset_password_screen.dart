@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/design/design.dart';
+import '../../../../core/utils/password_strength.dart';
 import '../../../../core/utils/validators.dart';
 import '../../auth/views/auth_widgets.dart';
 import '../bindings/reset_password_binding.dart';
@@ -64,7 +65,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Obx(() => EmTextField(
+        EmStagger(index: 0, child: Obx(() => EmTextField(
               controller: _paste,
               label: 'Paste reset code or link',
               keyboardType: TextInputType.url,
@@ -75,19 +76,25 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               errorText: c.pasteError.value,
               onChanged: (_) => c.pasteError.value = null,
               onSubmitted: (_) => c.applyPasted(_paste.text),
-            )),
+            ))),
         const SizedBox(height: EmSpacing.s8),
         Padding(
           padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s4),
-          child: Text(
-              'Opening the link from your email on this phone fills this in automatically. '
-              'You can also paste the whole link or just the code.',
-              style: EmType.caption.copyWith(color: EmOnDark.muted(context))),
+          // Builder: the colour is resolved from inside the card (this State's own context is outside it)
+          child: Builder(
+            builder: (context) => Text(
+                'Opening the link from your email on this phone fills this in automatically. '
+                'You can also paste the whole link or just the code.',
+                style: EmType.caption.copyWith(color: EmOnDark.muted(context))),
+          ),
         ),
         const SizedBox(height: EmSpacing.s20),
-        EmPrimaryButton(
-          label: 'Continue',
-          onPressed: () => c.applyPasted(_paste.text),
+        EmStagger(
+          index: 1,
+          child: EmPrimaryButton(
+            label: 'Continue',
+            onPressed: () => c.applyPasted(_paste.text),
+          ),
         ),
       ],
     );
@@ -100,55 +107,80 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Obx(() => EmTextField(
-                controller: _password,
-                label: 'New password',
-                obscureText: c.obscure.value,
-                textInputAction: TextInputAction.next,
-                autofillHints: const [AutofillHints.newPassword],
-                prefixIcon: Icons.lock_outline_rounded,
-                fillColor: EmColors.background,
-                radius: EmRadius.pill,
-                validator: Validators.newPassword,
-                suffix: PasswordVisibilityButton(obscured: c.obscure.value, onToggle: c.obscure.toggle),
-              )),
+          EmStagger(
+              index: 0,
+              child: Obx(() => EmTextField(
+                    controller: _password,
+                    label: 'New password',
+                    obscureText: c.obscure.value,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.newPassword],
+                    prefixIcon: Icons.lock_outline_rounded,
+                    fillColor: EmColors.background,
+                    radius: EmRadius.pill,
+                    validator: Validators.newPassword,
+                    suffix: PasswordVisibilityButton(obscured: c.obscure.value, onToggle: c.obscure.toggle),
+                  ))),
+          // strength as four nodes that link up (display only: the only rule that blocks a submit is the minimum length)
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _password,
+            builder: (context, v, _) {
+              final level = PasswordStrength.of(v.text);
+              return EmAnimatedSize(
+                duration: EmMotion.normal,
+                child: level == 0
+                    ? const SizedBox(width: double.infinity)
+                    : Padding(
+                        padding: const EdgeInsetsDirectional.only(top: EmSpacing.s8, start: EmSpacing.s4),
+                        child: EmStrengthNodes(level: level, label: PasswordStrength.labels[level]),
+                      ),
+              );
+            },
+          ),
           const SizedBox(height: EmSpacing.s12),
-          Obx(() => EmTextField(
-                controller: _confirm,
-                label: 'Confirm new password',
-                obscureText: c.obscure.value,
-                textInputAction: TextInputAction.done,
-                autofillHints: const [AutofillHints.newPassword],
-                prefixIcon: Icons.lock_outline_rounded,
-                fillColor: EmColors.background,
-                radius: EmRadius.pill,
-                validator: (v) => Validators.confirmPassword(v, _password.text),
-                onSubmitted: (_) => _submit(),
-              )),
+          EmStagger(
+              index: 1,
+              child: Obx(() => EmTextField(
+                    controller: _confirm,
+                    label: 'Confirm new password',
+                    obscureText: c.obscure.value,
+                    textInputAction: TextInputAction.done,
+                    autofillHints: const [AutofillHints.newPassword],
+                    prefixIcon: Icons.lock_outline_rounded,
+                    fillColor: EmColors.background,
+                    radius: EmRadius.pill,
+                    validator: (v) => Validators.confirmPassword(v, _password.text),
+                    onSubmitted: (_) => _submit(),
+                  ))),
           Obx(() => c.error.value == null
               ? const SizedBox(height: EmSpacing.s20)
               : Padding(
                   padding: const EdgeInsetsDirectional.symmetric(vertical: EmSpacing.s12),
                   child: AuthBanner(message: c.error.value!),
                 )),
-          Obx(() => EmPrimaryButton(
-                label: c.submitting.value ? 'Updating...' : 'Update password',
-                loading: c.submitting.value,
-                onPressed: _submit,
-              )),
-          const SizedBox(height: EmSpacing.s4),
-          Obx(() => c.tokenRejected.value
-              ? TextButton(
-                  onPressed: c.requestNewLink,
-                  child: const Text('Request a new reset link'),
-                )
-              : TextButton(
-                  onPressed: () {
-                    _paste.clear();
-                    c.clearToken();
-                  },
-                  child: const Text('Use a different code or link'),
+          EmStagger(
+            index: 2,
+            child: Obx(() => EmPrimaryButton(
+                  label: c.submitting.value ? 'Updating...' : 'Update password',
+                  loading: c.submitting.value,
+                  onPressed: _submit,
                 )),
+          ),
+          const SizedBox(height: EmSpacing.s4),
+          EmStagger(
+              index: 3,
+              child: Obx(() => c.tokenRejected.value
+                  ? TextButton(
+                      onPressed: c.requestNewLink,
+                      child: const Text('Request a new reset link'),
+                    )
+                  : TextButton(
+                      onPressed: () {
+                        _paste.clear();
+                        c.clearToken();
+                      },
+                      child: const Text('Use a different code or link'),
+                    ))),
         ],
       ),
     );

@@ -138,10 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         // expands with a size + fade animation (instant with reduce motion)
-                        AnimatedSize(
-                          duration: EmReduceMotion.of(context) ? Duration.zero : EmMotion.slow,
-                          curve: EmMotion.enter,
-                          alignment: Alignment.topCenter,
+                        EmAnimatedSize(
                           child: c.schoolExpanded.value
                               ? Padding(
                                   padding: const EdgeInsetsDirectional.only(bottom: EmSpacing.s4),

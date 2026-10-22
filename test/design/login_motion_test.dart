@@ -279,6 +279,18 @@ void main() {
       expect(button(t).phase, EmMorphPhase.idle);
     });
 
+    testWidgets('school code expands and the hero collapses instantly (no animated resize, no layout assertion)', (t) async {
+      await mount(t, reduce: true);
+      await t.tap(find.byKey(const Key('school_code_toggle')));
+      await t.pump();
+      expect(field('School code'), findsOneWidget, reason: 'there on the next frame');
+      keyboardInset.value = 300;
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 16));
+      expect(find.text('Sign in with your school account'), findsNothing);
+      expect(t.takeException(), isNull);
+    });
+
     testWidgets('success check is already drawn on the first frame', (t) async {
       final api = await mount(t, reduce: true);
       await fillAndSubmit(t);

@@ -105,7 +105,7 @@ class EmAuthHero extends StatelessWidget {
               Positioned.fill(child: EmConstellation(time: time!, intensity: intensity!, seed: 21)),
             SizedBox(
               width: double.infinity,
-              child: AnimatedSize(duration: slide, curve: EmMotion.emphasized, alignment: Alignment.topCenter, child: content),
+              child: EmAnimatedSize(curve: EmMotion.emphasized, child: content),
             ),
             if (showBack) Positioned(top: top, left: 0, right: 0, child: const EmAppBar()),
           ],
