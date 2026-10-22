@@ -112,10 +112,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Flexible(
                               child: Text('Signing in to a specific school?',
-                                  style: EmType.label.copyWith(color: EmColors.primary)),
+                                  style: EmType.label.copyWith(color: EmColors.onPrimaryDark)),
                             ),
                             Icon(c.schoolExpanded.value ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                                color: EmColors.primary, size: 20),
+                                color: EmColors.onPrimaryDark, size: 20),
                           ]),
                         ),
                       ),

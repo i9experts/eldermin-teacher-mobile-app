@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../tokens/em_colors.dart';
+import 'em_on_dark.dart';
 import '../tokens/em_typography.dart';
 
 /// Filled primary pill (white label on `primary`, 52dp).
@@ -19,15 +20,19 @@ class EmPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final child = _content(label, icon, loading, EmColors.onPrimary);
+    // On the blue auth card the primary action is the accent (yellow) fill with an ink label (>= 4.5:1).
+    final accent = !destructive && EmOnDark.of(context);
+    final fill = destructive ? EmColors.error : (accent ? EmColors.accent : EmColors.primary);
+    final on = destructive ? EmColors.onError : (accent ? EmColors.ink : EmColors.onPrimary);
+    final child = _content(label, icon, loading, on);
     final btn = ElevatedButton(
       onPressed: loading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         minimumSize: const Size(64, 52),
-        backgroundColor: destructive ? EmColors.error : EmColors.primary,
-        foregroundColor: destructive ? EmColors.onError : EmColors.onPrimary,
-        disabledBackgroundColor: loading ? (destructive ? EmColors.error : EmColors.primary) : EmColors.disabled,
-        disabledForegroundColor: loading ? EmColors.onPrimary : EmColors.onDisabled,
+        backgroundColor: fill,
+        foregroundColor: on,
+        disabledBackgroundColor: loading ? fill : (accent ? EmColors.primaryMid : EmColors.disabled),
+        disabledForegroundColor: loading ? on : (accent ? EmColors.onPrimaryDark : EmColors.onDisabled),
       ),
       child: child,
     );

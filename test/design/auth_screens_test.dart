@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:eldermin_teacher_app/app/common/views/not_available_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/views/auth_widgets.dart' show PasswordVisibilityButton;
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/auth/views/auth_widgets.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/views/login_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/views/profile_load_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/views/unsupported_role_screen.dart';
@@ -100,17 +101,42 @@ void main() {
   });
 
   group('look and feel (REFERENCE_SPEC)', () {
-    testWidgets('login: tinted scaffold, white form card, pill fields, primary pill button, logomark', (t) async {
+    testWidgets('login: tinted scaffold, blue gradient card, transparent pill fields (white border, accent when focused), accent button, logomark', (t) async {
       await pumpScreen(t, const LoginScreen());
       expect(t.widget<Scaffold>(find.byType(Scaffold)).backgroundColor, EmColors.background);
-      expect(find.byType(EmCard), findsOneWidget);
       expect(find.byType(EmLogomark), findsOneWidget);
+      expect(find.byType(EmCard), findsNothing);
+
+      // card: primary -> primaryDark gradient
+      final card = t.widget<DecoratedBox>(find.descendant(of: find.byType(AuthCard), matching: find.byType(DecoratedBox)).first);
+      final gradient = (card.decoration as BoxDecoration).gradient! as LinearGradient;
+      expect(gradient.colors, [EmColors.primary, EmColors.primaryDark]);
+
+      // fields: transparent, white border, accent when focused, still pills
       expect(find.byType(EmTextField), findsNWidgets(2));
-      final field = t.widget<TextField>(find.byType(TextField).first);
-      final border = field.decoration!.enabledBorder as OutlineInputBorder;
-      expect(border.borderRadius, BorderRadius.circular(EmRadius.pill));
-      expect(field.decoration!.fillColor, EmColors.background); // tint fill on the white card
+      for (final field in t.widgetList<TextField>(find.byType(TextField))) {
+        final d = field.decoration!;
+        expect(d.filled, isFalse);
+        final enabled = d.enabledBorder! as OutlineInputBorder;
+        expect(enabled.borderSide.color, EmColors.onPrimaryDark);
+        expect(enabled.borderRadius, BorderRadius.circular(EmRadius.pill));
+        expect((d.focusedBorder! as OutlineInputBorder).borderSide.color, EmColors.accent);
+      }
+
+      // button: accent fill, ink label
       expect(find.byType(EmPrimaryButton), findsOneWidget);
+      final style = t.widget<ElevatedButton>(find.descendant(of: find.byType(EmPrimaryButton), matching: find.byType(ElevatedButton))).style!;
+      expect(style.backgroundColor!.resolve({}), EmColors.accent);
+      expect(style.foregroundColor!.resolve({}), EmColors.ink);
+    });
+
+    test('colours used on the blue card are AA on the whole gradient (both ends)', () {
+      for (final bg in [EmColors.primary, EmColors.primaryDark]) {
+        for (final fg in [EmColors.onPrimaryDark, EmColors.primaryContainer, EmColors.errorContainer]) {
+          expect(contrastRatio(fg, bg), greaterThanOrEqualTo(4.5), reason: '$fg on $bg');
+        }
+      }
+      expect(contrastRatio(EmColors.ink, EmColors.accent), greaterThanOrEqualTo(4.5)); // button label
     });
 
     testWidgets('accent colour is never used for text on any signed-out screen', (t) async {

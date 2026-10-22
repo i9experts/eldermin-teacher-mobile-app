@@ -51,12 +51,41 @@ class AuthPageShell extends StatelessWidget {
                       const SizedBox(height: EmSpacing.s8),
                       Text(subtitle, textAlign: TextAlign.center, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
                       const SizedBox(height: EmSpacing.s24),
-                      if (card) EmCard(padding: const EdgeInsetsDirectional.all(EmSpacing.s20), child: child) else child,
+                      if (card) AuthCard(child: child) else child,
                     ],
                   ),
                 ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The form card: a blue gradient (primary -> primaryDark) instead of a white
+/// surface. Everything inside sits on dark ([EmOnDark]): fields are transparent
+/// with a white border (accent when focused), the primary button is the accent
+/// fill, text buttons are white.
+class AuthCard extends StatelessWidget {
+  const AuthCard({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(EmRadius.card),
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [EmColors.primary, EmColors.primaryDark]),
+        boxShadow: EmShadows.soft,
+      ),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.all(EmSpacing.s20),
+        child: EmOnDark(
+          child: TextButtonTheme(
+            data: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: EmColors.onPrimaryDark)),
+            child: child,
           ),
         ),
       ),
@@ -112,7 +141,7 @@ class PasswordVisibilityButton extends StatelessWidget {
           child: SizedBox(
             width: 48,
             height: 48,
-            child: Icon(obscured ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20, color: EmColors.textSecondary),
+            child: Icon(obscured ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20, color: EmOnDark.muted(context)),
           ),
         ),
       );

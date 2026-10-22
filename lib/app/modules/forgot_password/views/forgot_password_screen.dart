@@ -117,7 +117,7 @@ class _Sent extends StatelessWidget {
           ),
           const SizedBox(height: EmSpacing.s16),
           Text('Open the link on this phone, or copy the link and paste it on the next screen.',
-              textAlign: TextAlign.center, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
+              textAlign: TextAlign.center, style: EmType.body.copyWith(color: EmOnDark.muted(context), fontWeight: FontWeight.w400)),
           const SizedBox(height: EmSpacing.s20),
           EmPrimaryButton(
             label: 'I have a reset code or link',

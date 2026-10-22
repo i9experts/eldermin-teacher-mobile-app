@@ -82,7 +82,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           child: Text(
               'Opening the link from your email on this phone fills this in automatically. '
               'You can also paste the whole link or just the code.',
-              style: EmType.caption.copyWith(color: EmColors.textSecondary)),
+              style: EmType.caption.copyWith(color: EmOnDark.muted(context))),
         ),
         const SizedBox(height: EmSpacing.s20),
         EmPrimaryButton(
