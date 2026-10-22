@@ -42,7 +42,7 @@ class AuthPageShell extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Center(child: EmLogomark(height: 72, semanticLabel: 'Eldermin')),
+                      const Center(child: EmLogoAnchor(child: EmLogomark(height: 72, semanticLabel: 'Eldermin'))),
                       const SizedBox(height: EmSpacing.s20),
                       Semantics(
                         header: true,

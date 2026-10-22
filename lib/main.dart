@@ -30,7 +30,7 @@ class EldeminTeacherApp extends StatelessWidget {
       theme: AppTheme.light,
       initialBinding: InitialBinding(),
       getPages: AppPages.pages,
-      home: const _AuthGate(),
+      home: const AuthGate(),
     );
   }
 }
@@ -38,20 +38,22 @@ class EldeminTeacherApp extends StatelessWidget {
 /// Watches auth state and routes to the right root screen - never shows
 /// the home shell without a valid session AND a resolved staff profile,
 /// and never gets stuck on a splash screen once bootstrap resolves.
-class _AuthGate extends StatefulWidget {
-  const _AuthGate();
+@visibleForTesting
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
 
   @override
-  State<_AuthGate> createState() => _AuthGateState();
+  State<AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends State<_AuthGate> {
+class _AuthGateState extends State<AuthGate> {
   Worker? _worker;
 
   @override
   void initState() {
     super.initState();
     final auth = Get.find<AuthController>();
+    _splashActive = !_ready(auth);
     Get.find<DeepLinkService>().init(); // cold + warm start links
     // Whenever auth status actually changes (login OR logout/401), clear
     // any pushed routes (e.g. forgot-password, or some deep screen open
@@ -70,22 +72,50 @@ class _AuthGateState extends State<_AuthGate> {
     super.dispose();
   }
 
+  /// The animated splash stays on top of the next screen until its hand-off
+  /// finished (the logo flies into the destination's header). See
+  /// eldermin-teacher-app-docs/design/MOTION_SPEC.md section 6.
+  late bool _splashActive;
+
+  bool _ready(AuthController auth) => auth.tokenLoginInProgress.value || auth.status.value != AuthStatus.unknown;
+
+  Widget _destination(AuthController auth) {
+    if (auth.tokenLoginInProgress.value) return const _LinkSignInScreen();
+    switch (auth.status.value) {
+      case AuthStatus.unknown:
+        return const SplashScreen();
+      case AuthStatus.unauthenticated:
+        return auth.introSeen.value ? const LoginScreen() : const IntroScreen();
+      case AuthStatus.authenticated:
+        if (!auth.roleSupported.value) return const UnsupportedRoleScreen();
+        if (auth.staffMe.value == null) return const ProfileLoadScreen();
+        return const HomeShell();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Get.find<AuthController>();
 
     return Obx(() {
-      if (auth.tokenLoginInProgress.value) return const _LinkSignInScreen();
-      switch (auth.status.value) {
-        case AuthStatus.unknown:
-          return const SplashScreen();
-        case AuthStatus.unauthenticated:
-          return auth.introSeen.value ? const LoginScreen() : const IntroScreen();
-        case AuthStatus.authenticated:
-          if (!auth.roleSupported.value) return const UnsupportedRoleScreen();
-          if (auth.staffMe.value == null) return const ProfileLoadScreen();
-          return const HomeShell();
-      }
+      final ready = _ready(auth);
+      // Already resolved when first built (or the splash finished): no overlay.
+      // Back to unknown after the hand-off: a plain splash, as before.
+      if (!_splashActive) return ready ? _destination(auth) : const SplashScreen();
+      final toHeader = auth.status.value == AuthStatus.unauthenticated && !auth.tokenLoginInProgress.value;
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          if (ready) _destination(auth) else const SizedBox.shrink(),
+          SplashScreen(
+            ready: ready,
+            flyToHeader: toHeader,
+            onExited: () {
+              if (mounted) setState(() => _splashActive = false);
+            },
+          ),
+        ],
+      );
     });
   }
 }

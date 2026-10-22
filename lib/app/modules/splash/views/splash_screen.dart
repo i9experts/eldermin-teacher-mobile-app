@@ -1,173 +1,320 @@
-import 'dart:math' as math;
+import 'dart:async';
+import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/design/design.dart';
 
 /// The root screen shown while [AuthController] resolves its bootstrap
-/// (token check + profile fetch). Purely presentational - the
-/// swap away from this screen is driven entirely by `_AuthGate` in
-/// main.dart reacting to `AuthController.status`.
+/// (token check + profile fetch), and - as an overlay on the next screen - the
+/// hand-off into it. Purely presentational: the swap away is driven by
+/// `_AuthGate` in main.dart reacting to `AuthController.status`, which passes
+/// [ready] and removes the overlay in [onExited].
 ///
-/// Hand-off from the native splash: same `primaryDark` background and the
-/// reversed logomark at the same size ([EmLogomark.splashHeight]) in the exact
-/// centre of the screen, fully visible from the first frame (no scale or fade
-/// on the logo, so nothing jumps). Only the title, tagline and loading dots
-/// fade in, below the logo.
+/// Frame 0 is the native splash: same `primaryDark` background and the
+/// reversed logomark at [EmLogomark.splashHeight] in the exact centre, nothing
+/// moving. Then (MOTION_SPEC.md §3.1) light travels along the solid links, the
+/// dashed links drift, the orange node pulses with ripples and a faint
+/// constellation fades in. Once [ready], at the end of the current motion beat,
+/// the logo flies into the destination's [EmLogoAnchor] while the navy fades.
+///
+/// Reduce motion: the mark stays static, no constellation; the exit is a
+/// crossfade.
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, this.ready = false, this.flyToHeader = false, this.onExited});
+
+  /// Init finished and the destination is in the tree under this overlay.
+  final bool ready;
+
+  /// The destination has a header logo to land on (login / intro). Otherwise
+  /// the logo just fades out with the background.
+  final bool flyToHeader;
+
+  /// Called once the exit finished (remove this overlay).
+  final VoidCallback? onExited;
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
-  late final AnimationController _entrance;
-  late final AnimationController _loop;
+enum _Exit { flight, fade }
+
+class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+  static const double _headerLogoHeight = 72;
+
+  /// Constellation keeps clear of the centre column (logo, title, tagline).
+  static const Rect _logoZone = Rect.fromLTRB(0.15, 0.36, 0.85, 0.66);
+
+  late final AnimationController _intro;
+  late final AnimationController _time;
+  late final AnimationController _exit;
+
+  late final Animation<double> _charge;
+  late final Animation<double> _pulse;
+  late final Animation<double> _ripple;
+  late final Animation<double> _dash;
+  late final Animation<double> _constellation;
   late final Animation<double> _titleFade;
   late final Animation<Offset> _titleSlide;
   late final Animation<double> _taglineFade;
-  late final Animation<double> _loaderFade;
+  late final CurvedAnimation _morph;
+  late final CurvedAnimation _bgOut;
+  late final CurvedAnimation _textOut;
+
+  late final EmNetworkDrive _drive;
+  Timer? _exitTimer;
+  bool _reduced = false;
+  bool _configured = false;
+  bool _exiting = false;
+  bool _darkIcons = false;
+  _Exit _mode = _Exit.fade;
+  Duration _exitDuration = EmMotion.hero;
 
   @override
   void initState() {
     super.initState();
-    _entrance = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900))
-      ..forward();
-    _loop = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1400))
-      ..repeat();
-    _titleFade = CurvedAnimation(
-        parent: _entrance,
-        curve: const Interval(0.1, 0.55, curve: Curves.easeOut));
-    _titleSlide = Tween(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-        CurvedAnimation(
-            parent: _entrance,
-            curve: const Interval(0.1, 0.6, curve: Curves.easeOutCubic)));
-    _taglineFade = CurvedAnimation(
-        parent: _entrance,
-        curve: const Interval(0.35, 0.8, curve: Curves.easeOut));
-    _loaderFade = CurvedAnimation(
-        parent: _entrance,
-        curve: const Interval(0.6, 1.0, curve: Curves.easeOut));
+    _intro = AnimationController(vsync: this, duration: EmSplashTimeline.intro);
+    _time = AnimationController(vsync: this, duration: EmMotion.ambientPeriod);
+    _exit = AnimationController(vsync: this, duration: EmMotion.hero)
+      ..addListener(_onExitTick)
+      ..addStatusListener(_onExitStatus);
+
+    Animation<double> window(({int begin, int end}) w) =>
+        CurvedAnimation(parent: _intro, curve: Interval(EmSplashTimeline.at(w.begin), EmSplashTimeline.at(w.end)));
+    _charge = window(EmSplashTimeline.charge);
+    _pulse = window(EmSplashTimeline.pulse);
+    _ripple = window(EmSplashTimeline.ripple);
+    _constellation = window(EmSplashTimeline.constellation);
+    // 60 whole dash periods per ambient loop: the dash drift never seams.
+    _dash = Tween<double>(
+      begin: 0,
+      end: EmMotion.ambientPeriod.inMilliseconds / EmMotion.dashPeriod.inMilliseconds,
+    ).animate(_time);
+
+    const text = EmSplashTimeline.text;
+    final t0 = EmSplashTimeline.at(text.begin), t1 = EmSplashTimeline.at(text.end);
+    _titleFade = CurvedAnimation(parent: _intro, curve: Interval(t0, t0 + (t1 - t0) * 0.7, curve: Curves.easeOut));
+    _titleSlide = Tween(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _intro, curve: Interval(t0, t1, curve: EmMotion.enter)));
+    _taglineFade = CurvedAnimation(parent: _intro, curve: Interval(t0 + (t1 - t0) * 0.3, t1, curve: Curves.easeOut));
+
+    _morph = CurvedAnimation(parent: _exit, curve: const Threshold(1));
+    _bgOut = CurvedAnimation(parent: _exit, curve: const Interval(0, 1));
+    _textOut = CurvedAnimation(parent: _exit, curve: const Interval(0, 1));
+
+    _drive = EmNetworkDrive(
+      to: EmNetworkPalette.standard,
+      morph: _morph,
+      charge: _charge,
+      dashPhase: _dash,
+      pulse: _pulse,
+      ripple: _ripple,
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduced = EmReduceMotion.of(context);
+    if (!_configured || reduced != _reduced) {
+      _configured = true;
+      _reduced = reduced;
+      if (reduced) {
+        _intro.stop();
+        _time.stop();
+      } else if (!_exiting) {
+        if (!_intro.isCompleted && !_intro.isAnimating) _intro.forward();
+        if (!_time.isAnimating) _time.repeat();
+      }
+    }
+    if (widget.ready) _scheduleExit();
+  }
+
+  @override
+  void didUpdateWidget(SplashScreen old) {
+    super.didUpdateWidget(old);
+    if (widget.ready && !old.ready) _scheduleExit();
   }
 
   @override
   void dispose() {
-    _entrance.dispose();
-    _loop.dispose();
+    _exitTimer?.cancel();
+    if (EmLogoHandoff.flying.value) {
+      // never notify listeners while the tree is being torn down
+      SchedulerBinding.instance.addPostFrameCallback((_) => EmLogoHandoff.flying.value = false);
+    }
+    _morph.dispose();
+    _bgOut.dispose();
+    _textOut.dispose();
+    _intro.dispose();
+    _time.dispose();
+    _exit.dispose();
     super.dispose();
+  }
+
+  // ---- Exit ----
+
+  void _scheduleExit() {
+    if (_exiting || (_exitTimer?.isActive ?? false)) return;
+    final wait = _reduced
+        ? Duration.zero
+        : EmSplashTimeline.exitDelay(Duration(milliseconds: (_intro.value * EmSplashTimeline.intro.inMilliseconds).round()),
+            exit: widget.flyToHeader ? EmMotion.hero : EmMotion.slow);
+    _exitTimer = Timer(wait, () {
+      // after the frame in which the destination was laid out, so its anchor exists
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _startExit();
+      });
+      SchedulerBinding.instance.scheduleFrame();
+    });
+  }
+
+  void _startExit() {
+    if (_exiting) return;
+    _exiting = true;
+    _time.stop();
+    final fly = widget.flyToHeader && !_reduced;
+    _mode = fly ? _Exit.flight : _Exit.fade;
+    _exitDuration = _reduced ? EmMotion.crossfade : (fly ? EmMotion.hero : EmMotion.slow);
+    _exit.duration = _exitDuration;
+    if (fly) {
+      // title/tagline gone in the first 180 ms; navy + constellation from 120 ms
+      _textOut.curve = Interval(0, 180 / _exitDuration.inMilliseconds);
+      _bgOut.curve = Interval(120 / _exitDuration.inMilliseconds, 480 / _exitDuration.inMilliseconds);
+      _morph.curve = EmMotion.emphasized;
+      EmLogoHandoff.flying.value = true;
+    } else {
+      _textOut.curve = const Interval(0, 1);
+      _bgOut.curve = const Interval(0, 1);
+    }
+    _exit.forward();
+  }
+
+  void _onExitTick() {
+    final dark = _bgOut.value > 0.5;
+    if (dark != _darkIcons) setState(() => _darkIcons = dark);
+  }
+
+  void _onExitStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed) return;
+    EmLogoHandoff.flying.value = false;
+    widget.onExited?.call();
+  }
+
+  // ---- Build ----
+
+  (Rect, bool) _target(BuildContext context, Size screen) {
+    final box = context.findRenderObject();
+    final landed = box is RenderBox ? EmLogoHandoff.anchorRectIn(box) : null;
+    if (landed != null) return (landed, true);
+    // no anchor yet (the intro screen has no logo until M2): the header slot
+    const h = _headerLogoHeight;
+    const w = h * EmLogomarkGeometry.aspect;
+    return (Rect.fromLTWH((screen.width - w) / 2, MediaQuery.paddingOf(context).top + EmSpacing.s16, w, h), false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final logo = EmLogomark(
+      height: EmLogomark.splashHeight,
+      reversed: true,
+      semanticLabel: 'Eldermin Teacher',
+      drive: _reduced ? null : _drive,
+    );
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle
-          .light, // light status-bar icons on the navy background, like the native splash
-      child: Scaffold(
-        backgroundColor: EmColors.primaryDark,
-        body: LayoutBuilder(
+      // light status-bar icons on the navy background, like the native splash
+      value: _darkIcons ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
+      child: Material(
+        type: MaterialType.transparency,
+        child: LayoutBuilder(
           builder: (context, box) {
-            final belowLogo =
-                box.maxHeight / 2 + EmLogomark.splashHeight / 2 + EmSpacing.s24;
+            final screen = box.biggest;
+            final belowLogo = screen.height / 2 + EmLogomark.splashHeight / 2 + EmSpacing.s24;
             return Stack(
+              fit: StackFit.expand,
               children: [
-                // exact centre, identical to the native splash image
-                const Center(
-                    child: EmLogomark(
-                        height: EmLogomark.splashHeight,
-                        reversed: true,
-                        semanticLabel: 'Eldermin Teacher')),
+                FadeTransition(
+                  opacity: ReverseAnimation(_bgOut),
+                  child: Scaffold(
+                    backgroundColor: EmColors.primaryDark,
+                    body: _reduced ? null : EmConstellation(time: _time, intensity: _constellation, avoid: _logoZone),
+                  ),
+                ),
                 Positioned(
                   left: 0,
                   right: 0,
                   top: belowLogo,
-                  child: Padding(
-                    padding: const EdgeInsetsDirectional.symmetric(
-                        horizontal: EmSpacing.s32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FadeTransition(
-                          opacity: _titleFade,
-                          child: SlideTransition(
-                            position: _titleSlide,
-                            child: Text('Eldermin Teacher',
+                  child: FadeTransition(
+                    opacity: ReverseAnimation(_textOut),
+                    child: Padding(
+                      padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.s32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FadeTransition(
+                            opacity: _reduced ? const AlwaysStoppedAnimation(1) : _titleFade,
+                            child: SlideTransition(
+                              position: _reduced ? const AlwaysStoppedAnimation(Offset.zero) : _titleSlide,
+                              child: Text('Eldermin Teacher',
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: EmType.display.copyWith(color: EmColors.onPrimaryDark)),
+                            ),
+                          ),
+                          const SizedBox(height: EmSpacing.s8),
+                          FadeTransition(
+                            opacity: _reduced ? const AlwaysStoppedAnimation(1) : _taglineFade,
+                            child: Text('Your classroom, in your pocket.',
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: EmType.display.copyWith(color: EmColors.onPrimaryDark)),
+                                style: EmType.body.copyWith(color: EmColors.primaryLight, fontWeight: FontWeight.w400)),
                           ),
-                        ),
-                        const SizedBox(height: EmSpacing.s8),
-                        FadeTransition(
-                          opacity: _taglineFade,
-                          child: Text('Your classroom, in your pocket.',
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: EmType.body.copyWith(
-                                  color: EmColors.primaryLight,
-                                  fontWeight: FontWeight.w400)),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                PositionedDirectional(
-                  start: 0,
-                  end: 0,
+                // exact centre, identical to the native splash image; flies on exit
+                AnimatedBuilder(
+                  animation: _exit,
+                  child: Center(child: logo),
+                  builder: (context, child) {
+                    if (!_exiting) return child!;
+                    final p = _exit.value;
+                    if (_mode == _Exit.flight) {
+                      final t = EmMotion.emphasized.transform(p);
+                      final (target, anchored) = _target(context, screen);
+                      final shift = Offset.lerp(Offset.zero, target.center - screen.center(Offset.zero), t)!;
+                      final scale = lerpDouble(1, target.height / EmLogomark.splashHeight, t)!;
+                      final flown = Transform.translate(offset: shift, child: Transform.scale(scale: scale, child: child));
+                      // nothing to land on: fade out over the last 40% of the flight
+                      return anchored
+                          ? flown
+                          : Opacity(opacity: 1 - Curves.easeIn.transform(((p - 0.6) / 0.4).clamp(0.0, 1.0)), child: flown);
+                    }
+                    // no header logo to land on: scale down a touch and fade with the background
+                    return Opacity(
+                      opacity: 1 - EmMotion.exit.transform(p),
+                      child: Transform.scale(scale: lerpDouble(1, 0.9, p)!, child: child),
+                    );
+                  },
+                ),
+                // the animated mark has its own label; this keeps the loading cue for screen readers
+                Positioned(
                   bottom: 0,
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsetsDirectional.only(
-                          bottom: EmSpacing.s32),
-                      child: FadeTransition(
-                          opacity: _loaderFade,
-                          child: Center(child: _LoadingDots(loop: _loop))),
-                    ),
+                  left: 0,
+                  child: Semantics(
+                    label: 'Loading',
+                    liveRegion: true,
+                    child: const SizedBox(width: 1, height: 1),
                   ),
                 ),
               ],
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-/// Three softly pulsing dots (phase-offset via a repeating controller).
-class _LoadingDots extends StatelessWidget {
-  final AnimationController loop;
-  const _LoadingDots({required this.loop});
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Loading',
-      liveRegion: true,
-      excludeSemantics: true,
-      child: AnimatedBuilder(
-        animation: loop,
-        builder: (context, _) {
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(3, (i) {
-              final phase = (loop.value + i * 0.2) % 1.0;
-              final t = 0.5 + 0.5 * math.sin(2 * math.pi * phase);
-              return Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: EmSpacing.s4),
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: EmColors.primaryLight.withAlpha((255 * (0.35 + 0.65 * t)).round())),
-              );
-            }),
-          );
-        },
       ),
     );
   }
