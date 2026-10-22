@@ -20,8 +20,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../support/auth_design_harness.dart';
 import '../support/design_harness.dart';
 
-class _Api extends AuthApiService {
-  _Api() : super(BaseClient());
+class StubLoginApi extends AuthApiService {
+  StubLoginApi() : super(BaseClient());
   Completer<void> gate = Completer<void>();
   ApiException? error;
 
@@ -50,11 +50,11 @@ class _Api extends AuthApiService {
 /// The simulated keyboard height: change it on a mounted screen to open / close the keyboard.
 final keyboardInset = ValueNotifier<double>(0);
 
-Future<_Api> mount(WidgetTester t, {bool reduce = false, double width = 390, double height = 844, double scale = 1, double keyboard = 0, Map<String, Object> prefs = const {}}) async {
+Future<StubLoginApi> mount(WidgetTester t, {bool reduce = false, double width = 390, double height = 844, double scale = 1, double keyboard = 0, Map<String, Object> prefs = const {}}) async {
   SharedPreferences.setMockInitialValues(prefs);
   Get.reset();
   Get.testMode = true;
-  final api = _Api();
+  final api = StubLoginApi();
   Get.put<AuthApiService>(api);
   Get.put<AuthController>(AuthController(
     api: api,
@@ -124,7 +124,7 @@ void main() {
     testWidgets('the card rises and fades in, its items stagger (not all visible on the first frames)', (t) async {
       SharedPreferences.setMockInitialValues({});
       Get.reset();
-      final api = _Api();
+      final api = StubLoginApi();
       Get.put<AuthApiService>(api);
       Get.put<AuthController>(AuthController(api: api, permissions: PermissionService(), tokenStore: MemTokens(), minSplash: Duration.zero, resetScopedControllers: () async {}, notify: (_) {})
         ..status.value = AuthStatus.unauthenticated);
@@ -311,7 +311,7 @@ void main() {
     testWidgets('RTL: the logo is centred and not mirrored', (t) async {
       SharedPreferences.setMockInitialValues({});
       Get.reset();
-      final api = _Api();
+      final api = StubLoginApi();
       Get.put<AuthApiService>(api);
       Get.put<AuthController>(AuthController(api: api, permissions: PermissionService(), tokenStore: MemTokens(), minSplash: Duration.zero, resetScopedControllers: () async {}, notify: (_) {})
         ..status.value = AuthStatus.unauthenticated);
