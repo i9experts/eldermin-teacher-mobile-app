@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:eldermin_teacher_app/app/common/views/not_available_screen.dart';
-import 'package:eldermin_teacher_app/app/modules/auth/views/auth_widgets.dart' show PasswordVisibilityButton;
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/views/auth_widgets.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/views/login_screen.dart';
