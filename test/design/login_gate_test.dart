@@ -105,7 +105,7 @@ void main() {
     await mount(t, reduce: true);
     await signIn(t);
     await t.pump(const Duration(milliseconds: 20));
-    await t.pump(const Duration(milliseconds: 300)); // with the hold the login screen is still up at 400 ms (see the test above)
+    await t.pump(const Duration(milliseconds: 30)); // a few frames: with ANY hold (even a 200 ms crossfade) the login screen would still be up
     expect(find.byType(LoginScreen), findsNothing, reason: 'nothing to wait for: there is no check to draw');
     expect(find.byType(UnsupportedRoleScreen), findsOneWidget);
   });

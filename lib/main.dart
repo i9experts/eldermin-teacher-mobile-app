@@ -72,13 +72,12 @@ class _AuthGateState extends State<AuthGate> {
       if (prev == AuthStatus.unauthenticated &&
           status == AuthStatus.authenticated &&
           !_splashActive &&
-          !auth.tokenLoginInProgress.value) {
+          !auth.tokenLoginInProgress.value &&
+          // no hold at all with reduce motion: there is no check to draw
+          !EmReduceMotion.of(context)) {
         setState(() => _holdLogin = true);
         _holdTimer?.cancel();
-        _holdTimer = Timer(
-            EmReduceMotion.of(context)
-                ? EmMotion.crossfade
-                : EmMotion.successHold, () {
+        _holdTimer = Timer(EmMotion.successHold, () {
           if (mounted) setState(() => _holdLogin = false);
         });
       }
