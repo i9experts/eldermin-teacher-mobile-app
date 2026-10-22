@@ -43,29 +43,46 @@ class AuthPageShell extends StatefulWidget {
   State<AuthPageShell> createState() => _AuthPageShellState();
 }
 
-class _AuthPageShellState extends State<AuthPageShell> with TickerProviderStateMixin {
-  // the constellation: a slow loop (whole cycles per loop) at full strength, dimmed while collapsed
-  late final AnimationController _time = AnimationController(vsync: this, duration: EmMotion.ambientPeriod);
+class _AuthPageShellState extends State<AuthPageShell> with TickerProviderStateMixin, WidgetsBindingObserver {
+  // the constellation: a slow drift that pauses while it cannot be seen or is not wanted
+  late final EmDriftClock _time = EmDriftClock(vsync: this, active: false);
   late final AnimationController _intensity = AnimationController(vsync: this, value: 1, duration: EmMotion.slow);
   bool _collapsed = false;
-  bool _started = false;
+  bool _resumed = true; // the app is in the foreground
+  bool _current = true; // this screen is the top route
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _resumed = WidgetsBinding.instance.lifecycleState == null || WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _resumed = state == AppLifecycleState.resumed;
+    _syncDrift();
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_started && !EmReduceMotion.of(context)) {
-      _started = true;
-      _time.repeat();
-    }
+    _current = ModalRoute.of(context)?.isCurrent ?? true;
     final collapsed = MediaQuery.viewInsetsOf(context).bottom > 0;
     if (collapsed != _collapsed) {
       _collapsed = collapsed;
       _intensity.animateTo(collapsed ? 0.3 : 1, curve: EmMotion.standard);
     }
+    _syncDrift();
   }
+
+  /// Drifts only when motion is allowed, the hero is open (no keyboard), the app is in the
+  /// foreground and this is the current route.
+  void _syncDrift() => _time.active = !EmReduceMotion.of(context) && !_collapsed && _resumed && _current;
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _time.dispose();
     _intensity.dispose();
     super.dispose();

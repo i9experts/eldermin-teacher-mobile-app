@@ -101,12 +101,12 @@ void main() {
     expect(find.byType(UnsupportedRoleScreen), findsOneWidget);
   });
 
-  testWidgets('reduce motion: a short hold only (crossfade length)', (t) async {
+  testWidgets('reduce motion: no hold at all - the gate moves on as soon as sign-in succeeds', (t) async {
     await mount(t, reduce: true);
     await signIn(t);
-    expect(find.byType(LoginScreen), findsOneWidget);
-    await t.pump(const Duration(milliseconds: 300));
-    expect(find.byType(LoginScreen), findsNothing);
+    await t.pump(const Duration(milliseconds: 20));
+    await t.pump(const Duration(milliseconds: 300)); // with the hold the login screen is still up at 400 ms (see the test above)
+    expect(find.byType(LoginScreen), findsNothing, reason: 'nothing to wait for: there is no check to draw');
     expect(find.byType(UnsupportedRoleScreen), findsOneWidget);
   });
 

@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'app/common/bindings/initial_binding.dart';
@@ -70,10 +69,16 @@ class _AuthGateState extends State<AuthGate> {
     _worker = ever(auth.status, (status) {
       final prev = _prevStatus;
       _prevStatus = status;
-      if (prev == AuthStatus.unauthenticated && status == AuthStatus.authenticated && !_splashActive && !auth.tokenLoginInProgress.value) {
+      if (prev == AuthStatus.unauthenticated &&
+          status == AuthStatus.authenticated &&
+          !_splashActive &&
+          !auth.tokenLoginInProgress.value) {
         setState(() => _holdLogin = true);
         _holdTimer?.cancel();
-        _holdTimer = Timer(EmReduceMotion.of(context) ? EmMotion.crossfade : EmMotion.successHold, () {
+        _holdTimer = Timer(
+            EmReduceMotion.of(context)
+                ? EmMotion.crossfade
+                : EmMotion.successHold, () {
           if (mounted) setState(() => _holdLogin = false);
         });
       }
@@ -95,7 +100,9 @@ class _AuthGateState extends State<AuthGate> {
   /// eldermin-teacher-app-docs/design/MOTION_SPEC.md section 6.
   late bool _splashActive;
 
-  bool _ready(AuthController auth) => auth.tokenLoginInProgress.value || auth.status.value != AuthStatus.unknown;
+  bool _ready(AuthController auth) =>
+      auth.tokenLoginInProgress.value ||
+      auth.status.value != AuthStatus.unknown;
 
   Widget _destination(AuthController auth) {
     if (auth.tokenLoginInProgress.value) return const _LinkSignInScreen();
@@ -121,9 +128,12 @@ class _AuthGateState extends State<AuthGate> {
       // Back to unknown after the hand-off: a plain splash, as before.
       // Always a Stack, destination first: when the overlay is removed the destination keeps its place in
       // the tree (re-parenting it would remount it and replay its entrance).
-      final toHeader = auth.status.value == AuthStatus.unauthenticated && !auth.tokenLoginInProgress.value;
+      final toHeader = auth.status.value == AuthStatus.unauthenticated &&
+          !auth.tokenLoginInProgress.value;
       final Widget base;
-      if (_holdLogin && auth.status.value == AuthStatus.authenticated && !_splashActive) {
+      if (_holdLogin &&
+          auth.status.value == AuthStatus.authenticated &&
+          !_splashActive) {
         base = const LoginScreen();
       } else if (ready) {
         base = _destination(auth);
@@ -156,6 +166,7 @@ class _LinkSignInScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const EmScaffold(
         extendBody: false,
-        body: SafeArea(child: EmLoading(label: 'Signing you in...', showLabel: true)),
+        body: SafeArea(
+            child: EmLoading(label: 'Signing you in...', showLabel: true)),
       );
 }

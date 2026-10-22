@@ -29,6 +29,11 @@ class EmMorphButton extends StatelessWidget {
 
   static const double height = 52;
 
+  /// Fill and content colours. The content is `ink` (7.1:1 on the accent), NOT the navy `onAccent`
+  /// (4.43:1: icons / large text only), so the 16 px label passes AA as normal text.
+  static const Color fill = EmColors.accent;
+  static const Color content = EmColors.ink;
+
   @override
   Widget build(BuildContext context) {
     final reduced = EmReduceMotion.of(context);
@@ -54,7 +59,7 @@ class EmMorphButton extends StatelessWidget {
               curve: Curves.easeInOutCubic,
               width: busy ? height : full,
               height: height,
-              decoration: const BoxDecoration(color: EmColors.accent, borderRadius: EmRadius.pillAll),
+              decoration: const BoxDecoration(color: fill, borderRadius: EmRadius.pillAll),
               child: Material(
                 type: MaterialType.transparency,
                 borderRadius: EmRadius.pillAll,
@@ -77,9 +82,9 @@ class EmMorphButton extends StatelessWidget {
           key: const ValueKey('idle'),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: EmType.bodyLarge.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600)),
+          style: EmType.bodyLarge.copyWith(color: content, fontWeight: FontWeight.w700)),
       EmMorphPhase.loading => const SizedBox(
-          key: ValueKey('loading'), width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3, color: EmColors.ink)),
+          key: ValueKey('loading'), width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3, color: content)),
       EmMorphPhase.success => _Check(key: const ValueKey('success'), animate: !reduced),
     };
     return AnimatedSwitcher(duration: reduced ? EmMotion.crossfade : EmMotion.fast, child: child);
@@ -118,7 +123,7 @@ class CheckPainter extends CustomPainter {
       ..strokeWidth = 3.2
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..color = EmColors.ink;
+      ..color = EmMorphButton.content;
     for (final m in p.computeMetrics()) {
       canvas.drawPath(m.extractPath(0, m.length * progress), paint);
     }
