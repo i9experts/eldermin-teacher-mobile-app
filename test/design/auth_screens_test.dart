@@ -122,11 +122,11 @@ void main() {
         expect((d.focusedBorder! as OutlineInputBorder).borderSide.color, EmColors.accent);
       }
 
-      // button: accent fill, ink label
-      expect(find.byType(EmPrimaryButton), findsOneWidget);
-      final style = t.widget<ElevatedButton>(find.descendant(of: find.byType(EmPrimaryButton), matching: find.byType(ElevatedButton))).style!;
-      expect(style.backgroundColor!.resolve({}), EmColors.accent);
-      expect(style.foregroundColor!.resolve({}), EmColors.ink);
+      // button: accent fill, ink label (the morph button)
+      expect(find.byType(EmMorphButton), findsOneWidget);
+      final fill = t.widget<AnimatedContainer>(find.descendant(of: find.byType(EmMorphButton), matching: find.byType(AnimatedContainer))).decoration! as BoxDecoration;
+      expect(fill.color, EmColors.accent);
+      expect(t.widget<Text>(find.descendant(of: find.byType(EmMorphButton), matching: find.text('Sign in'))).style!.color, EmColors.ink);
     });
 
     test('colours used on the blue card are AA on the whole gradient (both ends)', () {
@@ -155,6 +155,7 @@ void main() {
       final allowed = {
         EmColors.ink, EmColors.textSecondary, EmColors.textTertiary, EmColors.primary, EmColors.primaryDark, EmColors.primaryLight,
         EmColors.onPrimary, EmColors.onErrorContainer, EmColors.error, EmColors.onDisabled,
+        EmColors.primaryContainer, // subtitle / captions on the navy hero and the blue card (AA at both ends, see below)
       };
       for (final c in cases) {
         Get.reset();

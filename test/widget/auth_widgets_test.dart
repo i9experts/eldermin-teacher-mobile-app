@@ -88,6 +88,14 @@ Future<void> _pump(WidgetTester tester, Widget screen) async {
   await tester.pump();
 }
 
+/// The sign-in screens drift a constellation forever, so pumpAndSettle would never return:
+/// pump past every entrance / morph (all finish within ~1.6 s) instead.
+Future<void> settleAuth(WidgetTester t) async {
+  await t.pump();
+  await t.pump(const Duration(milliseconds: 800));
+  await t.pump(const Duration(milliseconds: 800));
+}
+
 void main() {
   late _FakeApi api;
   late AuthController auth;
@@ -138,7 +146,7 @@ void main() {
       await tester.enterText(field('Email'), '  tess@stub.test ');
       await tester.enterText(field('Password'), 'StubPass123');
       await tester.tap(find.text('Sign in'));
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       expect(api.loginCalls.single['email'], 'tess@stub.test');
       expect(api.loginCalls.single['slug'], '');
       expect(auth.status.value, AuthStatus.authenticated);
@@ -150,7 +158,7 @@ void main() {
       await tester.enterText(field('Email'), 'tess@stub.test');
       await tester.enterText(field('Password'), 'wrongpass');
       await tester.tap(find.text('Sign in'));
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       expect(find.text('Invalid credentials'), findsOneWidget);
       expect(auth.status.value, AuthStatus.unauthenticated);
       expect(find.text('Sign in'), findsOneWidget); // button back to idle, not stuck loading
@@ -166,14 +174,14 @@ void main() {
       await tester.enterText(field('Password'), 'StubPass123');
       await tester.enterText(field('School code'), 'demo-school');
       await tester.tap(find.text('Sign in'));
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       expect(api.loginCalls.single['slug'], 'demo-school');
     });
 
     testWidgets('a remembered school code is prefilled and the section is expanded', (tester) async {
       SharedPreferences.setMockInitialValues({'eldermin_teacher_school_slug': 'demo-school'});
       await _pump(tester, const LoginScreen());
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       expect(field('School code'), findsOneWidget);
       expect(find.text('demo-school'), findsOneWidget);
     });
@@ -212,7 +220,7 @@ void main() {
       await _pump(tester, const ForgotPasswordScreen());
       await tester.enterText(field('Email'), 'whoever@stub.test');
       await tester.tap(find.text('Send reset link'));
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       expect(api.forgotCalls, ['whoever@stub.test']);
       expect(find.text('Check your email'), findsOneWidget);
       expect(find.text(ForgotPasswordController.genericMessage), findsOneWidget);
@@ -223,7 +231,7 @@ void main() {
       await _pump(tester, const ForgotPasswordScreen());
       await tester.enterText(field('Email'), 'a@stub.test');
       await tester.tap(find.text('Send reset link'));
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       expect(find.text('No internet connection.'), findsOneWidget);
       expect(find.text('Check your email'), findsNothing);
     });
@@ -299,7 +307,7 @@ void main() {
       await tester.enterText(field('New password'), 'abcdef');
       await tester.enterText(field('Confirm new password'), 'abcdef');
       await tester.tap(find.text('Update password'));
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       expect(api.resetCalls.single, {'token': _hex, 'password': 'abcdef'});
       expect(successCalls, 1);
       expect(Get.find<ResetPasswordController>().token.value, isNull); // single-use token dropped
@@ -312,7 +320,7 @@ void main() {
       await tester.enterText(field('New password'), 'abcdef');
       await tester.enterText(field('Confirm new password'), 'abcdef');
       await tester.tap(find.text('Update password'));
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       expect(find.text('This reset link is invalid or has expired'), findsOneWidget);
       expect(find.text('Request a new reset link'), findsOneWidget);
       expect(successCalls, 0);
@@ -341,13 +349,13 @@ void main() {
       await _pump(tester, const IntroScreen());
       expect(find.text('Next'), findsOneWidget);
       await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       expect(find.text('Get started'), findsOneWidget);
       expect(auth.introSeen.value, isFalse);
       await tester.tap(find.text('Get started'));
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       expect(saved, 1);
       expect(auth.introSeen.value, isTrue);
     });
@@ -358,7 +366,7 @@ void main() {
       Get.put<IntroController>(IntroController(auth: auth, markSeen: () async => saved++));
       await _pump(tester, const IntroScreen());
       await tester.tap(find.byKey(const Key('intro_skip')));
-      await tester.pumpAndSettle();
+      await settleAuth(tester);
       expect(saved, 1);
       expect(auth.introSeen.value, isTrue);
     });

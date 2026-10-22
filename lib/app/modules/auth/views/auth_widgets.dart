@@ -1,18 +1,32 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/design/design.dart';
 
-/// Shared layout for the signed-out screens (login, forgot / reset
-/// password): tinted scaffold, logomark, title, subtitle, then the form on a
-/// white card. Scrolls, and keeps the form reachable with the keyboard open.
-class AuthPageShell extends StatelessWidget {
+/// Shared layout for the signed-out screens (login, forgot / reset password):
+/// a navy hero (logo, title, subtitle over a drifting constellation) and the
+/// form card below it. The card rises and its items stagger in; the hero
+/// collapses when the keyboard opens so the form and the button stay in view.
+/// Scrolls. See MOTION_SPEC.md 3.3 / 3.4.
+class AuthPageShell extends StatefulWidget {
   final String title;
   final String subtitle;
   final Widget child;
   final bool showBack;
 
-  /// Wraps [child] in the white form card (default). Turn off for content that
+  /// Wraps [child] in the form card (default). Turn off for content that
   /// brings its own surface.
   final bool card;
+
+  /// The login screen has the tall hero; the others the compact one.
+  final EmHeroSize heroSize;
+
+  /// Replaces the logo in the hero (the assembled success glyph).
+  final Widget? glyph;
+
+  /// Shakes the card whenever this changes (an error).
+  final ValueListenable<int>? shake;
+
   const AuthPageShell({
     super.key,
     required this.title,
@@ -20,40 +34,83 @@ class AuthPageShell extends StatelessWidget {
     required this.child,
     this.showBack = false,
     this.card = true,
+    this.heroSize = EmHeroSize.compact,
+    this.glyph,
+    this.shake,
   });
 
   @override
+  State<AuthPageShell> createState() => _AuthPageShellState();
+}
+
+class _AuthPageShellState extends State<AuthPageShell> with TickerProviderStateMixin {
+  // the constellation: a slow loop (whole cycles per loop) at full strength, dimmed while collapsed
+  late final AnimationController _time = AnimationController(vsync: this, duration: EmMotion.ambientPeriod);
+  late final AnimationController _intensity = AnimationController(vsync: this, value: 1, duration: EmMotion.slow);
+  bool _collapsed = false;
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_started && !EmReduceMotion.of(context)) {
+      _started = true;
+      _time.repeat();
+    }
+    final collapsed = MediaQuery.viewInsetsOf(context).bottom > 0;
+    if (collapsed != _collapsed) {
+      _collapsed = collapsed;
+      _intensity.animateTo(collapsed ? 0.3 : 1, curve: EmMotion.standard);
+    }
+  }
+
+  @override
+  void dispose() {
+    _time.dispose();
+    _intensity.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return EmScaffold(
-      extendBody: false,
-      appBar: showBack ? const EmAppBar() : null,
-      body: SafeArea(
-        top: !showBack,
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.screenH, vertical: EmSpacing.s16),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight - EmSpacing.s32),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Center(child: EmLogoAnchor(child: EmLogomark(height: 72, semanticLabel: 'Eldermin'))),
-                      const SizedBox(height: EmSpacing.s20),
-                      Semantics(
-                        header: true,
-                        child: Text(title, textAlign: TextAlign.center, style: EmType.display.copyWith(color: EmColors.ink)),
+    return EmEntranceHost(
+      builder: (context, entrance) => EmEntrance(
+        animation: entrance,
+        child: EmScaffold(
+          extendBody: false,
+          systemOverlay: SystemUiOverlayStyle.light,
+          body: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    EmAuthHero(
+                      title: widget.title,
+                      subtitle: widget.subtitle,
+                      size: widget.heroSize,
+                      collapsed: _collapsed,
+                      showBack: widget.showBack,
+                      glyph: widget.glyph,
+                      time: _time,
+                      intensity: _intensity,
+                    ),
+                    SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.screenH, vertical: EmSpacing.s20),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 420),
+                            child: _rise(entrance, widget.card ? AuthCard(child: widget.child) : widget.child),
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: EmSpacing.s8),
-                      Text(subtitle, textAlign: TextAlign.center, style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
-                      const SizedBox(height: EmSpacing.s24),
-                      if (card) AuthCard(child: child) else child,
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -61,6 +118,21 @@ class AuthPageShell extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// The card rises [EmMotion.riseDistance] while it fades in; shakes on error.
+  Widget _rise(Animation<double> entrance, Widget card) {
+    final a = CurvedAnimation(parent: entrance, curve: EmEntrancePlan.card);
+    Widget c = AnimatedBuilder(
+      animation: a,
+      child: card,
+      builder: (context, child) => Opacity(
+        opacity: a.value,
+        child: Transform.translate(offset: Offset(0, EmMotion.riseDistance * (1 - a.value)), child: child),
+      ),
+    );
+    if (widget.shake != null) c = EmShake(trigger: widget.shake!, child: c);
+    return c;
   }
 }
 
@@ -77,7 +149,8 @@ class AuthCard extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(EmRadius.card),
-        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [EmColors.primary, EmColors.primaryDark]),
+        gradient:
+            const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [EmColors.primary, EmColors.primaryDark]),
         boxShadow: EmShadows.soft,
       ),
       child: Padding(

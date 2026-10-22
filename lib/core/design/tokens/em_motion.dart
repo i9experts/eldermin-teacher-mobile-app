@@ -18,6 +18,9 @@ class EmMotion {
   /// Replacement for every motion when reduce-motion is on.
   static const Duration crossfade = Duration(milliseconds: 200);
 
+  /// How long the sign-in screen stays up after a success, so the drawn check is seen.
+  static const Duration successHold = Duration(milliseconds: 700);
+
   /// Delay between staggered entrances (fields, list items).
   static const Duration stagger = Duration(milliseconds: 60);
   static const Duration staggerTight = Duration(milliseconds: 40);

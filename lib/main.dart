@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'app/common/bindings/initial_binding.dart';
@@ -48,18 +50,33 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   Worker? _worker;
+  Timer? _holdTimer;
+  late AuthStatus _prevStatus;
+
+  /// After a successful sign-in the login screen stays up for a beat so its drawn check is seen.
+  bool _holdLogin = false;
 
   @override
   void initState() {
     super.initState();
     final auth = Get.find<AuthController>();
     _splashActive = !_ready(auth);
+    _prevStatus = auth.status.value;
     Get.find<DeepLinkService>().init(); // cold + warm start links
     // Whenever auth status actually changes (login OR logout/401), clear
     // any pushed routes (e.g. forgot-password, or some deep screen open
     // when a session expired) so the new root screen is what the user
     // actually sees, not hidden underneath a stale pushed route.
-    _worker = ever(auth.status, (_) {
+    _worker = ever(auth.status, (status) {
+      final prev = _prevStatus;
+      _prevStatus = status;
+      if (prev == AuthStatus.unauthenticated && status == AuthStatus.authenticated && !_splashActive && !auth.tokenLoginInProgress.value) {
+        setState(() => _holdLogin = true);
+        _holdTimer?.cancel();
+        _holdTimer = Timer(EmReduceMotion.of(context) ? EmMotion.crossfade : EmMotion.successHold, () {
+          if (mounted) setState(() => _holdLogin = false);
+        });
+      }
       if (Get.key.currentState?.canPop() ?? false) {
         Get.until((route) => route.isFirst);
       }
@@ -69,6 +86,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void dispose() {
     _worker?.dispose();
+    _holdTimer?.cancel();
     super.dispose();
   }
 
@@ -101,7 +119,10 @@ class _AuthGateState extends State<AuthGate> {
       final ready = _ready(auth);
       // Already resolved when first built (or the splash finished): no overlay.
       // Back to unknown after the hand-off: a plain splash, as before.
-      if (!_splashActive) return ready ? _destination(auth) : const SplashScreen();
+      if (!_splashActive) {
+        if (_holdLogin && auth.status.value == AuthStatus.authenticated) return const LoginScreen();
+        return ready ? _destination(auth) : const SplashScreen();
+      }
       final toHeader = auth.status.value == AuthStatus.unauthenticated && !auth.tokenLoginInProgress.value;
       return Stack(
         fit: StackFit.expand,

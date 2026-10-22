@@ -1,6 +1,8 @@
 // Barrel for the Eldermin design system.
 export 'contrast.dart';
 export 'motion/constellation_painter.dart';
+export 'motion/em_assemble_glyph.dart';
+export 'motion/em_entrance.dart';
 export 'motion/logo_handoff.dart';
 export 'motion/logomark_geometry.dart';
 export 'motion/node_network_painter.dart';
