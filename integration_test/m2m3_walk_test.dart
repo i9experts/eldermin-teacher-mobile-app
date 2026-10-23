@@ -100,6 +100,11 @@ class Touch {
 
 Future<void> tap(WidgetTester t, Finder f) async {
   await t.pump(); // layout settled before measuring
+  // the photo header pushes the form down: scroll the target into view first, as a person would
+  try {
+    await t.ensureVisible(f.first);
+  } catch (_) {/* not in a scrollable (onboarding buttons): already visible */}
+  await t.pump(const Duration(milliseconds: 120));
   final touch = Touch.down(t, t.getCenter(f.first));
   await t.pump(const Duration(milliseconds: 70));
   touch.up();
@@ -338,6 +343,30 @@ void main() {
         await loginKeyboard(t, p: 'f');
         await keyboardDown(t);
         await resetFlow(t, p: 'f', withKeyboard: true);
+      case 'h': // photo splash -> hand-off onto the first onboarding page (marks every ~200-300 ms of the first beat)
+        await boot(t, ['loggedout', 'intro']);
+        for (final (name, ms) in [('h_splash_a', 90), ('h_splash_b', 200), ('h_splash_c', 250), ('h_splash_d', 300), ('h_splash_e', 300)]) {
+          await wait(t, ms);
+          mark(name);
+        }
+        await waitFor(t, find.byKey(const Key('intro_skip')));
+        await wait(t, 60);
+        mark('h_flight_start');
+        await wait(t, 200);
+        mark('h_flight_mid');
+        await wait(t, 300);
+        mark('h_flight_end');
+        await wait(t, 1500);
+        mark('h_onboarding_1');
+      case 'i': // slow init: the splash holds (rings loop, "Connecting…"), then hands off to sign in
+        await boot(t, ['slow']);
+        for (final (name, ms) in [('i_splash_1s', 900), ('i_splash_2s', 1000), ('i_splash_3_5s', 1500)]) {
+          await wait(t, ms);
+          mark(name);
+        }
+        await waitFor(t, find.text('Sign in'), seconds: 40);
+        await wait(t, 2200);
+        mark('i_login_landed');
       case 'g': // smallest iPhone: onboarding + login with keyboard
         await boot(t, ['loggedout', 'intro']);
         await waitFor(t, find.byKey(const Key('intro_skip')));
