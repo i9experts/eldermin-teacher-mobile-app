@@ -183,6 +183,9 @@ void main() {
       expect(ok(Routes.studentLeaves, ct: true), isTrue);
       expect(ok(Routes.earlyYears), isTrue, reason: 'a teacher holds early-years:view');
       expect(ok('${Routes.earlyYears}/child/abc'), isTrue, reason: 'child routes share the /early-years prefix');
+      for (final r in [Routes.earlyYearsQuickOf('abc'), Routes.earlyYearsObserveOf('abc'), Routes.earlyYearsPortfolioNewOf('abc')]) {
+        expect(ok(r), isTrue, reason: r);
+      }
       final noEy = PermissionService(role: 'teacher', customPermissions: const ['teaching:view']);
       expect(
           RouteGuardRules.allows(Routes.earlyYears,

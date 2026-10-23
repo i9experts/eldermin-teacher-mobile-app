@@ -4,6 +4,7 @@ import '../../../../core/design/design.dart';
 import '../../../../core/models/early_years/ece_models.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
+import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/early_years_child_controller.dart';
 import 'widgets/early_years_widgets.dart';
@@ -19,9 +20,47 @@ class EarlyYearsChildScreen extends GetView<EarlyYearsChildController> {
   Widget build(BuildContext context) {
     return EmScaffold(
       appBar: EmAppBar(title: 'Early Years'),
+      floatingActionButton: Obx(() {
+        final k = c.childState.value.data;
+        if (k == null || !c.canManage) return const SizedBox.shrink();
+        return FloatingActionButton.extended(
+          key: const Key('ey_add_fab'),
+          onPressed: () => _showAddSheet(context, k),
+          icon: const Icon(Icons.add_rounded),
+          label: Text('Add', style: EmType.label.copyWith(color: EmColors.onPrimary)),
+        );
+      }),
       body: Obx(_body),
     );
   }
+
+  /// What can be added for this child: a quick observation, a full observation or a portfolio entry.
+  void _showAddSheet(BuildContext context, EceChild k) {
+    EmBottomSheet.show<void>(
+      context,
+      title: 'Add for ${k.firstName.isEmpty ? 'this child' : k.firstName}',
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        _addRow(const Key('ey_add_quick'), Icons.bolt_rounded, 'Quick observation', 'A skill and a level in a few taps', () => Get.toNamed(Routes.earlyYearsQuickOf(k.id), arguments: k)),
+        _addRow(const Key('ey_add_observe'), Icons.visibility_outlined, 'Observation', 'Write what you saw, add photos', () => Get.toNamed(Routes.earlyYearsObserveOf(k.id), arguments: k)),
+        _addRow(const Key('ey_add_portfolio'), Icons.photo_album_outlined, 'Portfolio entry', 'A moment to keep, with photos', () => Get.toNamed(Routes.earlyYearsPortfolioNewOf(k.id), arguments: k)),
+      ]),
+    );
+  }
+
+  Widget _addRow(Key key, IconData icon, String title, String subtitle, VoidCallback go) => Padding(
+        padding: const EdgeInsets.only(bottom: EmSpacing.s8),
+        child: EmListRow(
+          key: key,
+          leading: Icon(icon, color: EmColors.primary),
+          title: title,
+          subtitle: subtitle,
+          trailing: const Icon(Icons.chevron_right_rounded, color: EmColors.textSecondary),
+          onTap: () {
+            Get.back(); // close the sheet
+            go();
+          },
+        ),
+      );
 
   Widget _body() {
     final cs = c.childState.value;

@@ -1,4 +1,5 @@
 import 'package:eldermin_teacher_app/core/models/early_years/ece_models.dart';
+import 'package:eldermin_teacher_app/core/services/attachment_picker.dart';
 import 'package:eldermin_teacher_app/core/services/early_years_repository.dart';
 
 /// Records every call and answers from closures. No network: the real [BaseClient] it extends is never used.
@@ -124,3 +125,19 @@ EceChild child(int n, {String first = 'Child', String grade = 'Nursery', String 
       'dateOfBirth': '2022-03-01T00:00:00.000Z',
       if (photo != null) 'photo': photo,
     });
+
+/// Photo picker that returns whatever the test sets.
+class FakePhotoPicker implements AttachmentPicker {
+  List<PickedAttachment> next = const [];
+  int calls = 0;
+  @override
+  Future<List<PickedAttachment>> pickPhotos() async {
+    calls++;
+    return next;
+  }
+
+  @override
+  Future<List<PickedAttachment>> pickDocuments() async => const [];
+}
+
+PickedAttachment pickedPhoto(String name, {int size = 1000}) => PickedAttachment(name: name, path: '/tmp/$name', size: size);
