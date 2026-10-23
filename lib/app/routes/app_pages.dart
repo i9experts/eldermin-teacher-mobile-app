@@ -26,6 +26,7 @@ import '../modules/curriculum/views/curriculum_screen.dart';
 import '../modules/delete_account/bindings/delete_account_binding.dart';
 import '../modules/delete_account/views/delete_account_screen.dart';
 import '../modules/early_years/bindings/early_years_binding.dart';
+import '../modules/early_years/views/early_years_child_screen.dart';
 import '../modules/early_years/views/early_years_screen.dart';
 import '../modules/events/bindings/events_binding.dart';
 import '../modules/events/views/event_detail_screen.dart';
@@ -318,6 +319,10 @@ class AppPages {
         name: Routes.earlyYears,
         page: () => const EarlyYearsScreen(),
         binding: EarlyYearsBinding()),
+    GetPage(
+        name: Routes.earlyYearsChild,
+        page: () => const EarlyYearsChildScreen(),
+        binding: EarlyYearsChildBinding()),
     GetPage(
         name: Routes.safeguarding,
         page: () => const SafeguardingScreen(),

@@ -4,6 +4,7 @@ import '../../../../core/design/design.dart';
 import '../../../../core/models/early_years/ece_models.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
+import '../../../routes/app_routes.dart';
 import '../../homework/views/widgets/homework_widgets.dart';
 import '../controllers/early_years_controller.dart';
 import 'widgets/early_years_widgets.dart';
@@ -34,8 +35,7 @@ class _EarlyYearsScreenState extends State<EarlyYearsScreen> {
     );
   }
 
-  /// Opens the child. Wired by the detail screens (EY-T2); until then a tile is not tappable.
-  void Function(EceChild)? get onOpenChild => null;
+  void _openChild(EceChild k) => Get.toNamed(Routes.earlyYearsChildOf(k.id), arguments: k);
 
   Widget _body() {
     final state = c.state.value;
@@ -86,9 +86,8 @@ class _EarlyYearsScreenState extends State<EarlyYearsScreen> {
             ),
           ];
         }
-        final open = onOpenChild;
         return [
-          for (final k in visible) EceChildTile(child: k, onTap: open == null ? null : () => open(k)),
+          for (final k in visible) EceChildTile(child: k, onTap: () => _openChild(k)),
         ];
       },
     );

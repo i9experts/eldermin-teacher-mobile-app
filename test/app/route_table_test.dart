@@ -39,7 +39,7 @@ void main() {
       '/ptm', '/ptm/new', '/ptm/:id', '/fixtures', '/fixtures/:id', '/leave', '/leave/apply',
       '/student-leaves', '/student-leaves/:id', '/messages', '/messages/new', '/messages/:threadId',
       '/calendar', '/events', '/events/:id', '/curriculum', '/library',
-      '/early-years', '/safeguarding',
+      '/early-years', '/early-years/child/:id', '/safeguarding',
       '/profile', '/help', '/help/:module/:tabKey', '/about', '/delete-account',
       '/home', '/home/classes', '/home/attendance', '/home/messages', '/home/more',
       '/splash', '/login', '/unsupported-role',
@@ -63,6 +63,7 @@ void main() {
   test('parameter helpers build concrete locations', () {
     expect(Routes.homeworkGradeOf('h1', 's2'), '/homework/h1/submissions/s2/grade');
     expect(Routes.studentDetailOf('42'), '/students/42');
+    expect(Routes.earlyYearsChildOf('c1'), '/early-years/child/c1');
   });
 
   group('module catalog visibility', () {
