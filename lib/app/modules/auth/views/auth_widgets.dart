@@ -6,13 +6,17 @@ import '../../../../core/design/design.dart';
 /// How much of the screen the photo takes on a signed-out screen.
 enum AuthPhotoSize {
   /// Sign in: the photo fills the top ~55% and fades into the navy.
-  tall(0.55),
+  tall(0.55, Alignment.topCenter),
 
   /// Forgot / reset password: a shorter photo.
-  short(0.34);
+  short(0.34, Alignment(0, -0.78));
 
-  const AuthPhotoSize(this.fraction);
+  const AuthPhotoSize(this.fraction, this.alignment);
   final double fraction;
+
+  /// Where the photo sits in its box: the short box shows the photo shifted up a little so the faces stay
+  /// above the overlay's ramp (and clear of the status bar).
+  final Alignment alignment;
 }
 
 /// Shared layout for the signed-out screens (login, forgot / reset password):
@@ -103,6 +107,7 @@ class AuthPageShell extends StatelessWidget {
                                 child: EmPhotoBackdrop(
                                   key: const Key('auth_photo'),
                                   image: EmAuthPhotos.provider(EmAuthPhotos.photo1),
+                                  alignment: photoSize.alignment,
                                   safeTop: photoSafeTop,
                                   bottomAlpha: 1,
                                 ),
