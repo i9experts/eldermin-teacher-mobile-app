@@ -159,10 +159,21 @@ class ApiConstants {
   static const String libraryBooks = '$apiPrefix/academics/library/books';
   static const String librarySearch = '$apiPrefix/academics/library/search';
 
-  // ── Early Years (hidden in v1, constants kept for later) ─────
+  // ── Early Years (ece/ece.controller.ts) ─────────────────────
+  // Only what the teacher app v1 uses. Care records, allergies and support cases are deliberately NOT here: the app never reads them.
   static const String eceChildren = '$apiPrefix/ece/children';
   static const String eceDashboard = '$apiPrefix/ece/dashboard';
   static const String eceObservations = '$apiPrefix/ece/observations';
+  static const String eceObservationsQuick = '$apiPrefix/ece/observations/quick';
+  static const String eceDomains = '$apiPrefix/ece/domains';
+  static const String eceSkills = '$apiPrefix/ece/skills';
+  static const String eceFrameworks = '$apiPrefix/ece/frameworks';
+  static const String ecePortfolio = '$apiPrefix/ece/portfolio';
+  static String eceProfile(String studentId) => '$apiPrefix/ece/students/$studentId/profile';
+  static String eceStudentPortfolio(String studentId) => '$apiPrefix/ece/students/$studentId/portfolio';
+  static const String eceEvidenceFolder = 'ece-evidence'; // upload folder the web uses for observation/portfolio media
+  /// The school's academic years (`isCurrent`): the same source the web's top bar uses for its `x-academic-year` header.
+  static const String academicYears = '$apiPrefix/organization/academic-years';
 
   // ── Safeguarding / uploads / knowledge base ──────────────────
   static const String safeguarding = '$apiPrefix/compliance/safeguarding';

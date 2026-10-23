@@ -72,9 +72,12 @@ void main() {
     List<String> ids(ModulePlacement p, PermissionService s, {required bool classTeacher}) =>
         ModuleCatalog.visible(p, s, isClassTeacher: classTeacher).map((e) => e.id).toList();
 
-    test('Early Years slot exists but is hidden in v1', () {
+    test('Early Years is in More for a teacher with early-years:view, and hidden without it', () {
       expect(ModuleCatalog.all.any((e) => e.id == 'early_years'), isTrue);
-      expect(ids(ModulePlacement.more, teacher, classTeacher: true), isNot(contains('early_years')));
+      expect(ids(ModulePlacement.more, teacher, classTeacher: true), contains('early_years'));
+      expect(ids(ModulePlacement.more, teacher, classTeacher: false), contains('early_years'));
+      final custom = PermissionService(role: 'teacher', customPermissions: const ['teaching:view']);
+      expect(ids(ModulePlacement.more, custom, classTeacher: false), isNot(contains('early_years')));
     });
 
     test('class-teacher-only entries need the class-teacher flag', () {

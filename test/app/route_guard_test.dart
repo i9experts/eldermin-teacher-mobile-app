@@ -181,7 +181,14 @@ void main() {
       expect(ok(Routes.homework, signedIn: false), isFalse);
       expect(ok(Routes.studentLeaves), isFalse);
       expect(ok(Routes.studentLeaves, ct: true), isTrue);
-      expect(ok(Routes.earlyYears), isFalse, reason: 'hidden in v1');
+      expect(ok(Routes.earlyYears), isTrue, reason: 'a teacher holds early-years:view');
+      expect(ok('${Routes.earlyYears}/child/abc'), isTrue, reason: 'child routes share the /early-years prefix');
+      final noEy = PermissionService(role: 'teacher', customPermissions: const ['teaching:view']);
+      expect(
+          RouteGuardRules.allows(Routes.earlyYears,
+              signedIn: true, roleSupported: true, profileLoaded: true, permissions: noEy, isClassTeacher: false),
+          isFalse,
+          reason: 'a custom role without early-years:view never reaches it');
       expect(ok(Routes.login, signedIn: false), isTrue);
       expect(AuthStatus.values, isNotEmpty);
     });
