@@ -74,7 +74,7 @@ void main() {
     await leaveToShell(t);
 
     step('delete account');
-    await openFromMore(t, 'Delete account', find.byKey(const Key('delete_explainer')));
+    await openFromMore(t, 'Request account deletion', find.byKey(const Key('delete_explainer')));
     await shot(t, '7c_60_delete_account_explanation');
     await t.enterText(find.byKey(const Key('delete_reason')), 'DUMMY reason');
     await t.enterText(find.byKey(const Key('delete_confirm_field')), 'DELETE');
@@ -92,7 +92,7 @@ void main() {
     await shot(t, '7c_63_delete_account_request_sent_still_signed_in');
     await t.tap(find.byKey(const Key('delete_done')));
     await settle(t, 1000);
-    await openFromMore(t, 'Delete account', find.byKey(const Key('delete_explainer')));
+    await openFromMore(t, 'Request account deletion', find.byKey(const Key('delete_explainer')));
     await t.enterText(find.byKey(const Key('delete_confirm_field')), 'DELETE');
     await settle(t, 500);
     await t.tap(find.byKey(const Key('delete_submit')));

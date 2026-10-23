@@ -14,7 +14,7 @@ class DeleteAccountScreen extends GetView<DeleteAccountController> {
   @override
   Widget build(BuildContext context) {
     return EmScaffold(
-      appBar: EmAppBar(title: 'Delete account'),
+      appBar: EmAppBar(title: 'Request account deletion'),
       body: Obx(() {
         final r = c.result.value;
         if (r != null) return _done(r);
@@ -40,7 +40,7 @@ class DeleteAccountScreen extends GetView<DeleteAccountController> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('This is a request, not an instant deletion', style: EmType.body.copyWith(fontWeight: FontWeight.w800, color: EmTone.warning.foreground)),
                 const SizedBox(height: EmSpacing.s8),
-                Text("Sending this asks your school administration to delete your Eldermin Teacher account. They process it themselves. Until they do, your account stays active and you can keep using the app, and your records are retained. We won't sign you out.", style: EmType.label.copyWith(fontWeight: FontWeight.w500, color: EmTone.warning.foreground, height: 1.45)),
+                Text("Sending this asks your school administration to delete your Eldermin Teacher account. The school administration will process the request. Until they do, your account stays active and you can keep using the app, and your records are retained. We won't sign you out.", style: EmType.label.copyWith(fontWeight: FontWeight.w500, color: EmTone.warning.foreground, height: 1.45)),
               ]),
             ),
           ]),
@@ -48,7 +48,7 @@ class DeleteAccountScreen extends GetView<DeleteAccountController> {
         const SizedBox(height: EmSpacing.s16),
         if (f != null) ErrorBanner(bannerKey: const Key('delete_error'), message: _failureText(f)),
         LabeledField(label: 'Reason (optional)', controller: c.reasonC, fieldKey: const Key('delete_reason'), maxLines: 3, maxLength: kDeleteReasonMax, hint: 'Tell the school why, if you want to'),
-        const FormLabel('To confirm, type DELETE'),
+        const FormLabel('To confirm this request, type DELETE'),
         TextField(
           key: const Key('delete_confirm_field'),
           controller: c.confirmC,

@@ -33,7 +33,7 @@ class MoreScreen extends GetView<MoreController> {
               key: const Key('more_delete_account'),
               icon: Icons.person_remove_outlined,
               destructive: true,
-              title: 'Delete account',
+              title: 'Request account deletion',
               subtitle: 'Ask the school to delete your account',
               onTap: () => Get.toNamed(Routes.deleteAccount)),
           _row(

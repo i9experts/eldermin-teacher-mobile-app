@@ -75,8 +75,8 @@ flutter:
         - asset: assets/fonts/PlusJakartaSans-Bold.ttf
           weight: 700
 
-# Launcher icon: placeholder-quality Eldermin Teacher variant generated from
-# the Eldermin logomark (see assets/launcher_icon). Re-run with
+# Launcher icon: identical to the Eldermin parent app icon (no badge); source in
+# assets/launcher_icon. Re-run with
 # `dart run flutter_launcher_icons` after changing it.
 flutter_launcher_icons:
   android: true

@@ -45,7 +45,7 @@ class ProfileScreen extends GetView<ProfileController> {
               const SubHeadingText('Settings'),
               _nav(Icons.help_outline_rounded, 'Help', 'Guides and support', Routes.help, const Key('profile_help')),
               _nav(Icons.info_outline_rounded, 'About', 'App version', Routes.about, const Key('profile_about')),
-              _nav(Icons.person_remove_outlined, 'Delete account', 'Ask the school to delete your account', Routes.deleteAccount, const Key('profile_delete_account'), danger: true),
+              _nav(Icons.person_remove_outlined, 'Request account deletion', 'Ask the school to delete your account', Routes.deleteAccount, const Key('profile_delete_account'), danger: true),
             ],
           );
         }),

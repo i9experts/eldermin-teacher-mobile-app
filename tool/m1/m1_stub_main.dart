@@ -18,6 +18,10 @@ import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controlle
 import 'package:eldermin_teacher_app/app/routes/app_pages.dart';
 import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:eldermin_teacher_app/core/models/auth_me.dart';
+import 'package:eldermin_teacher_app/core/models/institution.dart';
+import 'package:eldermin_teacher_app/core/models/login_result.dart';
+import 'package:eldermin_teacher_app/core/models/teacher_user.dart';
+import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/models/staff_me.dart';
 import 'package:eldermin_teacher_app/core/network/base_client.dart';
 import 'package:eldermin_teacher_app/core/services/app_preferences.dart';
@@ -38,6 +42,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 String _scenario = const String.fromEnvironment('M1_SCENARIO', defaultValue: 'loggedout');
 bool _intro = const bool.fromEnvironment('M1_INTRO');
 bool _reduce = false;
+
+/// Knobs the M2/M3 walkthrough (integration_test/m2m3_walk_test.dart) turns while recording:
+/// the iOS simulator's software keyboard cannot be opened without UI scripting, so the keyboard
+/// is simulated (viewInsets + a grey panel); reduce motion and text scale are forced the same way.
+class M1Hooks {
+  M1Hooks._();
+  static final keyboard = ValueNotifier<double>(0);
+  static final reduce = ValueNotifier<bool>(false);
+  static final textScale = ValueNotifier<double>(1);
+
+  /// A magenta flash: the clapper that lets the recording be aligned with the test's MARK lines.
+  static final flash = ValueNotifier<bool>(false);
+}
 
 class _Tokens implements TokenStore {
   @override
@@ -65,6 +82,28 @@ class _Api extends AuthApiService {
         'teacherProfile': {'isClassTeacher': true},
         'institution': {'slug': 's'},
       });
+
+  /// password `wrong` -> 401 "Invalid credentials"; anything else signs in after a short wait (so the spinner is seen)
+  @override
+  Future<LoginResult> login({required String email, required String password, String? slug}) async {
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    if (password == 'wrong') throw ApiException('Invalid credentials', statusCode: 401);
+    return LoginResult(
+      accessToken: 'stub.jwt.token',
+      user: TeacherUser(id: 'u', name: 'Tess Teacher', email: email, role: 'teacher'),
+      institution: const Institution(slug: 's'),
+    );
+  }
+
+  @override
+  Future<void> forgotPassword(String email) async => Future<void>.delayed(const Duration(milliseconds: 900));
+
+  /// token `expired` -> 401 "invalid or has expired"; anything else succeeds
+  @override
+  Future<void> resetPassword({required String token, required String newPassword}) async {
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    if (token == 'expired') throw ApiException('This reset link is invalid or has expired.', statusCode: 401);
+  }
 
   @override
   Future<void> logout() async {}
@@ -117,6 +156,10 @@ Future<void> main(List<String> args) async {
   _intro = words.contains('intro') || _intro;
   // `reduce`: force MediaQuery.disableAnimations (the iOS simulator ignores the Reduce Motion default; on Android use the real setting)
   _reduce = words.contains('reduce');
+  M1Hooks.reduce.value = _reduce;
+  for (final w in words) {
+    if (w.startsWith('scale=')) M1Hooks.textScale.value = double.parse(w.substring(6));
+  }
   registerFontLicenses();
   // for the recording log: does Flutter see the OS reduce-motion setting?
   File('${Directory.systemTemp.path}/m1_flags').writeAsStringSync('disableAnimations=${WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations}');
@@ -131,8 +174,47 @@ Future<void> main(List<String> args) async {
     debugShowCheckedModeBanner: false,
     theme: AppTheme.light,
     initialBinding: _Binding(),
-    builder: (context, child) => _reduce ? MediaQuery(data: MediaQuery.of(context).copyWith(disableAnimations: true), child: child!) : child!,
+    builder: (context, child) => _hooked(context, child!),
     getPages: AppPages.pages,
     home: const AuthGate(),
   ));
+}
+
+/// Applies [M1Hooks] around the app: forced reduce motion / text scale, the simulated keyboard, the flash.
+Widget _hooked(BuildContext context, Widget child) {
+  return ListenableBuilder(
+    listenable: Listenable.merge([M1Hooks.keyboard, M1Hooks.reduce, M1Hooks.textScale, M1Hooks.flash]),
+    builder: (context, _) {
+      final mq = MediaQuery.of(context);
+      final kb = M1Hooks.keyboard.value;
+      return Stack(
+        textDirection: TextDirection.ltr,
+        children: [
+          Positioned.fill(
+            child: MediaQuery(
+              data: mq.copyWith(
+                disableAnimations: M1Hooks.reduce.value || mq.disableAnimations,
+                textScaler: M1Hooks.textScale.value == 1 ? mq.textScaler : TextScaler.linear(M1Hooks.textScale.value),
+                viewInsets: kb > 0 ? mq.viewInsets.copyWith(bottom: kb) : mq.viewInsets,
+                padding: kb > 0 ? mq.padding.copyWith(bottom: 0) : mq.padding,
+              ),
+              child: child,
+            ),
+          ),
+          if (kb > 0)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: kb,
+              child: const ColoredBox(
+                color: Color(0xFFD1D5DB),
+                child: Center(child: Text('simulated keyboard', textDirection: TextDirection.ltr, style: TextStyle(color: Color(0xFF4B5563), fontSize: 14))),
+              ),
+            ),
+          if (M1Hooks.flash.value) const Positioned.fill(child: ColoredBox(color: Color(0xFFFF00FF))),
+        ],
+      );
+    },
+  );
 }

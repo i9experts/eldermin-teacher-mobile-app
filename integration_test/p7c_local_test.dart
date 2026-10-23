@@ -400,7 +400,7 @@ Future<void> helpScenario(WidgetTester t) async {
     await leaveToShell(t);
   });
   await step(t, 'delete-account request: type-to-confirm -> real POST -> still signed in; second request', () async {
-    await openFromMore(t, 'Delete account', find.byKey(const Key('delete_explainer')));
+    await openFromMore(t, 'Request account deletion', find.byKey(const Key('delete_explainer')));
     await pshot(t, 'delete_explanation');
     await t.enterText(find.byKey(const Key('delete_reason')), 'P7C dummy reason');
     await t.enterText(find.byKey(const Key('delete_confirm_field')), 'delete');
@@ -415,7 +415,7 @@ Future<void> helpScenario(WidgetTester t) async {
     await t.tap(find.byKey(const Key('delete_done')));
     await settle(t, 1200);
     expectTrue('still signed in (bottom nav visible)', find.byKey(const Key('app_shell_nav')).evaluate().isNotEmpty);
-    await openFromMore(t, 'Delete account', find.byKey(const Key('delete_explainer')));
+    await openFromMore(t, 'Request account deletion', find.byKey(const Key('delete_explainer')));
     await t.enterText(find.byKey(const Key('delete_confirm_field')), 'DELETE');
     await settle(t, 500);
     await t.tap(find.byKey(const Key('delete_submit')));

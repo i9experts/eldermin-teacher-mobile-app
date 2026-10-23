@@ -137,7 +137,7 @@ Future<void> screens(WidgetTester t, String sc) async {
   await openMore(t, 'About', find.byKey(const Key('about_name')));
   await shot(t, 'd9_about_$sc');
   await homeTab(t);
-  await openMore(t, 'Delete account', find.byKey(const Key('delete_explainer')));
+  await openMore(t, 'Request account deletion', find.byKey(const Key('delete_explainer')));
   await shot(t, 'd9_delete_account_form_$sc');
   await reveal(t, 'delete_confirm_field');
   await t.enterText(find.byKey(const Key('delete_confirm_field')), 'DELETE');

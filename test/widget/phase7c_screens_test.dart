@@ -732,7 +732,7 @@ void main() {
               expectInsideScreen(t, find.byKey(Key(k)), w);
               expect(t.getSize(find.byKey(Key(k))).height, greaterThanOrEqualTo(44), reason: k);
             }
-            expect(find.text('Delete account'), findsOneWidget, reason: 'the destructive entry says what it is in words, not only in the error colour');
+            expect(find.text('Request account deletion'), findsOneWidget, reason: 'the destructive entry says what it is in words, not only in the error colour');
           });
         }
       }
@@ -1109,7 +1109,8 @@ void main() {
             expectInsideScreen(t, find.byKey(const Key('delete_submit')), w);
             expect(t.getSize(find.byKey(const Key('delete_submit'))).height, greaterThanOrEqualTo(48));
             // destructive = the error token AND words ("Request account deletion"), never colour alone
-            expect(find.text('Request account deletion'), findsOneWidget);
+            expect(find.descendant(of: find.byKey(const Key('delete_submit')), matching: find.text('Request account deletion')), findsOneWidget);
+            expect(find.text('Request account deletion'), findsNWidgets(2), reason: 'screen title + button');
             expect(t.widget<EmPrimaryButton>(find.byKey(const Key('delete_submit'))).destructive, isTrue);
             c.confirmC.text = 'DELETE';
             c.onConfirmChanged('DELETE');
@@ -1214,7 +1215,7 @@ void main() {
       Get.put(MoreController());
       await open(t, const Scaffold(body: MoreScreen()));
       await settle(t);
-      for (final title in ['School calendar', 'Events', 'Raise a concern', 'Profile', 'Help', 'About', 'Delete account', 'Sign out']) {
+      for (final title in ['School calendar', 'Events', 'Raise a concern', 'Profile', 'Help', 'About', 'Request account deletion', 'Sign out']) {
         expect(find.text(title), findsOneWidget, reason: title);
       }
       expect(find.textContaining('Coming soon'), findsNothing);
