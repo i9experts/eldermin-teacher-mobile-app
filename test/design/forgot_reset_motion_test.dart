@@ -1,4 +1,4 @@
-import 'package:eldermin_teacher_app/app/modules/auth/views/auth_widgets.dart' show AuthBanner, AuthPageShell;
+import 'package:eldermin_teacher_app/app/modules/auth/views/auth_widgets.dart' show AuthBanner, AuthPhotoSize, AuthPageShell;
 import 'package:eldermin_teacher_app/app/modules/forgot_password/controllers/forgot_password_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/forgot_password/views/forgot_password_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/reset_password/controllers/reset_password_controller.dart';
@@ -43,18 +43,19 @@ void main() {
   });
 
   group('forgot password', () {
-    testWidgets('form: compact navy hero with the logo (no glyph yet), the back circle, staggered items', (t) async {
+    testWidgets('form: short photo header with the logo tile (no glyph yet), the back circle, staggered items', (t) async {
       await mount(t, const ForgotPasswordScreen());
-      expect(find.byType(EmAuthHero), findsOneWidget);
-      expect(t.widget<EmAuthHero>(find.byType(EmAuthHero)).size, EmHeroSize.compact);
+      expect(find.byKey(const Key('auth_photo')), findsOneWidget);
+      expect(t.widget<AuthPageShell>(find.byType(AuthPageShell)).photoSize, AuthPhotoSize.short);
+      expect(find.byType(EmLogoTile), findsOneWidget);
       expect(find.byType(EmAssembleGlyph), findsNothing);
-      expect(find.byType(EmAppBar), findsOneWidget);
+      expect(find.byType(EmIconCircleButton), findsOneWidget);
       expect(find.text('Forgot password?'), findsOneWidget);
       expect(find.text("Enter your email and we'll send you a reset link"), findsOneWidget);
       expect(find.text('Send reset link'), findsOneWidget);
     });
 
-    testWidgets('success: the nodes assemble into an envelope in the hero (scattered -> in place), the existing message shows', (t) async {
+    testWidgets('success: the nodes assemble into an envelope on the photo header (scattered -> in place), the existing message shows', (t) async {
       await mount(t, const ForgotPasswordScreen());
       final shell = t.element(find.byType(AuthPageShell));
       Get.find<ForgotPasswordController>().sent.value = true;
@@ -96,7 +97,6 @@ void main() {
       await t.pump();
       await t.pump(const Duration(milliseconds: 16));
       expect(glyph(t).value, 1, reason: 'already in place on the first frame');
-      expect(find.byType(EmConstellation), findsNothing);
       await t.pump(const Duration(milliseconds: 600));
       expect(glyph(t).pulse!.value, 0, reason: 'no pulse');
     });
@@ -203,7 +203,7 @@ void main() {
       await mount(t, const ResetPasswordScreen());
       expect(find.text('Paste the code or link from your email'), findsOneWidget);
       expect(find.text('Continue'), findsOneWidget);
-      expect(find.byType(EmAuthHero), findsOneWidget);
+      expect(find.byKey(const Key('auth_photo')), findsOneWidget);
     });
   });
 

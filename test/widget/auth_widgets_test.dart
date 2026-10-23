@@ -84,12 +84,15 @@ class _FakeApi extends AuthApiService {
 }
 
 Future<void> _pump(WidgetTester tester, Widget screen) async {
+  // a phone-sized screen: the photo header takes ~55% of the height, so the default 800 x 600 test surface hides the form
+  tester.view.physicalSize = const Size(390, 844);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: screen));
   await tester.pump();
 }
 
-/// The sign-in screens drift a constellation forever, so pumpAndSettle would never return:
-/// pump past every entrance / morph (all finish within ~1.6 s) instead.
+/// The sign-in screens have staggered entrances and morphs: pump past them (all finish within ~1.6 s) instead of pumpAndSettle.
 Future<void> settleAuth(WidgetTester t) async {
   await t.pump();
   await t.pump(const Duration(milliseconds: 800));
@@ -245,6 +248,7 @@ void main() {
     });
 
     Future<void> pasteAndContinue(WidgetTester tester, String text) async {
+      await settleAuth(tester); // the entrance has to finish: the form sits lower under the photo header
       await tester.enterText(field('Paste reset code or link'), text);
       await tester.tap(find.text('Continue'));
       await tester.pump();

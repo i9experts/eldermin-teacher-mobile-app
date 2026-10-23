@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
-import 'package:eldermin_teacher_app/app/modules/auth/views/auth_widgets.dart' show AuthCard;
+import 'package:eldermin_teacher_app/app/modules/auth/views/auth_widgets.dart' show AuthPhotoSize;
 import 'package:eldermin_teacher_app/app/modules/auth/views/login_screen.dart';
 import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:eldermin_teacher_app/core/models/auth_me.dart';
@@ -110,18 +110,36 @@ void main() {
     EmLogoHandoff.reset();
   });
 
-  group('hero', () {
-    testWidgets('navy hero with the reversed logo (the splash landing anchor), constellation behind it', (t) async {
+  group('photo header', () {
+    testWidgets('navy page, the first photo behind a navy overlay, the logo tile is the splash landing anchor; no constellation, no card', (t) async {
       await mount(t);
-      final hero = t.widget<DecoratedBox>(find.descendant(of: find.byType(EmAuthHero), matching: find.byType(DecoratedBox)).first);
-      expect((hero.decoration as BoxDecoration).color, EmColors.primaryDark);
-      expect(find.byType(EmConstellation), findsOneWidget);
+      expect(t.widget<Scaffold>(find.byType(Scaffold)).backgroundColor, EmColors.primaryDark);
+      expect(find.byKey(const Key('auth_photo')), findsOneWidget);
+      expect(t.widget<Image>(find.descendant(of: find.byKey(const Key('auth_photo')), matching: find.byType(Image))).fit, BoxFit.cover);
+      expect(find.byKey(const Key('photo_overlay')), findsOneWidget);
+      expect(find.byType(EmLogoTile), findsOneWidget);
       expect(EmLogoHandoff.hasAnchor, isTrue);
-      expect(EmLogoHandoff.anchorPalette, EmNetworkPalette.reversed);
-      expect(t.widget<EmLogomark>(find.descendant(of: find.byType(EmLogoAnchor), matching: find.byType(EmLogomark))).reversed, isTrue);
+      expect(EmLogoHandoff.anchorPalette, EmNetworkPalette.standard);
+      expect(t.widget<EmLogomark>(find.descendant(of: find.byType(EmLogoAnchor), matching: find.byType(EmLogomark))).reversed, isFalse, reason: 'navy / orange logo on the white tile');
     });
 
-    testWidgets('the card rises and fades in, its items stagger (not all visible on the first frames)', (t) async {
+    testWidgets('the photo fills the top ~55% of the screen', (t) async {
+      await mount(t);
+      expect(t.getSize(find.byKey(const Key('auth_photo'))).height, closeTo(844 * AuthPhotoSize.tall.fraction, 1));
+      expect(t.getTopLeft(find.byKey(const Key('auth_photo'))).dy, 0);
+    });
+
+    testWidgets('"Welcome Back!" in accent (large bold, on navy), muted subtitle', (t) async {
+      await mount(t);
+      final title = t.widget<Text>(find.byKey(const Key('auth_title')));
+      expect(title.data, 'Welcome Back!');
+      expect(title.style!.color, EmColors.accent);
+      expect(title.style!.fontSize, greaterThanOrEqualTo(24));
+      expect(title.style!.fontWeight, FontWeight.w700);
+      expect(t.widget<Text>(find.byKey(const Key('auth_subtitle'))).style!.color, EmColors.primaryContainer);
+    });
+
+    testWidgets('the content rises and fades in, its items stagger (not all visible on the first frames)', (t) async {
       SharedPreferences.setMockInitialValues({});
       Get.reset();
       final api = StubLoginApi();
@@ -134,7 +152,7 @@ void main() {
       await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, home: const LoginScreen()));
       await t.pump(const Duration(milliseconds: 16));
       double opacityOf(Finder f) => t.widget<FadeTransition>(find.ancestor(of: f, matching: find.byType(FadeTransition)).first).opacity.value;
-      final cardY0 = t.getTopLeft(find.byType(AuthCard)).dy;
+      final cardY0 = t.getTopLeft(find.byKey(const Key('auth_title'))).dy;
       expect(opacityOf(field('Email')), lessThan(0.2));
       await t.pump(const Duration(milliseconds: 200));
       final emailMid = opacityOf(field('Email'));
@@ -142,17 +160,17 @@ void main() {
       expect(emailMid, greaterThan(buttonMid), reason: 'earlier items arrive first');
       await t.pump(const Duration(milliseconds: 1000));
       expect(opacityOf(field('Email')), 1);
-      expect(t.getTopLeft(find.byType(AuthCard)).dy, lessThan(cardY0), reason: 'the card moved up into place');
+      expect(t.getTopLeft(find.byKey(const Key('auth_title'))).dy, lessThan(cardY0), reason: 'the content moved up into place');
     });
 
-    testWidgets('keyboard open: the hero collapses (smaller logo, no subtitle), the button stays reachable', (t) async {
+    testWidgets('keyboard open: the photo collapses to a strip with the logo tile, the button stays reachable', (t) async {
       await mount(t);
-      final fullHeight = t.getSize(find.byType(EmAuthHero)).height;
-      expect(find.text('Sign in with your school account'), findsOneWidget);
+      final fullHeight = t.getSize(find.byKey(const Key('auth_photo'))).height;
       await mount(t, keyboard: 300, height: 667);
       await t.pump(const Duration(milliseconds: 600));
-      expect(find.text('Sign in with your school account'), findsNothing);
-      expect(t.getSize(find.byType(EmAuthHero)).height, lessThan(fullHeight - 40));
+      expect(t.getSize(find.byKey(const Key('auth_photo'))).height, lessThan(fullHeight - 100));
+      expect(find.byType(EmLogoTile), findsOneWidget);
+      expect(t.getRect(find.byType(EmLogoTile)).bottom, lessThan(t.getSize(find.byKey(const Key('auth_photo'))).height), reason: 'the tile stays on the photo strip');
       await t.ensureVisible(find.byType(EmMorphButton));
       await t.pump(const Duration(milliseconds: 300));
       expect(t.getRect(find.byType(EmMorphButton)).bottom, lessThanOrEqualTo(667 - 300 + 0.5));
@@ -162,13 +180,13 @@ void main() {
     testWidgets('the collapse is animated, not a jump', (t) async {
       // open the keyboard on a mounted screen
       await mount(t);
-      final before = t.getSize(find.byType(EmAuthHero)).height;
+      final before = t.getSize(find.byKey(const Key('auth_photo'))).height;
       keyboardInset.value = 300;
       await t.pump();
       await t.pump(const Duration(milliseconds: 100));
-      final mid = t.getSize(find.byType(EmAuthHero)).height;
+      final mid = t.getSize(find.byKey(const Key('auth_photo'))).height;
       await t.pump(const Duration(milliseconds: 600));
-      final after = t.getSize(find.byType(EmAuthHero)).height;
+      final after = t.getSize(find.byKey(const Key('auth_photo'))).height;
       expect(after, lessThan(mid));
       expect(mid, lessThan(before));
     });
@@ -247,9 +265,9 @@ void main() {
       await t.tap(find.byKey(const Key('school_code_toggle')));
       await t.pump();
       await t.pump(const Duration(milliseconds: 100));
-      final mid = t.getSize(find.byType(AuthCard)).height;
+      final mid = t.getSize(find.byType(Form)).height;
       await t.pump(const Duration(milliseconds: 600));
-      final full = t.getSize(find.byType(AuthCard)).height;
+      final full = t.getSize(find.byType(Form)).height;
       expect(field('School code'), findsOneWidget);
       expect(mid, lessThan(full), reason: 'still growing at 100 ms');
       expect(t.getSize(find.byKey(const Key('school_code_toggle'))).height, greaterThanOrEqualTo(48));
@@ -264,9 +282,8 @@ void main() {
   });
 
   group('reduce motion', () {
-    testWidgets('no constellation, no shake, no width morph: the label swaps in place and the check shows at once', (t) async {
+    testWidgets('no shake, no width morph: the label swaps in place and the check shows at once', (t) async {
       final api = await mount(t, reduce: true);
-      expect(find.byType(EmConstellation), findsNothing);
       api.error = ApiException('Invalid credentials', statusCode: 401);
       await fillAndSubmit(t);
       expect(buttonWidth(t), EmMorphButton.height, reason: 'no width animation: collapsed on the first frame');
@@ -279,7 +296,7 @@ void main() {
       expect(button(t).phase, EmMorphPhase.idle);
     });
 
-    testWidgets('school code expands and the hero collapses instantly (no animated resize, no layout assertion)', (t) async {
+    testWidgets('school code expands and the photo collapses instantly (no animated resize, no layout assertion)', (t) async {
       await mount(t, reduce: true);
       await t.tap(find.byKey(const Key('school_code_toggle')));
       await t.pump();
@@ -287,7 +304,7 @@ void main() {
       keyboardInset.value = 300;
       await t.pump();
       await t.pump(const Duration(milliseconds: 16));
-      expect(find.text('Sign in with your school account'), findsNothing);
+      expect(t.getSize(find.byKey(const Key('auth_photo'))).height, lessThan(200), reason: 'collapsed on the next frame, not animated');
       expect(t.takeException(), isNull);
     });
 
@@ -320,7 +337,7 @@ void main() {
       }
     }
 
-    testWidgets('RTL: the logo is centred and not mirrored', (t) async {
+    testWidgets('RTL: the logo tile sits in the end (left) corner and is not mirrored', (t) async {
       SharedPreferences.setMockInitialValues({});
       Get.reset();
       final api = StubLoginApi();
@@ -332,7 +349,7 @@ void main() {
       addTearDown(t.view.reset);
       await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, builder: (c, w) => Directionality(textDirection: TextDirection.rtl, child: w!), home: const LoginScreen()));
       await t.pump(const Duration(milliseconds: 1200));
-      expect(t.getCenter(find.descendant(of: find.byType(EmLogoAnchor), matching: find.byType(EmLogomark))).dx, closeTo(195, 1));
+      expect(t.getCenter(find.descendant(of: find.byType(EmLogoAnchor), matching: find.byType(EmLogomark))).dx, closeTo(56, 1)); // RTL: the end corner is the left one
       expect(t.takeException(), isNull);
     });
   });

@@ -100,16 +100,12 @@ void main() {
   });
 
   group('look and feel (REFERENCE_SPEC)', () {
-    testWidgets('login: tinted scaffold, blue gradient card, transparent pill fields (white border, accent when focused), accent button, logomark', (t) async {
+    testWidgets('login: navy page with photo, transparent pill fields (1 px light border, accent when focused), accent button, logomark', (t) async {
       await pumpScreen(t, const LoginScreen());
-      expect(t.widget<Scaffold>(find.byType(Scaffold)).backgroundColor, EmColors.background);
+      expect(t.widget<Scaffold>(find.byType(Scaffold)).backgroundColor, EmColors.primaryDark);
       expect(find.byType(EmLogomark), findsOneWidget);
       expect(find.byType(EmCard), findsNothing);
-
-      // card: primary -> primaryDark gradient
-      final card = t.widget<DecoratedBox>(find.descendant(of: find.byType(AuthCard), matching: find.byType(DecoratedBox)).first);
-      final gradient = (card.decoration as BoxDecoration).gradient! as LinearGradient;
-      expect(gradient.colors, [EmColors.primary, EmColors.primaryDark]);
+      expect(find.byKey(const Key('auth_photo')), findsOneWidget);
 
       // fields: transparent, white border, accent when focused, still pills
       expect(find.byType(EmTextField), findsNWidgets(2));
@@ -117,7 +113,8 @@ void main() {
         final d = field.decoration!;
         expect(d.filled, isFalse);
         final enabled = d.enabledBorder! as OutlineInputBorder;
-        expect(enabled.borderSide.color, EmColors.onPrimaryDark);
+        expect(enabled.borderSide.color, EmColors.primaryLight);
+        expect(enabled.borderSide.width, 1);
         expect(enabled.borderRadius, BorderRadius.circular(EmRadius.pill));
         expect((d.focusedBorder! as OutlineInputBorder).borderSide.color, EmColors.accent);
       }
@@ -129,16 +126,14 @@ void main() {
       expect(t.widget<Text>(find.descendant(of: find.byType(EmMorphButton), matching: find.text('Sign in'))).style!.color, EmColors.ink);
     });
 
-    test('colours used on the blue card are AA on the whole gradient (both ends)', () {
-      for (final bg in [EmColors.primary, EmColors.primaryDark]) {
-        for (final fg in [EmColors.onPrimaryDark, EmColors.primaryContainer, EmColors.errorContainer]) {
-          expect(contrastRatio(fg, bg), greaterThanOrEqualTo(4.5), reason: '$fg on $bg');
-        }
+    test('colours used on the navy page are AA on the brand navy', () {
+      for (final fg in [EmColors.onPrimaryDark, EmColors.primaryContainer, EmColors.errorContainer]) {
+        expect(contrastRatio(fg, EmColors.primaryDark), greaterThanOrEqualTo(4.5), reason: '$fg on navy');
       }
       expect(contrastRatio(EmColors.ink, EmColors.accent), greaterThanOrEqualTo(4.5)); // button label
     });
 
-    testWidgets('accent colour is never used for text on any signed-out screen', (t) async {
+    testWidgets('accent text only as LARGE bold text (accent is 4.43:1 on navy), on every signed-out screen', (t) async {
       for (final c in cases) {
         Get.reset();
         auth = setUpAuthDeps();
@@ -146,7 +141,10 @@ void main() {
         if (c.prepare != null) await c.prepare!(t, auth);
         for (final text in t.widgetList<Text>(find.byType(Text))) {
           final color = text.style?.color;
-          if (color != null) expect(color, isNot(EmColors.accent), reason: '${c.name}: "${text.data}"');
+          if (color == EmColors.accent) {
+            expect(text.style!.fontSize, greaterThanOrEqualTo(18.66), reason: '${c.name}: "${text.data}"');
+            expect(text.style!.fontWeight!.index, greaterThanOrEqualTo(FontWeight.w700.index), reason: '${c.name}: "${text.data}"');
+          }
         }
       }
     });
@@ -155,7 +153,8 @@ void main() {
       final allowed = {
         EmColors.ink, EmColors.textSecondary, EmColors.textTertiary, EmColors.primary, EmColors.primaryDark, EmColors.primaryLight,
         EmColors.onPrimary, EmColors.onErrorContainer, EmColors.error, EmColors.onDisabled,
-        EmColors.primaryContainer, // subtitle / captions on the navy hero and the blue card (AA at both ends, see below)
+        EmColors.primaryContainer, // subtitle / captions on the navy overlay
+        EmColors.accent, // large bold headings only (checked above)
       };
       for (final c in cases) {
         Get.reset();
@@ -176,13 +175,13 @@ void main() {
       expect(t.getSize(find.widgetWithText(TextButton, 'Forgot password?')).height, greaterThanOrEqualTo(48));
     });
 
-    testWidgets('forgot / reset screens have the circular back button (EmAppBar), login has none', (t) async {
+    testWidgets('forgot / reset screens have the circular back button, login has none', (t) async {
       await pumpScreen(t, const LoginScreen());
-      expect(find.byType(EmAppBar), findsNothing);
+      expect(find.byType(EmIconCircleButton), findsNothing);
       await pumpScreen(t, const ForgotPasswordScreen());
-      expect(find.byType(EmAppBar), findsOneWidget);
+      expect(find.byType(EmIconCircleButton), findsOneWidget);
       await pumpScreen(t, const ResetPasswordScreen());
-      expect(find.byType(EmAppBar), findsOneWidget);
+      expect(find.byType(EmIconCircleButton), findsOneWidget);
     });
 
     testWidgets('error banner uses the error container with dark text and is announced', (t) async {
@@ -197,9 +196,11 @@ void main() {
   });
 
   group('splash hand-off', () {
-    testWidgets('navy background, reversed logomark in the exact screen centre at the native size, from the first frame', (t) async {
+    testWidgets('navy first frame, reversed logomark in the exact screen centre at the native size, from the first frame', (t) async {
       await pumpScreen(t, const SplashScreen(), width: 390, height: 844, topInset: 0, bottomInset: 0);
-      expect(t.widget<Scaffold>(find.byType(Scaffold)).backgroundColor, EmColors.primaryDark);
+      expect(find.byWidgetPredicate((w) => w is ColoredBox && w.color == EmColors.primaryDark), findsWidgets);
+      final photoFade = t.widget<FadeTransition>(find.ancestor(of: find.byType(EmPhotoBackdrop), matching: find.byType(FadeTransition)).first);
+      expect(photoFade.opacity.value, 0, reason: 'frame 0 is the native splash: navy + logo only, the photo is not in yet');
       final logo = find.byType(EmLogomark);
       expect(t.widget<EmLogomark>(logo).reversed, isTrue);
       expect(t.getSize(logo).height, EmLogomark.splashHeight);

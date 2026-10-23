@@ -36,7 +36,6 @@ void main() {
         EmSplashTimeline.charge,
         EmSplashTimeline.pulse,
         EmSplashTimeline.ripple,
-        EmSplashTimeline.constellation,
         EmSplashTimeline.text
       ]) {
         expect(w.begin, greaterThanOrEqualTo(0));
@@ -48,7 +47,7 @@ void main() {
     });
   });
 
-  test('constellation is deterministic and drift loops without a seam', () {
+  test('the logo dash drift loops without a seam', () {
     // same seed -> same painter output is covered by paint determinism; here the loop contract:
     // every node uses whole cycles per ambient loop
     expect(EmMotion.ambientPeriod.inMilliseconds % EmMotion.dashPeriod.inMilliseconds, 0);

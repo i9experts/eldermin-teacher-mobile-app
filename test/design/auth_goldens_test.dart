@@ -63,6 +63,7 @@ void main() {
       testWidgets('${e.key} / ${v.key}', (t) async {
         final auth = setUpAuthDeps();
         await pumpScreen(t, build(), textScale: v.value.$1, keyboard: v.value.$2, topInset: e.key == 'splash' ? 0 : 47);
+        await loadAuthPhotos(t);
         if (prepare != null) await prepare(t, auth);
         if (v.key == 'keyboard') {
           final f = find.byType(TextField);

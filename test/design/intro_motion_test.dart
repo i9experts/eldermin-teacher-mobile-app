@@ -9,11 +9,12 @@ import 'package:get/get.dart';
 import '../support/auth_design_harness.dart';
 import '../support/design_harness.dart';
 
-NodeScenePainter scene(WidgetTester t) =>
-    t.widget<CustomPaint>(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is NodeScenePainter)).painter! as NodeScenePainter;
+EmPhotoCarouselBackdrop carousel(WidgetTester t) => t.widget<EmPhotoCarouselBackdrop>(find.byKey(const Key('intro_scene')));
 
-NodeIndicatorPainter indicator(WidgetTester t) =>
-    t.widget<CustomPaint>(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is NodeIndicatorPainter)).painter! as NodeIndicatorPainter;
+/// Opacity and horizontal parallax offset of photo [i] while scrubbing.
+double photoOpacity(WidgetTester t, int i) => t.widget<Opacity>(find.byKey(ValueKey('scrub_$i'))).opacity;
+double photoShift(WidgetTester t, int i) =>
+    t.widget<Transform>(find.descendant(of: find.byKey(ValueKey('scrub_$i')), matching: find.byType(Transform)).first).transform.getTranslation().x;
 
 Future<void> pumpIntro(WidgetTester t, {bool reduce = false, double width = 390, double height = 844, double scale = 1}) async {
   t.view.physicalSize = Size(width, height);
@@ -40,48 +41,54 @@ void main() {
   });
 
   group('scrubbed by the page offset', () {
-    testWidgets('scene and indicator progress = the PageController offset (half a swipe = half the transition)', (t) async {
+    testWidgets('photo crossfade + parallax = the PageController offset (half a swipe = half the transition)', (t) async {
       await pumpIntro(t);
-      expect(scene(t).value, 0);
-      expect(indicator(t).linkFill(0), 0);
+      expect(carousel(t).progress.value, 0);
+      expect(photoOpacity(t, 0), 1);
+      expect(find.byKey(const ValueKey('scrub_1')), findsNothing, reason: 'the next photo only exists once the swipe starts');
 
-      final g = await t.startGesture(const Offset(200, 600));
+      final g = await t.startGesture(const Offset(200, 300));
       await g.moveBy(const Offset(-195, 0)); // half of the 390 dp page
       await t.pump();
-      expect(scene(t).value, closeTo(0.5, 0.02));
-      expect(indicator(t).linkFill(0), closeTo(0.5, 0.02));
-      expect(indicator(t).nodeFill(1), closeTo(0.5, 0.02), reason: 'the next node fills as the link reaches it');
+      expect(carousel(t).progress.value, closeTo(0.5, 0.02));
+      expect(photoOpacity(t, 0), 1, reason: 'the lower photo stays opaque: no dip to the navy in the middle');
+      expect(photoOpacity(t, 1), closeTo(0.5, 0.02));
+      expect(photoShift(t, 0), closeTo(-EmMotion.parallaxShift * 0.5, 0.6), reason: 'parallax: the photos trail the finger');
+      expect(photoShift(t, 1), closeTo(EmMotion.parallaxShift * 0.5, 0.6));
 
       await g.moveBy(const Offset(-97.5, 0)); // 3/4
       await t.pump();
-      expect(scene(t).value, closeTo(0.75, 0.02));
+      expect(photoOpacity(t, 1), closeTo(0.75, 0.02));
 
       await g.moveBy(const Offset(97.5, 0)); // back to 1/2: it runs backwards with the finger
       await t.pump();
-      expect(scene(t).value, closeTo(0.5, 0.02));
+      expect(photoOpacity(t, 1), closeTo(0.5, 0.02));
 
       await g.up();
       await t.pumpAndSettle();
-      expect(scene(t).value, anyOf(closeTo(0, 0.001), closeTo(1, 0.001))); // settles on a page
+      expect(carousel(t).progress.value, anyOf(closeTo(0, 0.001), closeTo(1, 0.001))); // settles on a page
     });
 
-    testWidgets('every layout is a distinct arrangement of the same nodes (grid -> checks -> bubbles)', (t) async {
-      expect(EmScenes.intro, hasLength(3));
-      for (final l in EmScenes.intro) {
-        expect(l.nodes, hasLength(EmScenes.introRoles.length));
-        expect(l.radii, hasLength(EmScenes.introRoles.length));
-      }
-      expect(EmScenes.checks.nodes, isNot(EmScenes.classGrid.nodes));
-      expect(EmScenes.bubbles.nodes, isNot(EmScenes.checks.nodes));
-      expect(EmScenes.bubbles.bubbles, hasLength(2)); // teacher + parent
-      expect(EmScenes.bubbles.links.where((l) => l.dashed), hasLength(2)); // the message links
+    testWidgets('the three backdrops are the three photos, in order, cover-fit', (t) async {
+      await pumpIntro(t);
+      final c = carousel(t);
+      expect(c.images, hasLength(3));
+      expect([for (final i in c.images) (i as AssetImage).assetName], EmAuthPhotos.slides);
+      expect(t.widget<Image>(find.descendant(of: find.byKey(const ValueKey('photo_0')), matching: find.byType(Image)).first).fit, BoxFit.cover);
     });
 
-    testWidgets('indicator fills link by link', (t) async {
-      final p = FixedProgress(1.5);
-      final painter = NodeIndicatorPainter(count: 3, progress: p, palette: EmNetworkPalette.standard);
-      expect([painter.linkFill(0), painter.linkFill(1)], [1.0, 0.5]);
-      expect([painter.nodeFill(0), painter.nodeFill(1), painter.nodeFill(2)], [1.0, 1.0, 0.5]);
+    testWidgets('dots: the active one is an accent pill that follows the offset', (t) async {
+      expect(EmPhotoDots.activeness(0, 0), 1);
+      expect(EmPhotoDots.activeness(1, 0), 0);
+      expect(EmPhotoDots.activeness(0, 0.5), 0.5);
+      expect(EmPhotoDots.activeness(1, 0.5), 0.5);
+      expect(EmPhotoDots.activeness(2, 0.5), 0);
+      await pumpIntro(t);
+      final dots = t.widgetList<Container>(find.descendant(of: find.byKey(const Key('intro_indicator')), matching: find.byType(Container))).toList();
+      expect(dots, hasLength(3));
+      expect((dots.first.decoration! as BoxDecoration).color, EmColors.accent);
+      expect(t.getSize(find.byWidget(dots.first)).width, EmPhotoDots.activeWidth);
+      expect(t.getSize(find.byWidget(dots.last)).width, EmPhotoDots.dot);
     });
   });
 
@@ -119,28 +126,29 @@ void main() {
       expect(find.text('Timetable, classes, homework and marks - the tools you use every day, on your phone.'), findsOneWidget);
     });
 
-    testWidgets('the header logo is the splash landing anchor', (t) async {
+    testWidgets('the logo tile on the photo is the splash landing anchor', (t) async {
       await pumpIntro(t);
       final logo = find.descendant(of: find.byType(EmLogoAnchor), matching: find.byType(EmLogomark));
       expect(logo, findsOneWidget);
       expect(EmLogoHandoff.hasAnchor, isTrue);
-      expect(t.getCenter(logo).dx, closeTo(195, 1)); // centred in the header
+      expect(t.getCenter(logo).dx, closeTo(334, 1)); // top-end corner of the photo (390 - 24 - 64/2)
     });
   });
 
   group('reduce motion', () {
-    testWidgets('no scrub: the scene is a static layout that crossfades per page', (t) async {
+    testWidgets('no scrub and no parallax: the photos just crossfade when the page settles', (t) async {
       await pumpIntro(t, reduce: true);
-      expect(scene(t).progress, isA<FixedProgress>());
-      expect(scene(t).value, 0);
+      expect(carousel(t).progress, isA<FixedProgress>());
+      expect(find.byWidgetPredicate((w) => w.key is ValueKey && (w.key! as ValueKey).value.toString().startsWith('scrub_')), findsNothing, reason: 'no parallax layers');
+      double fade(int i) => t.widget<AnimatedOpacity>(find.byKey(ValueKey('fade_$i'))).opacity;
+      expect([fade(0), fade(1), fade(2)], [1, 0, 0]);
       await t.tap(find.text('Next'));
       await t.pump();
-      await t.pump(const Duration(milliseconds: 100)); // mid-crossfade: both scenes in the tree
-      expect(find.byType(AnimatedSwitcher), findsWidgets);
+      await t.pump(const Duration(milliseconds: 100)); // mid-crossfade
+      expect([fade(0), fade(1), fade(2)], [0, 1, 0]);
+      expect(t.widget<AnimatedOpacity>(find.byKey(const ValueKey('fade_1'))).duration, EmMotion.crossfade);
       await t.pump(const Duration(milliseconds: 500));
-      expect(scene(t).value, 1);
-      expect(indicator(t).progress, isA<FixedProgress>());
-      expect(indicator(t).linkFill(0), 1);
+      expect(carousel(t).progress.value, 1);
     });
   });
 
@@ -153,14 +161,14 @@ void main() {
         expect(find.byKey(const Key('intro_indicator')), findsOneWidget);
       });
     }
-    testWidgets('RTL: the logo is not mirrored (same SVG, centred)', (t) async {
+    testWidgets('RTL: the logo tile moves to the left corner and is not mirrored', (t) async {
       t.view.physicalSize = const Size(390, 844);
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.reset);
       await t.pumpWidget(GetMaterialApp(theme: AppTheme.light, builder: (c, w) => Directionality(textDirection: TextDirection.rtl, child: w!), home: const IntroScreen()));
       await t.pump(const Duration(milliseconds: 300));
       expect(t.takeException(), isNull);
-      expect(t.getCenter(find.descendant(of: find.byType(EmLogoAnchor), matching: find.byType(EmLogomark))).dx, closeTo(195, 1));
+      expect(t.getCenter(find.descendant(of: find.byType(EmLogoAnchor), matching: find.byType(EmLogomark))).dx, closeTo(56, 1)); // RTL: the end is the left edge, tile not mirrored
     });
   });
 }

@@ -34,7 +34,7 @@ class _GateState extends State<_Gate> {
               body: Align(
                 alignment: const Alignment(0, -0.5),
                 child:
-                    widget.withAnchor ? const EmLogoAnchor(child: EmLogomark(height: 72, semanticLabel: 'Dest')) : const SizedBox.shrink(),
+                    widget.withAnchor ? const EmLogoAnchor(child: EmLogoTile(size: 72)) : const SizedBox.shrink(),
               ),
             ),
           if (_overlay)
@@ -93,7 +93,7 @@ void main() {
     expect(EmLogoHandoff.flying.value, isFalse);
     final logo = find.descendant(of: find.byType(EmLogoAnchor), matching: find.byType(EmLogomark));
     expect(find.descendant(of: find.byType(EmLogoAnchor), matching: find.byType(Opacity)), findsNothing, reason: 'visible at rest');
-    expect(t.getSize(logo).height, 72);
+    expect(t.getSize(logo).height, closeTo(72 * EmLogoTile.logoShare, 0.01));
   });
 
   testWidgets('mid-flight the flying logo is between the centre and the anchor, destination logo hidden', (t) async {
@@ -165,14 +165,17 @@ void main() {
     expect(log, ['exited']);
   });
 
-  testWidgets('reduce motion: static mark, no constellation, crossfade only (no flight), still exits', (t) async {
+  bool hasRings(WidgetTester t) => find.byWidgetPredicate((w) => w is CustomPaint && w.painter is EmRippleRings).evaluate().isNotEmpty;
+
+  testWidgets('reduce motion: no rings, no link motion, crossfade only (no flight), still exits', (t) async {
     final ready = ValueNotifier(false);
     final log = <String>[];
     await _pump(t, _Gate(ready: ready, flyToHeader: true, log: log), reduce: true);
-    expect(find.byType(EmConstellation), findsNothing);
+    expect(hasRings(t), isFalse);
     await t.pump(ms(800));
-    expect(t.widget<EmLogomark>(find.byType(EmLogomark)).drive, isNull, reason: 'static SVG, nothing animates');
-    expect(find.byType(EmConstellation), findsNothing);
+    final drive = t.widget<EmLogomark>(find.byType(EmLogomark)).drive!;
+    expect([drive.charge, drive.dashPhase, drive.pulse, drive.ripple], everyElement(isNull), reason: 'only the palette change, nothing travels or pulses');
+    expect(hasRings(t), isFalse);
     ready.value = true;
     await t.pump();
     await t.pump(ms(16));
@@ -183,11 +186,14 @@ void main() {
     expect(log, ['exited']);
   });
 
-  testWidgets('normal motion draws the constellation and the animated mark', (t) async {
+  testWidgets('normal motion: two accent rings ripple out of the tile, the mark is animated, no constellation', (t) async {
     await _pump(t, _Gate(ready: ValueNotifier(false), flyToHeader: true, log: []));
-    await t.pump(ms(500));
-    expect(find.byType(EmConstellation), findsOneWidget);
-    expect(t.widget<EmLogomark>(find.byType(EmLogomark)).drive, isNotNull);
+    await t.pump(ms(900));
+    expect(hasRings(t), isTrue);
+    expect(EmRippleRings.count, 2);
+    final drive = t.widget<EmLogomark>(find.byType(EmLogomark)).drive!;
+    expect(drive.charge, isNotNull);
+    expect(drive.pulse, isNotNull);
     expect(find.byType(RepaintBoundary), findsWidgets);
   });
 

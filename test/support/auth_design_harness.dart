@@ -1,4 +1,5 @@
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
+import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:eldermin_teacher_app/core/network/base_client.dart';
 import 'package:eldermin_teacher_app/core/services/auth_api_service.dart';
 import 'package:eldermin_teacher_app/core/services/permission_service.dart';
@@ -21,6 +22,7 @@ class MemTokens implements TokenStore {
 
 /// Registers the controllers the signed-out screens need (no network is ever called).
 AuthController setUpAuthDeps() {
+  EmAuthPhotos.precacheImpl = (_, __) async {}; // widget tests cannot decode the photos; they stay navy
   SharedPreferences.setMockInitialValues({});
   Get.reset();
   Get.testMode = true;
@@ -71,4 +73,15 @@ Future<void> pumpScreen(
     home: screen,
   ));
   await t.pump(const Duration(milliseconds: 1200));
+}
+
+/// Decodes the real auth photos into the image cache (goldens and screenshots show them; most tests leave them out).
+Future<void> loadAuthPhotos(WidgetTester t) async {
+  final context = t.element(find.byType(GetMaterialApp));
+  await t.runAsync(() async {
+    for (final a in EmAuthPhotos.slides) {
+      await precacheImage(AssetImage(a), context);
+    }
+  });
+  await t.pump();
 }

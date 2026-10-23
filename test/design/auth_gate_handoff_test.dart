@@ -1,6 +1,5 @@
 import 'package:eldermin_teacher_app/app/common/services/deep_link_service.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
-import 'package:eldermin_teacher_app/app/modules/auth/views/auth_widgets.dart' show AuthCard;
 import 'package:eldermin_teacher_app/app/modules/auth/views/login_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/login_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/splash/views/splash_screen.dart';
@@ -93,6 +92,6 @@ void main() {
     expect(find.byType(SplashScreen), findsNothing);
     expect(t.element(find.byType(LoginScreen)), same(login), reason: 'removing the overlay must not remount the destination');
     expect(emailOpacity(), 1);
-    expect(t.getTopLeft(find.byType(AuthCard)).dy, lessThan(t.view.physicalSize.height), reason: 'card on screen');
+    expect(t.getTopLeft(find.byKey(const Key('auth_title'))).dy, lessThan(t.view.physicalSize.height), reason: 'content on screen');
   });
 }
