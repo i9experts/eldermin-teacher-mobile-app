@@ -89,6 +89,14 @@ void main() {
       }
     });
 
+    testWidgets('sign in fits the iPhone SE (375 x 667) without scrolling: the photo gives way to 46%', (t) async {
+      setUpAuthDeps();
+      await pumpScreen(t, const LoginScreen(), width: 375, height: 667);
+      expect(t.getSize(find.byKey(const Key('auth_photo'))).height, closeTo(667 * AuthPhotoSize.compactTall, 1));
+      expect(t.getRect(find.text('Forgot password?')).bottom, lessThanOrEqualTo(667));
+      expect(t.getRect(find.byType(EmMorphButton)).bottom, lessThanOrEqualTo(667));
+    });
+
     testWidgets('forgot / reset (short photo), including the sent state', (t) async {
       for (final (w, h) in sizes) {
         for (final scale in [1.0, 1.3]) {
@@ -100,7 +108,7 @@ void main() {
             if (which == 'reset') Get.find<ResetPasswordController>().token.value = 'tok';
             await t.pump(const Duration(milliseconds: 1200));
             final photo = t.getSize(find.byKey(const Key('auth_photo'))).height;
-            expect(photo, closeTo(h * AuthPhotoSize.short.fraction, 1));
+            expect(photo, closeTo(h * AuthPhotoSize.short.fractionFor(h), 1));
             expectBelow(t, photo * AuthPageShell.contentStart, '$which ${w}x$h @$scale');
           }
         }

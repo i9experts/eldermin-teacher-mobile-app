@@ -98,11 +98,11 @@ class _Api extends AuthApiService {
   @override
   Future<void> forgotPassword(String email) async => Future<void>.delayed(const Duration(milliseconds: 900));
 
-  /// token `expired` -> 401 "invalid or has expired"; anything else succeeds
+  /// token starting with `expired` -> 401 "invalid or has expired"; anything else succeeds
   @override
   Future<void> resetPassword({required String token, required String newPassword}) async {
     await Future<void>.delayed(const Duration(milliseconds: 900));
-    if (token == 'expired') throw ApiException('This reset link is invalid or has expired.', statusCode: 401);
+    if (token.startsWith('expired')) throw ApiException('This reset link is invalid or has expired.', statusCode: 401);
   }
 
   @override

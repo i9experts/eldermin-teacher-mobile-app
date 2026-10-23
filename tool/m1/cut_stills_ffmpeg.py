@@ -30,10 +30,16 @@ for i in mag:
         runs[-1][1] = i
     else:
         runs.append([i, i])
+n_frames = len(buf) // size
 t_flash = (runs[0][1] + 1) / fps
 scale = 1.0
 if len(runs) > 1 and 'flash_end' in mark_ms:
-    scale = ((runs[-1][1] + 1) / fps - t_flash) / ((mark_ms['flash_end'] - flash_ms) / 1000.0)
+    s2 = ((runs[-1][1] + 1) / fps - t_flash) / ((mark_ms['flash_end'] - flash_ms) / 1000.0)
+    if 0.8 < s2 < 1.25:  # a closing flash that does not fit the run is a stray magenta frame: ignore it
+        scale = s2
+elif len(runs) == 1 and 'flash_end' in mark_ms and (runs[0][1] + 1) / fps > n_frames / fps - 4:
+    # only the closing flash was seen (the opening one fell in the slow first frames): anchor on it
+    t_flash = (runs[0][1] + 1) / fps - (mark_ms['flash_end'] - flash_ms) / 1000.0
 print(f'flash off at {t_flash:.2f}s, wall-clock -> video scale {scale:.4f}')
 
 def video_time(ms):

@@ -39,7 +39,8 @@ Future<void> waitFor(WidgetTester t, Finder f, {int seconds = 30}) async {
     if (f.evaluate().isNotEmpty) return;
     await t.pump(const Duration(milliseconds: 33));
   }
-  throw TestFailure('Timed out waiting for $f');
+  final texts = find.byType(Text).evaluate().map((e) => (e.widget as Text).data).whereType<String>().take(14).toList();
+  throw TestFailure('Timed out waiting for $f (route ${Get.currentRoute}, texts $texts)');
 }
 
 Finder field(String label) => find.widgetWithText(TextFormField, label);
@@ -278,7 +279,7 @@ Future<void> resetFlow(WidgetTester t, {required String p, bool withKeyboard = f
   await wait(t, 1800);
   mark('${p}_reset_success_back_on_login');
   // an expired link
-  Get.find<DeepLinkService>().handleUri(Uri.parse('eldermin-teacher://reset-password?token=expired'));
+  Get.find<DeepLinkService>().handleUri(Uri.parse('eldermin-teacher://reset-password?token=expired-link-0001'));
   await waitFor(t, find.text('Set a new password'));
   await wait(t, 1500);
   await tap(t, field('New password'));
