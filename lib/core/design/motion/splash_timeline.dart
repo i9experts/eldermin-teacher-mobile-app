@@ -19,7 +19,6 @@ class EmSplashTimeline {
   static const ({int begin, int end}) charge = (begin: 40, end: 790);
   static const ({int begin, int end}) pulse = (begin: 680, end: 1300);
   static const ({int begin, int end}) ripple = (begin: 680, end: 1440);
-  static const ({int begin, int end}) constellation = (begin: 200, end: 900);
   static const ({int begin, int end}) text = (begin: 300, end: 800);
 
   /// End of each motion beat: B1 charge, B2 pulse, B3 settle. After the last

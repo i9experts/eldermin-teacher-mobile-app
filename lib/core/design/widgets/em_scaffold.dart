@@ -16,6 +16,7 @@ class EmScaffold extends StatelessWidget {
     this.extendBody = true,
     this.resizeToAvoidBottomInset = true,
     this.systemOverlay = SystemUiOverlayStyle.dark,
+    this.backgroundColor = EmColors.background,
   });
 
   final Widget body;
@@ -33,6 +34,9 @@ class EmScaffold extends StatelessWidget {
   /// screen that sets another style (the splash) does not leak it to the next.
   final SystemUiOverlayStyle systemOverlay;
 
+  /// Page colour (navy on the photo auth screens).
+  final Color backgroundColor;
+
   @override
   Widget build(BuildContext context) {
     // The app bar lives inside the same stack as the wash, so the decorative
@@ -42,7 +46,7 @@ class EmScaffold extends StatelessWidget {
       child: EmKeyboardAccessory(
         insetBody: resizeToAvoidBottomInset,
         child: Scaffold(
-          backgroundColor: EmColors.background,
+          backgroundColor: backgroundColor,
           extendBody: extendBody,
           resizeToAvoidBottomInset: resizeToAvoidBottomInset,
           bottomNavigationBar: bottomNavigationBar,

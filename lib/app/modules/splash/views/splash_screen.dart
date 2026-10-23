@@ -13,13 +13,16 @@ import '../../../../core/design/design.dart';
 ///
 /// Frame 0 is the native splash: same `primaryDark` background and the
 /// reversed logomark at [EmLogomark.splashHeight] in the exact centre, nothing
-/// moving. Then (MOTION_SPEC.md §3.1) light travels along the solid links, the
-/// dashed links drift, the orange node pulses with ripples and a faint
-/// constellation fades in. Once [ready], at the end of the current motion beat,
-/// the logo flies into the destination's [EmLogoAnchor] while the navy fades.
+/// moving. Then (MOTION_SPEC.md section 3.1) in the first beat the first photo
+/// crossfades in behind the logo under the navy overlay, a white rounded tile
+/// grows around the logo (which turns navy / orange), light travels along the
+/// solid links, the dashed links drift, the accent node pulses and two thin
+/// accent rings ripple out of the tile. Once [ready], at the end of the current
+/// motion beat, the logo tile flies into the destination's [EmLogoAnchor] while
+/// the photo fades.
 ///
-/// Reduce motion: the mark stays static, no constellation; the exit is a
-/// crossfade.
+/// Reduce motion: the photo and the tile crossfade in ([EmMotion.crossfade]);
+/// no rings, no link motion; the exit is a crossfade.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, this.ready = false, this.flyToHeader = false, this.onExited});
 
@@ -33,6 +36,13 @@ class SplashScreen extends StatefulWidget {
   /// Called once the exit finished (remove this overlay).
   final VoidCallback? onExited;
 
+  /// Display name and tagline under the logo.
+  static const String title = 'Eldermin Teacher';
+  static const String tagline = 'Your classroom, in your pocket.';
+
+  /// Side of the white logo tile on the splash (the logo inside is [EmLogomark.splashHeight]).
+  static const double tileSize = EmLogomark.splashHeight / EmLogoTile.logoShare;
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -40,35 +50,34 @@ class SplashScreen extends StatefulWidget {
 enum _Exit { flight, fade }
 
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  static const double _headerLogoHeight = 72;
-
-  /// Constellation keeps clear of the centre column (logo, title, tagline).
-  static const Rect _logoZone = Rect.fromLTRB(0.15, 0.36, 0.85, 0.66);
+  /// Side of the destination's logo tile when there is no anchor to measure.
+  static const double _headerTile = 56;
 
   late final AnimationController _intro;
   late final AnimationController _time;
+  late final AnimationController _reveal;
+  late final AnimationController _rings;
   late final AnimationController _exit;
   late final AnimationController _caption;
 
   late final Animation<double> _charge;
   late final Animation<double> _pulse;
-  late final Animation<double> _ripple;
   late final Animation<double> _dash;
-  late final Animation<double> _constellation;
   late final Animation<double> _titleFade;
   late final Animation<Offset> _titleSlide;
   late final Animation<double> _taglineFade;
-  late final CurvedAnimation _morph;
+  late final CurvedAnimation _photo;
+  late final CurvedAnimation _tile;
   late final CurvedAnimation _bgOut;
   late final CurvedAnimation _textOut;
 
-  late EmNetworkDrive _drive;
   Timer? _exitTimer;
   Timer? _slowTimer;
   bool _reduced = false;
   bool _configured = false;
   bool _exiting = false;
   bool _darkIcons = false;
+  bool _revealStarted = false;
   _Exit _mode = _Exit.fade;
   Duration _exitDuration = EmMotion.hero;
 
@@ -78,6 +87,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     EmLogoHandoff.splashShowing = true;
     _intro = AnimationController(vsync: this, duration: EmSplashTimeline.intro);
     _time = AnimationController(vsync: this, duration: EmMotion.ambientPeriod);
+    _reveal = AnimationController(vsync: this, duration: EmMotion.photoReveal);
+    _rings = AnimationController(vsync: this, duration: EmMotion.ringPeriod);
     _caption = AnimationController(vsync: this, duration: EmMotion.slow);
     _slowTimer = Timer(EmSplashTimeline.slowInitAfter, () {
       if (mounted && !_exiting) _caption.forward();
@@ -90,13 +101,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         CurvedAnimation(parent: _intro, curve: Interval(EmSplashTimeline.at(w.begin), EmSplashTimeline.at(w.end)));
     _charge = window(EmSplashTimeline.charge);
     _pulse = window(EmSplashTimeline.pulse);
-    _ripple = window(EmSplashTimeline.ripple);
-    _constellation = window(EmSplashTimeline.constellation);
     // 60 whole dash periods per ambient loop: the dash drift never seams.
     _dash = Tween<double>(
       begin: 0,
       end: EmMotion.ambientPeriod.inMilliseconds / EmMotion.dashPeriod.inMilliseconds,
     ).animate(_time);
+
+    // photo first, the tile (and the logo turning navy) a beat behind it
+    _photo = CurvedAnimation(parent: _reveal, curve: Curves.easeOut);
+    _tile = CurvedAnimation(parent: _reveal, curve: const Interval(0.2, 1, curve: Curves.easeOutCubic));
 
     const text = EmSplashTimeline.text;
     final t0 = EmSplashTimeline.at(text.begin), t1 = EmSplashTimeline.at(text.end);
@@ -105,40 +118,50 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         .animate(CurvedAnimation(parent: _intro, curve: Interval(t0, t1, curve: EmMotion.enter)));
     _taglineFade = CurvedAnimation(parent: _intro, curve: Interval(t0 + (t1 - t0) * 0.3, t1, curve: Curves.easeOut));
 
-    _morph = CurvedAnimation(parent: _exit, curve: const Threshold(1));
     _bgOut = CurvedAnimation(parent: _exit, curve: const Interval(0, 1));
     _textOut = CurvedAnimation(parent: _exit, curve: const Interval(0, 1));
-
-    _drive = _driveTo(EmNetworkPalette.standard);
   }
 
-  EmNetworkDrive _driveTo(EmNetworkPalette to) {
-    return EmNetworkDrive(
-      to: to,
-      morph: _morph,
-      charge: _charge,
-      dashPhase: _dash,
-      pulse: _pulse,
-      ripple: _ripple,
-    );
-  }
+  /// The logo's live drive: it turns from the reversed (navy-ground) palette to
+  /// the standard one as the white tile appears; links charge and the accent
+  /// node pulses in the first beat. Reduce motion: the palette change only.
+  EmNetworkDrive get _drive => _reduced
+      ? EmNetworkDrive(to: EmNetworkPalette.standard, morph: _tile)
+      : EmNetworkDrive(to: EmNetworkPalette.standard, morph: _tile, charge: _charge, dashPhase: _dash, pulse: _pulse);
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final reduced = EmReduceMotion.of(context);
+    if (!_revealStarted) {
+      _revealStarted = true;
+      _reveal.duration = reduced ? EmMotion.crossfade : EmMotion.photoReveal;
+      _beginReveal();
+    }
     if (!_configured || reduced != _reduced) {
       _configured = true;
       _reduced = reduced;
       if (reduced) {
         _intro.stop();
         _time.stop();
+        _rings.stop();
       } else if (!_exiting) {
         if (!_intro.isCompleted && !_intro.isAnimating) _intro.forward();
         if (!_time.isAnimating) _time.repeat();
+        if (!_rings.isAnimating) _rings.repeat();
       }
     }
     if (widget.ready) _scheduleExit();
+  }
+
+  /// Preloads the photos (first one first), then crossfades the first in. The
+  /// splash never waits long for them: it reveals after [_photoWait] regardless.
+  static const Duration _photoWait = Duration(milliseconds: 400);
+
+  Future<void> _beginReveal() async {
+    unawaited(EmAuthPhotos.precache(context));
+    await EmAuthPhotos.precache(context, assets: const [EmAuthPhotos.photo1]).timeout(_photoWait, onTimeout: () {});
+    if (mounted && !_reveal.isAnimating && !_reveal.isCompleted) _reveal.forward();
   }
 
   @override
@@ -156,12 +179,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       EmLogoHandoff.flying.value = false;
       EmLogoHandoff.overlay.value = false;
     });
-    _morph.dispose();
+    _photo.dispose();
+    _tile.dispose();
     _bgOut.dispose();
     _textOut.dispose();
     _caption.dispose();
     _intro.dispose();
     _time.dispose();
+    _reveal.dispose();
+    _rings.dispose();
     _exit.dispose();
     super.dispose();
   }
@@ -188,17 +214,17 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     _exiting = true;
     _slowTimer?.cancel();
     _time.stop();
+    _rings.stop();
+    // whatever the reveal had reached is what the flight starts from
+    if (_reveal.isAnimating) _reveal.value = 1;
     final fly = widget.flyToHeader && !_reduced;
     _mode = fly ? _Exit.flight : _Exit.fade;
     _exitDuration = _reduced ? EmMotion.crossfade : (fly ? EmMotion.hero : EmMotion.slow);
     _exit.duration = _exitDuration;
     if (fly) {
-      // title/tagline gone in the first 180 ms; navy + constellation from 120 ms
+      // title/tagline gone in the first 180 ms; the photo fades from 120 ms (the next screen has the same photo)
       _textOut.curve = Interval(0, 180 / _exitDuration.inMilliseconds);
       _bgOut.curve = Interval(120 / _exitDuration.inMilliseconds, 480 / _exitDuration.inMilliseconds);
-      _morph.curve = EmMotion.emphasized;
-      // land in the destination's palette (reversed on a navy hero)
-      setState(() => _drive = _driveTo(EmLogoHandoff.anchorPalette));
       EmLogoHandoff.flying.value = true;
     } else {
       _textOut.curve = const Interval(0, 1);
@@ -208,7 +234,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 
   void _onExitTick() {
-    final dark = _bgOut.value > 0.5;
+    // a light destination (home) needs dark status-bar icons once the photo is half gone; the photo screens keep light ones
+    final dark = !widget.flyToHeader && _bgOut.value > 0.5;
     if (dark != _darkIcons) setState(() => _darkIcons = dark);
   }
 
@@ -224,43 +251,83 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     final box = context.findRenderObject();
     final landed = box is RenderBox ? EmLogoHandoff.anchorRectIn(box) : null;
     if (landed != null) return (landed, true);
-    // no anchor yet (the intro screen has no logo until M2): the header slot
-    const h = _headerLogoHeight;
-    const w = h * EmLogomarkGeometry.aspect;
-    return (Rect.fromLTWH((screen.width - w) / 2, MediaQuery.paddingOf(context).top + EmSpacing.s16, w, h), false);
+    // no anchor yet: the top corner slot the photo screens use
+    const h = _headerTile;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final left = rtl ? EmSpacing.s24 : screen.width - EmSpacing.s24 - h;
+    return (Rect.fromLTWH(left, MediaQuery.paddingOf(context).top + EmSpacing.s12, h, h), false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final logo = EmLogomark(
-      height: EmLogomark.splashHeight,
-      reversed: true,
-      semanticLabel: 'Eldermin Teacher',
-      drive: _reduced ? null : _drive,
+    const tileSize = SplashScreen.tileSize;
+    final mark = SizedBox.square(
+      dimension: tileSize,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          if (!_reduced)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: EmRippleRings(phase: _rings, strength: _tile, radiusFactor: EmRadius.logoTileRatio),
+                ),
+              ),
+            ),
+          // the white tile grows in around the logo, with a small swell on the pulse
+          FadeTransition(
+            opacity: _tile,
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_tile, _pulse]),
+              builder: (context, child) {
+                final swell = _reduced ? 1.0 : 1 + 0.03 * (_pulse.value <= 0 || _pulse.value >= 1 ? 0 : 1 - (2 * _pulse.value - 1).abs());
+                return Transform.scale(scale: lerpDouble(0.92, 1, _tile.value)! * swell, child: child);
+              },
+              child: const EmLogoTile(size: tileSize, child: SizedBox.shrink()),
+            ),
+          ),
+          EmLogomark(
+            height: EmLogomark.splashHeight,
+            reversed: true,
+            semanticLabel: SplashScreen.title,
+            drive: _drive,
+          ),
+        ],
+      ),
     );
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      // light status-bar icons on the navy background, like the native splash
+      // light status-bar icons on the navy / photo background, like the native splash
       value: _darkIcons ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
       child: Material(
         type: MaterialType.transparency,
         child: LayoutBuilder(
           builder: (context, box) {
             final screen = box.biggest;
-            final belowLogo = screen.height / 2 + EmLogomark.splashHeight / 2 + EmSpacing.s24;
+            final textTop = screen.height / 2 + tileSize / 2 + EmSpacing.s24;
+            // the text sits at or below the overlay's strong line (EmPhotoOverlay), whatever the text size
+            final safeTop = EmPhotoOverlay.safeTopFor(textTop / screen.height, margin: 0.02);
             return Stack(
               fit: StackFit.expand,
               children: [
                 FadeTransition(
                   opacity: ReverseAnimation(_bgOut),
-                  child: Scaffold(
-                    backgroundColor: EmColors.primaryDark,
-                    body: _reduced ? null : EmConstellation(time: _time, intensity: _constellation, avoid: _logoZone),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      const ColoredBox(color: EmColors.primaryDark),
+                      FadeTransition(
+                        opacity: _photo,
+                        child: EmPhotoBackdrop(image: EmAuthPhotos.provider(EmAuthPhotos.photo1), safeTop: safeTop),
+                      ),
+                    ],
                   ),
                 ),
                 Positioned(
                   left: 0,
                   right: 0,
-                  top: belowLogo,
+                  top: textTop,
                   child: FadeTransition(
                     opacity: ReverseAnimation(_textOut),
                     child: Padding(
@@ -272,21 +339,24 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                             opacity: _reduced ? const AlwaysStoppedAnimation(1) : _titleFade,
                             child: SlideTransition(
                               position: _reduced ? const AlwaysStoppedAnimation(Offset.zero) : _titleSlide,
-                              child: Text('Eldermin Teacher',
+                              child: Text(SplashScreen.title,
+                                  key: const Key('splash_title'),
                                   textAlign: TextAlign.center,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: EmType.display.copyWith(color: EmColors.onPrimaryDark)),
+                                  style: EmType.splashTitle.copyWith(color: EmColors.onPrimaryDark)),
                             ),
                           ),
                           const SizedBox(height: EmSpacing.s8),
+                          // accent is 4.43:1 on the navy: LARGE bold text only (3:1 rule), never body size
                           FadeTransition(
                             opacity: _reduced ? const AlwaysStoppedAnimation(1) : _taglineFade,
-                            child: Text('Your classroom, in your pocket.',
+                            child: Text(SplashScreen.tagline,
+                                key: const Key('splash_tagline'),
                                 textAlign: TextAlign.center,
-                                maxLines: 2,
+                                maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
-                                style: EmType.body.copyWith(color: EmColors.primaryLight, fontWeight: FontWeight.w400)),
+                                style: EmType.splashTagline.copyWith(color: EmColors.accent)),
                           ),
                           const SizedBox(height: EmSpacing.s16),
                           // slow init only (EmSplashTimeline.slowInitAfter); space is reserved so nothing shifts
@@ -302,10 +372,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     ),
                   ),
                 ),
-                // exact centre, identical to the native splash image; flies on exit
+                // exact centre, identical to the native splash image at frame 0; flies on exit
                 AnimatedBuilder(
                   animation: _exit,
-                  child: Center(child: logo),
+                  child: Center(child: mark),
                   builder: (context, child) {
                     if (!_exiting) return child!;
                     final p = _exit.value;
@@ -313,7 +383,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       final t = EmMotion.emphasized.transform(p);
                       final (target, anchored) = _target(context, screen);
                       final shift = Offset.lerp(Offset.zero, target.center - screen.center(Offset.zero), t)!;
-                      final scale = lerpDouble(1, target.height / EmLogomark.splashHeight, t)!;
+                      final scale = lerpDouble(1, target.height / tileSize, t)!;
                       final flown = Transform.translate(offset: shift, child: Transform.scale(scale: scale, child: child));
                       // nothing to land on: fade out over the last 40% of the flight
                       return anchored

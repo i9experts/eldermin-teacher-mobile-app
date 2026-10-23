@@ -115,14 +115,14 @@ class EmTextField extends StatelessWidget {
     );
   }
 
-  /// On the blue auth card: transparent fill, white border, accent when focused.
+  /// On the navy auth screens: transparent fill, 1 px light border, white labels, accent when focused.
   InputDecoration _onDark(InputDecorationThemeData base, OutlineInputBorder? Function(InputBorder?) shaped) {
     OutlineInputBorder side(InputBorder? b, Color c, double w) =>
         (shaped(b) ?? const OutlineInputBorder()).copyWith(borderSide: BorderSide(color: c, width: w));
     return InputDecoration(
       filled: false,
-      border: side(base.border, EmColors.onPrimaryDark, 1.5),
-      enabledBorder: side(base.enabledBorder, EmColors.onPrimaryDark, 1.5),
+      border: side(base.border, EmColors.primaryLight, 1),
+      enabledBorder: side(base.enabledBorder, EmColors.primaryLight, 1),
       focusedBorder: side(base.focusedBorder, EmColors.accent, 2),
       errorBorder: side(base.errorBorder, EmColors.errorContainer, 1.5),
       focusedErrorBorder: side(base.focusedErrorBorder, EmColors.errorContainer, 2),
@@ -134,7 +134,7 @@ class EmTextField extends StatelessWidget {
       errorText: errorText,
       errorMaxLines: 3,
       helperMaxLines: 3,
-      labelStyle: EmType.body.copyWith(color: EmColors.primaryContainer, fontWeight: FontWeight.w400),
+      labelStyle: EmType.body.copyWith(color: EmColors.onPrimaryDark, fontWeight: FontWeight.w400),
       floatingLabelStyle: EmType.caption.copyWith(color: EmColors.onPrimaryDark),
       hintStyle: EmType.body.copyWith(color: EmColors.primaryContainer, fontWeight: FontWeight.w400),
       helperStyle: EmType.caption.copyWith(color: EmColors.primaryContainer),

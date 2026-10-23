@@ -63,9 +63,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthPageShell(
-      title: 'Eldermin Teacher',
+      title: 'Welcome Back!',
       subtitle: 'Sign in with your school account',
-      heroSize: EmHeroSize.full,
+      photoSize: AuthPhotoSize.tall,
       shake: _shake,
       child: Form(
         key: _formKey,

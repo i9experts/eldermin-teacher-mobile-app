@@ -3,28 +3,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/design/design.dart';
 
+/// How much of the screen the photo takes on a signed-out screen.
+enum AuthPhotoSize {
+  /// Sign in: the photo fills the top ~55% and fades into the navy.
+  tall(0.55),
+
+  /// Forgot / reset password: a shorter photo.
+  short(0.34);
+
+  const AuthPhotoSize(this.fraction);
+  final double fraction;
+}
+
 /// Shared layout for the signed-out screens (login, forgot / reset password):
-/// a navy hero (logo, title, subtitle over a drifting constellation) and the
-/// form card below it. The card rises and its items stagger in; the hero
-/// collapses when the keyboard opens so the form and the button stay in view.
-/// Scrolls. See MOTION_SPEC.md 3.3 / 3.4.
-class AuthPageShell extends StatefulWidget {
+/// the first photo at the top fading into the navy page, the logo tile (the
+/// splash landing anchor) on it, then the heading, the subtitle and the form on
+/// the navy. The content rises and its items stagger in; the photo collapses to
+/// a strip when the keyboard opens so the fields and the button stay in view.
+/// Scrolls. See MOTION_SPEC.md 3.3 / 3.4 / 7.
+///
+/// Everything below the photo's strong line (EmPhotoOverlay) is text on the
+/// overlay, so the content starts there and is checked against the worst case.
+class AuthPageShell extends StatelessWidget {
   final String title;
   final String subtitle;
   final Widget child;
   final bool showBack;
 
-  /// Wraps [child] in the form card (default). Turn off for content that
-  /// brings its own surface.
-  final bool card;
+  /// Sign in has the tall photo; the others the short one.
+  final AuthPhotoSize photoSize;
 
-  /// The login screen has the tall hero; the others the compact one.
-  final EmHeroSize heroSize;
-
-  /// Replaces the logo in the hero (the assembled success glyph).
+  /// Replaces the logo on the photo (the assembled success glyph).
   final Widget? glyph;
 
-  /// Shakes the card whenever this changes (an error).
+  /// Shakes the content whenever this changes (an error).
   final ValueListenable<int>? shake;
 
   const AuthPageShell({
@@ -33,153 +45,160 @@ class AuthPageShell extends StatefulWidget {
     required this.subtitle,
     required this.child,
     this.showBack = false,
-    this.card = true,
-    this.heroSize = EmHeroSize.compact,
+    this.photoSize = AuthPhotoSize.short,
     this.glyph,
     this.shake,
   });
 
-  @override
-  State<AuthPageShell> createState() => _AuthPageShellState();
-}
+  /// Strong line of the photo's overlay as a fraction of the photo box: content starts here.
+  static const double photoSafeTop = 0.78;
+  static final double contentStart = EmPhotoOverlay.strongLine(photoSafeTop);
 
-class _AuthPageShellState extends State<AuthPageShell> with TickerProviderStateMixin, WidgetsBindingObserver {
-  // the constellation: a slow drift that pauses while it cannot be seen or is not wanted
-  late final EmDriftClock _time = EmDriftClock(vsync: this, active: false);
-  late final AnimationController _intensity = AnimationController(vsync: this, value: 1, duration: EmMotion.slow);
-  bool _collapsed = false;
-  bool _resumed = true; // the app is in the foreground
-  bool _current = true; // this screen is the top route
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _resumed = WidgetsBinding.instance.lifecycleState == null || WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    _resumed = state == AppLifecycleState.resumed;
-    _syncDrift();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _current = ModalRoute.of(context)?.isCurrent ?? true;
-    final collapsed = MediaQuery.viewInsetsOf(context).bottom > 0;
-    if (collapsed != _collapsed) {
-      _collapsed = collapsed;
-      _intensity.animateTo(collapsed ? 0.3 : 1, curve: EmMotion.standard);
-    }
-    _syncDrift();
-  }
-
-  /// Drifts only when motion is allowed, the hero is open (no keyboard), the app is in the
-  /// foreground and this is the current route.
-  void _syncDrift() => _time.active = !EmReduceMotion.of(context) && !_collapsed && _resumed && _current;
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _time.dispose();
-    _intensity.dispose();
-    super.dispose();
-  }
+  static const double logoTile = 64, glyphTile = 104, maxContentWidth = 420;
 
   @override
   Widget build(BuildContext context) {
+    // read here, above the scaffold: it removes the keyboard inset from its body's MediaQuery
+    final reduced = EmReduceMotion.of(context);
+    final top = MediaQuery.paddingOf(context).top;
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final tile = glyph != null ? glyphTile : logoTile;
+    final full = MediaQuery.sizeOf(context).height * photoSize.fraction;
+    // the keyboard collapses the photo to a strip that still holds the logo tile
+    final collapsed = top + EmSpacing.s12 + tile + EmSpacing.s24;
+    final photoHeight = keyboard ? (collapsed < full ? collapsed : full) : full;
     return EmEntranceHost(
       builder: (context, entrance) => EmEntrance(
         animation: entrance,
         child: EmScaffold(
           extendBody: false,
+          wash: false,
+          backgroundColor: EmColors.primaryDark,
           systemOverlay: SystemUiOverlayStyle.light,
           body: LayoutBuilder(
-            builder: (context, constraints) => SingleChildScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    EmAuthHero(
-                      title: widget.title,
-                      subtitle: widget.subtitle,
-                      size: widget.heroSize,
-                      collapsed: _collapsed,
-                      showBack: widget.showBack,
-                      glyph: widget.glyph,
-                      time: _time,
-                      intensity: _intensity,
-                    ),
-                    SafeArea(
-                      top: false,
-                      child: Padding(
-                        padding: const EdgeInsetsDirectional.symmetric(horizontal: EmSpacing.screenH, vertical: EmSpacing.s20),
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 420),
-                            child: _rise(entrance, widget.card ? AuthCard(child: widget.child) : widget.child),
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(end: photoHeight),
+                    duration: reduced ? Duration.zero : EmMotion.slow,
+                    curve: EmMotion.emphasized,
+                    builder: (context, h, _) => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // the photo is taller than this box; the content below overlaps its faded lower part
+                        SizedBox(
+                          height: h * contentStart,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: h,
+                                child: EmPhotoBackdrop(
+                                  key: const Key('auth_photo'),
+                                  image: EmAuthPhotos.provider(EmAuthPhotos.photo1),
+                                  safeTop: photoSafeTop,
+                                  bottomAlpha: 1,
+                                ),
+                              ),
+                              // top corner, clear of the people in the photo
+                              PositionedDirectional(
+                                top: top + EmSpacing.s12,
+                                end: EmSpacing.s24,
+                                child: glyph != null
+                                    ? EmLogoTile(size: glyphTile, color: EmColors.primaryDark, child: glyph)
+                                    : const EmLogoAnchor(child: EmLogoTile(size: logoTile)),
+                              ),
+                              if (showBack)
+                                PositionedDirectional(
+                                  top: top + EmSpacing.s8,
+                                  start: EmSpacing.s16,
+                                  child: Builder(builder: (context) {
+                                    final rtl = Directionality.of(context) == TextDirection.rtl;
+                                    return EmIconCircleButton(
+                                      icon: rtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
+                                      semanticLabel: 'Back',
+                                      tooltip: 'Back',
+                                      onTap: () => Navigator.maybeOf(context)?.maybePop(),
+                                    );
+                                  }),
+                                ),
+                            ],
                           ),
                         ),
-                      ),
+                        SafeArea(
+                          top: false,
+                          child: Padding(
+                            padding: const EdgeInsetsDirectional.fromSTEB(EmSpacing.s24, 0, EmSpacing.s24, EmSpacing.s24),
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: maxContentWidth),
+                                child: _rise(entrance, _content()),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  /// The card rises [EmMotion.riseDistance] while it fades in; shakes on error.
-  Widget _rise(Animation<double> entrance, Widget card) {
+  /// Heading (accent: large bold only), muted subtitle, then the form, all on the navy ([EmOnDark]).
+  Widget _content() {
+    return EmOnDark(
+      child: Builder(
+        builder: (context) => TextButtonTheme(
+          data: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: EmColors.onPrimaryDark)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Semantics(
+                header: true,
+                child: Text(title,
+                    key: const Key('auth_title'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: EmType.photoTitle.copyWith(color: EmColors.accent)),
+              ),
+              const SizedBox(height: EmSpacing.s8),
+              Text(subtitle,
+                  key: const Key('auth_subtitle'),
+                  style: EmType.body.copyWith(color: EmOnDark.muted(context), fontWeight: FontWeight.w400)),
+              const SizedBox(height: EmSpacing.s20),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The content rises [EmMotion.riseDistance] while it fades in; shakes on error.
+  Widget _rise(Animation<double> entrance, Widget content) {
     final a = CurvedAnimation(parent: entrance, curve: EmEntrancePlan.card);
     Widget c = AnimatedBuilder(
       animation: a,
-      child: card,
+      child: content,
       builder: (context, child) => Opacity(
         opacity: a.value,
         child: Transform.translate(offset: Offset(0, EmMotion.riseDistance * (1 - a.value)), child: child),
       ),
     );
-    if (widget.shake != null) c = EmShake(trigger: widget.shake!, child: c);
+    if (shake != null) c = EmShake(trigger: shake!, child: c);
     return c;
-  }
-}
-
-/// The form card: a blue gradient (primary -> primaryDark) instead of a white
-/// surface. Everything inside sits on dark ([EmOnDark]): fields are transparent
-/// with a white border (accent when focused), the primary button is the accent
-/// fill, text buttons are white.
-class AuthCard extends StatelessWidget {
-  const AuthCard({super.key, required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(EmRadius.card),
-        gradient:
-            const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [EmColors.primary, EmColors.primaryDark]),
-        boxShadow: EmShadows.soft,
-      ),
-      child: Padding(
-        padding: const EdgeInsetsDirectional.all(EmSpacing.s20),
-        child: EmOnDark(
-          child: TextButtonTheme(
-            data: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: EmColors.onPrimaryDark)),
-            child: child,
-          ),
-        ),
-      ),
-    );
   }
 }
 

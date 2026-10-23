@@ -18,6 +18,12 @@ class EmMotion {
   /// Replacement for every motion when reduce-motion is on.
   static const Duration crossfade = Duration(milliseconds: 200);
 
+  /// The splash photo + logo tile reveal (inside the first motion beat, 700 ms).
+  static const Duration photoReveal = Duration(milliseconds: 600);
+
+  /// One cycle of the two accent rings that ripple out of the splash logo tile.
+  static const Duration ringPeriod = Duration(milliseconds: 2200);
+
   /// How long the sign-in screen stays up after a success, so the drawn check is seen.
   static const Duration successHold = Duration(milliseconds: 700);
 
@@ -43,4 +49,9 @@ class EmMotion {
   static const double shakeDistance = 8;
   static const double driftMin = 4;
   static const double driftMax = 10;
+
+  /// Onboarding parallax: a photo trails the swipe by this much per page, and is
+  /// scaled up by [parallaxScale] so its edge never shows.
+  static const double parallaxShift = 24;
+  static const double parallaxScale = 1.14;
 }

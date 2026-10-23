@@ -19,6 +19,11 @@ class EmType {
   static const TextStyle label = TextStyle(fontFamily: family, fontSize: 13, height: 1.3, fontWeight: FontWeight.w600);
   static const TextStyle caption = TextStyle(fontFamily: family, fontSize: 12, height: 1.3, fontWeight: FontWeight.w500);
 
+  /// Photo screens (white / accent on the navy overlay): bold. Accent text is only ever these large bold styles (4.43:1 on navy).
+  static const TextStyle photoTitle = TextStyle(fontFamily: family, fontSize: 28, height: 1.2, fontWeight: FontWeight.w700, letterSpacing: -0.4);
+  static const TextStyle splashTitle = TextStyle(fontFamily: family, fontSize: 32, height: 1.2, fontWeight: FontWeight.w700, letterSpacing: -0.4);
+  static const TextStyle splashTagline = TextStyle(fontFamily: family, fontSize: 20, height: 1.3, fontWeight: FontWeight.w700);
+
   /// Values in charts / timers / stat tiles: bold, tabular figures.
   static const TextStyle value = TextStyle(fontFamily: family, fontSize: 20, height: 1.2, fontWeight: FontWeight.w600, fontFeatures: _tabular);
   static const TextStyle valueSmall = TextStyle(fontFamily: family, fontSize: 15, height: 1.2, fontWeight: FontWeight.w600, fontFeatures: _tabular);

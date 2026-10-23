@@ -9,6 +9,9 @@ class EmRadius {
   static const double hero = 28;
   static const double navTop = 32;
 
+  /// Corner radius of the white logo tile, as a fraction of its side.
+  static const double logoTileRatio = 0.2;
+
   /// "Fully rounded": larger than any control height.
   static const double pill = 999;
 
