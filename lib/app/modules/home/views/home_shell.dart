@@ -126,18 +126,17 @@ class _HomeShellState extends State<HomeShell> {
           currentIndex: shell.tabIndex.value,
           onTap: shell.changeTab,
           items: [
-            const EmNavItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
-            const EmNavItem(icon: Icons.grid_view_outlined, activeIcon: Icons.grid_view_rounded, label: 'Classes'),
+            const EmNavItem(svgIcon: 'assets/icons/home.svg', label: 'Home'),
+            const EmNavItem(svgIcon: 'assets/icons/dashboard.svg', label: 'Classes'),
             // Badge only from the real unread-conversations endpoint; none when unavailable or zero.
             EmNavItem(
-              icon: Icons.chat_bubble_outline_rounded,
-              activeIcon: Icons.chat_bubble_rounded,
+              svgIcon: 'assets/icons/message.svg',
               label: 'Messages',
               badgeCount: badges.messagesUnread,
               badgeCapped: badges.messagesUnreadCapped,
               badgeKey: const Key('messages_badge'),
             ),
-            const EmNavItem(icon: Icons.widgets_outlined, activeIcon: Icons.widgets_rounded, label: 'More'),
+            const EmNavItem(svgIcon: 'assets/icons/menu.svg', label: 'More'),
           ],
           // No allowed action -> no FAB (the bar then spreads its four items evenly).
           centerAction: actions.isEmpty

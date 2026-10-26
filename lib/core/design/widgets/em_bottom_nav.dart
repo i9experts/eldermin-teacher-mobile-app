@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../tokens/em_colors.dart';
 import '../tokens/em_radius.dart';
 import '../tokens/em_shadows.dart';
@@ -6,18 +7,23 @@ import '../tokens/em_typography.dart';
 
 class EmNavItem {
   const EmNavItem({
-    required this.icon,
-    required this.activeIcon,
+    this.icon,
+    this.activeIcon,
+    this.svgIcon,
     required this.label,
     this.badgeCount,
     this.badgeCapped = false,
     this.badgeKey,
     this.showDot = false,
-  });
-  final IconData icon;
+  }) : assert(svgIcon != null || (icon != null && activeIcon != null), 'give an svgIcon or both icons');
+
+  /// App icon (assets/icons/*.svg), tinted with the item colour (primary when active, secondary otherwise).
+  /// Takes precedence over [icon] / [activeIcon].
+  final String? svgIcon;
+  final IconData? icon;
 
   /// Filled variant shown when active.
-  final IconData activeIcon;
+  final IconData? activeIcon;
   final String label;
 
   /// Unread count over the icon (null/0 = none; >99 shows "99+").
@@ -107,7 +113,9 @@ class _NavButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = active ? EmColors.primary : EmColors.textSecondary;
     final n = item.badgeCount ?? 0;
-    Widget icon = Icon(active ? item.activeIcon : item.icon, size: 24, color: color);
+    Widget icon = item.svgIcon != null
+        ? SvgPicture.asset(item.svgIcon!, width: 24, height: 24, colorFilter: ColorFilter.mode(color, BlendMode.srcIn))
+        : Icon(active ? item.activeIcon : item.icon, size: 24, color: color);
     if (n > 0 || item.showDot) {
       icon = Stack(clipBehavior: Clip.none, children: [
         icon,
