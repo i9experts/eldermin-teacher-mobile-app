@@ -82,7 +82,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   autofillHints: const [AutofillHints.email],
                   prefixIcon: Icons.mail_outline_rounded,
                   fillColor: EmColors.background,
-                  radius: EmRadius.pill,
+                  radius: EmRadius.control,
                   validator: Validators.email,
                   onSubmitted: (_) => _submit(),
                 )),

@@ -59,11 +59,11 @@ ThemeData buildEmTheme() {
   );
 
   OutlineInputBorder inputBorder(Color color, [double width = 1]) => OutlineInputBorder(
-        borderRadius: EmRadius.mdAll,
+        borderRadius: EmRadius.controlAll,
         borderSide: BorderSide(color: color, width: width),
       );
 
-  const buttonShape = StadiumBorder();
+  const buttonShape = RoundedRectangleBorder(borderRadius: EmRadius.controlAll);
   const buttonSize = Size(64, 52);
   const buttonPadding = EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 14);
 
@@ -102,8 +102,8 @@ ThemeData buildEmTheme() {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: EmColors.primary,
-        foregroundColor: EmColors.onPrimary,
+        backgroundColor: EmColors.accent,
+        foregroundColor: EmColors.ink,
         disabledBackgroundColor: EmColors.disabled,
         disabledForegroundColor: EmColors.onDisabled,
         elevation: 0,
@@ -116,8 +116,8 @@ ThemeData buildEmTheme() {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: EmColors.primary,
-        foregroundColor: EmColors.onPrimary,
+        backgroundColor: EmColors.accent,
+        foregroundColor: EmColors.ink,
         disabledBackgroundColor: EmColors.disabled,
         disabledForegroundColor: EmColors.onDisabled,
         minimumSize: buttonSize,
@@ -128,9 +128,9 @@ ThemeData buildEmTheme() {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: EmColors.primary,
+        foregroundColor: EmColors.ink,
         disabledForegroundColor: EmColors.onDisabled,
-        side: const BorderSide(color: EmColors.primaryLight, width: 1.5),
+        side: const BorderSide(color: EmColors.accent, width: 1.5),
         minimumSize: buttonSize,
         padding: buttonPadding,
         shape: buttonShape,

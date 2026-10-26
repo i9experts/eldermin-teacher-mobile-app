@@ -55,7 +55,7 @@ class EmTextField extends StatelessWidget {
   /// Overrides the theme fill (e.g. the scaffold tint when the field sits on a white card).
   final Color? fillColor;
 
-  /// Corner radius; defaults to the theme (16). Use `EmRadius.pill` for pill fields.
+  /// Corner radius; defaults to the theme (10, `EmRadius.control`).
   final double? radius;
   final TextCapitalization textCapitalization;
   final VoidCallback? onTap;

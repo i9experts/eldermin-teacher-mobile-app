@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 
 class EmRadius {
   EmRadius._();
+  /// Every field and button.
+  static const double control = 10;
   static const double sm = 12;
   static const double md = 16;
   static const double tile = 20; // nested stat tiles
@@ -15,6 +17,7 @@ class EmRadius {
   /// "Fully rounded": larger than any control height.
   static const double pill = 999;
 
+  static const BorderRadius controlAll = BorderRadius.all(Radius.circular(control));
   static const BorderRadius smAll = BorderRadius.all(Radius.circular(sm));
   static const BorderRadius mdAll = BorderRadius.all(Radius.circular(md));
   static const BorderRadius tileAll = BorderRadius.all(Radius.circular(tile));

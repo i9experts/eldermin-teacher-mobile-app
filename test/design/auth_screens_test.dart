@@ -100,7 +100,7 @@ void main() {
   });
 
   group('look and feel (REFERENCE_SPEC)', () {
-    testWidgets('login: navy page with photo, transparent pill fields (1 px light border, accent when focused), accent button, logomark', (t) async {
+    testWidgets('login: navy page with photo, transparent 10 dp fields (1 px light border, accent when focused), accent button, logomark', (t) async {
       await pumpScreen(t, const LoginScreen());
       expect(t.widget<Scaffold>(find.byType(Scaffold)).backgroundColor, EmColors.primaryDark);
       expect(find.byType(EmLogomark), findsOneWidget);
@@ -115,7 +115,7 @@ void main() {
         final enabled = d.enabledBorder! as OutlineInputBorder;
         expect(enabled.borderSide.color, EmColors.primaryLight);
         expect(enabled.borderSide.width, 1);
-        expect(enabled.borderRadius, BorderRadius.circular(EmRadius.pill));
+        expect(enabled.borderRadius, BorderRadius.circular(10));
         expect((d.focusedBorder! as OutlineInputBorder).borderSide.color, EmColors.accent);
       }
 

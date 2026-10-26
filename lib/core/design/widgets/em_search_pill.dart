@@ -40,7 +40,7 @@ class EmSearchPill extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 52),
             child: DecoratedBox(
-              decoration: BoxDecoration(color: color, borderRadius: EmRadius.pillAll),
+              decoration: BoxDecoration(color: color, borderRadius: EmRadius.controlAll),
               child: Row(
                 children: [
                   const SizedBox(width: 18),

@@ -59,10 +59,10 @@ class EmMorphButton extends StatelessWidget {
               curve: Curves.easeInOutCubic,
               width: busy ? height : full,
               height: height,
-              decoration: const BoxDecoration(color: fill, borderRadius: EmRadius.pillAll),
+              decoration: const BoxDecoration(color: fill, borderRadius: EmRadius.controlAll),
               child: Material(
                 type: MaterialType.transparency,
-                borderRadius: EmRadius.pillAll,
+                borderRadius: EmRadius.controlAll,
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: busy ? null : onPressed,

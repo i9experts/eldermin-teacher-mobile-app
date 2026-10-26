@@ -92,9 +92,11 @@ void main() {
       expect(theme.textTheme.bodyMedium!.fontFamily, EmType.family);
       expect(EmType.family, 'PlusJakartaSans');
     });
-    test('buttons are pill-shaped with >= 48dp height', () {
+    test('buttons are 10 dp rounded, theme yellow with an ink label, >= 48dp high', () {
       final s = theme.elevatedButtonTheme.style!;
-      expect(s.shape!.resolve({}), isA<StadiumBorder>());
+      expect((s.shape!.resolve({})! as RoundedRectangleBorder).borderRadius, BorderRadius.circular(10));
+      expect(s.backgroundColor!.resolve({}), EmColors.accent);
+      expect(contrastRatio(s.foregroundColor!.resolve({})!, EmColors.accent), greaterThanOrEqualTo(4.5));
       expect(s.minimumSize!.resolve({})!.height, greaterThanOrEqualTo(48));
     });
   });

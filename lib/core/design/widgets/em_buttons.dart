@@ -21,9 +21,9 @@ class EmPrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // On the blue auth card the primary action is the accent (yellow) fill with an ink label (>= 4.5:1).
-    final accent = !destructive && EmOnDark.of(context);
-    final fill = destructive ? EmColors.error : (accent ? EmColors.accent : EmColors.primary);
-    final on = destructive ? EmColors.onError : (accent ? EmColors.ink : EmColors.onPrimary);
+    // Every button is the theme yellow with an ink label (>= 4.5:1); only a destructive action stays red.
+    final fill = destructive ? EmColors.error : EmColors.accent;
+    final on = destructive ? EmColors.onError : EmColors.ink;
     final child = _content(label, icon, loading, on);
     final btn = ElevatedButton(
       onPressed: loading ? null : onPressed,
@@ -31,8 +31,8 @@ class EmPrimaryButton extends StatelessWidget {
         minimumSize: const Size(64, 52),
         backgroundColor: fill,
         foregroundColor: on,
-        disabledBackgroundColor: loading ? fill : (accent ? EmColors.primaryMid : EmColors.disabled),
-        disabledForegroundColor: loading ? on : (accent ? EmColors.onPrimaryDark : EmColors.onDisabled),
+        disabledBackgroundColor: loading ? fill : (EmOnDark.of(context) ? EmColors.primaryMid : EmColors.disabled),
+        disabledForegroundColor: loading ? on : (EmOnDark.of(context) ? EmColors.onPrimaryDark : EmColors.onDisabled),
       ),
       child: child,
     );
@@ -47,7 +47,7 @@ class EmPrimaryButton extends StatelessWidget {
   }
 }
 
-/// White pill with a light border and primary label (reference "Drink 200 ml").
+/// White button with a yellow border and ink label (reference "Drink 200 ml").
 class EmSecondaryButton extends StatelessWidget {
   const EmSecondaryButton({super.key, required this.label, required this.onPressed, this.icon, this.expand = false, this.destructive = false, this.loading = false});
 
@@ -67,10 +67,10 @@ class EmSecondaryButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(64, 52),
         backgroundColor: EmColors.surface,
-        foregroundColor: destructive ? EmColors.error : EmColors.primary,
-        side: BorderSide(color: destructive ? EmColors.error : EmColors.primaryLight, width: 1.5),
+        foregroundColor: destructive ? EmColors.error : EmColors.ink,
+        side: BorderSide(color: destructive ? EmColors.error : EmColors.accent, width: 1.5),
       ),
-      child: _content(label, icon, loading, destructive ? EmColors.error : EmColors.primary),
+      child: _content(label, icon, loading, destructive ? EmColors.error : EmColors.ink),
     );
     return Semantics(
       button: true,
