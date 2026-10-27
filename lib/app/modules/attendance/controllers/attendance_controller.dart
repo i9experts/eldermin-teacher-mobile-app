@@ -157,6 +157,13 @@ class AttendanceController extends GetxController {
   /// The school-wide mode (daily by default; read from `GET /teaching/attendance-settings` on every [load]).
   final mode = Rx<AttendanceMode>(AttendanceMode.daily);
 
+  /// True when the last mode read answered 403 (custom role without `attendance-settings`): the app works in daily mode but does not KNOW it.
+  final modeUnreadable = false.obs;
+
+  /// While [modeUnreadable]: some record already loaded for the day/class carries a subject, i.e. the school marks by subject. Saving a
+  /// whole-day mark would then be wrong, so the save is blocked (marks stay in memory). Computed from data already loaded: no extra call.
+  final subjectEvidence = false.obs;
+
   /// Subject names of the school (subject-wise mode only; the same list the web's subject picker shows).
   final subjects = <String>[].obs;
 
@@ -258,7 +265,10 @@ class AttendanceController extends GetxController {
   /// Marks can be set: an editable day that the school calendar has not closed.
   bool get markable => editable && !dayInvalid;
 
-  bool get canSubmit => editable && !classStale && !dayInvalid && !submitting.value && roster.value.hasData && allMarked && dirty && !needsSubject;
+  /// Whole-day save refused because the mode is unreadable AND the day already holds subject records.
+  bool get modeBlocked => modeUnreadable.value && subjectEvidence.value;
+
+  bool get canSubmit => editable && !classStale && !dayInvalid && !modeBlocked && !submitting.value && roster.value.hasData && allMarked && dirty && !needsSubject;
 
   String? get academicYear => academicYearOf(students_);
 
@@ -280,7 +290,7 @@ class AttendanceController extends GetxController {
     unawaited(_runDayCheck());
     try {
       // The mode decides what is sent and read: a failure here is an error state with Retry (never a guess).
-      final m = await attendance.fetchMode();
+      final m = await _readMode();
       if (token != _token) return;
       await _applyMode(m);
       if (token != _token) return;
@@ -363,6 +373,43 @@ class AttendanceController extends GetxController {
   /// "Check again": re-runs the school-day check for the current day and class (the admin may have fixed the calendar).
   Future<void> recheckDay() => _runDayCheck(force: true);
 
+  /// Reads the mode. 403 -> daily + [modeUnreadable] (any other failure propagates: strict error + Retry, never a guess).
+  Future<AttendanceMode> _readMode() async {
+    try {
+      final m = await attendance.fetchMode();
+      modeUnreadable.value = false;
+      return m;
+    } on AttendanceModeForbidden {
+      modeUnreadable.value = true;
+      return AttendanceMode.daily;
+    }
+  }
+
+  /// "Check again" on the mode banners: re-reads the mode. Success clears the banner (and reloads into subject mode when the school is
+  /// subject-wise); another 403 keeps the warning; any other failure keeps the current state and reports false.
+  final rechecking = false.obs;
+  Future<bool> recheckMode() async {
+    if (rechecking.value) return false;
+    rechecking.value = true;
+    try {
+      final m = await attendance.fetchMode();
+      modeUnreadable.value = false;
+      subjectEvidence.value = false;
+      if (m == AttendanceMode.subjectWise) {
+        await load();
+      } else {
+        mode.value = m;
+      }
+      return true;
+    } on AttendanceModeForbidden {
+      return false;
+    } catch (_) {
+      return false;
+    } finally {
+      rechecking.value = false;
+    }
+  }
+
   /// Stores the mode; in subject-wise mode loads the subject list and keeps (or defaults to the first) subject.
   Future<void> _applyMode(AttendanceMode m) async {
     mode.value = m;
@@ -389,9 +436,14 @@ class AttendanceController extends GetxController {
     final ids = {for (final s in list) s.id};
     final key = ymdOf(d);
     final out = <String, AttendanceRecord>{};
+    var subjectRecords = false;
     for (final r in records) {
-      if (r.dayKey == key && ids.contains(r.studentId)) out[r.studentId] = r;
+      if (r.dayKey == key && ids.contains(r.studentId)) {
+        out[r.studentId] = r;
+        if ((r.subject ?? '').trim().isNotEmpty) subjectRecords = true;
+      }
     }
+    subjectEvidence.value = subjectRecords;
     return out;
   }
 
@@ -510,6 +562,7 @@ class AttendanceController extends GetxController {
   Future<SubmitResult> submit() async {
     if (submitting.value) return const SubmitIgnored();
     if (!editable || !roster.value.hasData || needsSubject || classStale || dayInvalid) return const SubmitIgnored();
+    if (modeBlocked) return const SubmitBlocked(0); // subject records exist but the mode is unreadable: no whole-day save
     final missing = unmarked.length;
     if (missing > 0) {
       showUnmarked.value = true;

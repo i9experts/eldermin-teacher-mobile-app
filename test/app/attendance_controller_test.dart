@@ -1,15 +1,45 @@
 // ignore_for_file: invalid_use_of_protected_member
 import 'dart:async';
+import 'package:dio/dio.dart' hide Response;
+import 'package:dio/dio.dart' as dio show Response;
 import 'package:eldermin_teacher_app/app/modules/attendance/controllers/attendance_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/home/models/section_state.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/attendance_models.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/student_models.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
+import 'package:eldermin_teacher_app/core/network/base_client.dart';
 import 'package:eldermin_teacher_app/core/services/attendance_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_harness.dart';
 import '../support/fake_classroom_repositories.dart';
+
+/// Answers every GET with the HTTP error [status], so the REAL [AttendanceRepository.fetchMode] mapping feeds the controller.
+class _StubClient extends BaseClient {
+  final int status;
+  _StubClient({required this.status});
+  @override
+  Future<dio.Response> get(String url, {Map<String, dynamic>? queryParameters, bool requiresAuth = true, Map<String, String>? headers}) async {
+    final ro = RequestOptions(path: url);
+    throw DioException(requestOptions: ro, type: DioExceptionType.badResponse, response: dio.Response(requestOptions: ro, statusCode: status, data: {'statusCode': status, 'message': 'msg $status'}));
+  }
+}
+
+/// The fake day/roster repository, but `fetchMode` goes through the real repository against a stub HTTP client.
+class _RealModeRepo extends FakeAttendanceRepository {
+  AttendanceRepository real;
+  _RealModeRepo(this.real);
+  @override
+  Future<AttendanceMode> fetchMode() {
+    modeCalls++;
+    return real.fetchMode();
+  }
+}
+
+/// A server record of [s] for [day] (stored instant = midnight UTC) that carries a subject (written in a subject-wise school).
+AttendanceRecord _subjectRecord(StudentSummary s, DateTime day, String subject) => AttendanceRecord(
+    id: 'r${s.id}$subject', studentId: s.id, studentName: s.fullName, grade: s.grade, section: s.section, date: DateTime.utc(day.year, day.month, day.day),
+    status: AttendanceStatus.present, rawStatus: 'present', subject: subject);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -788,6 +818,142 @@ void main() {
       expect(c.dayInvalid, isTrue);
       expect(c.canSubmit, isFalse);
       expect(await c.submit(), isA<SubmitIgnored>());
+    });
+  });
+
+  group('attendance-settings 403 (custom role without the attendance-settings grant): daily + warning, subject-evidence guard', () {
+    final forbidden = AttendanceModeForbidden('Forbidden resource');
+
+    test('403: roster and day load in DAILY mode, modeUnreadable is set, a whole-day save works and sends no subject (no subject evidence)', () async {
+      attendance.mode = () async => throw forbidden;
+      final c = await make();
+      await c.load();
+      expect(c.roster.value.status, SectionStatus.data);
+      expect(c.modeUnreadable.value, isTrue);
+      expect(c.isSubjectWise, isFalse);
+      expect(c.modeBlocked, isFalse);
+      c.markRemainingPresent();
+      expect(c.canSubmit, isTrue);
+      expect(await c.submit(), isA<SubmitSaved>());
+      expect(attendance.submitted.single.every((w) => w.subject == null), isTrue);
+    });
+
+    test('403 + a loaded record with a subject: the whole-day save is BLOCKED (canSubmit false, submit -> SubmitBlocked, nothing sent), marks stay in memory, no extra network call', () async {
+      attendance.mode = () async => throw forbidden;
+      attendance.range = (g, s, f, l) async => [_subjectRecord(roster[0], now, 'Maths')];
+      final c = await make();
+      await c.load();
+      expect(c.modeUnreadable.value, isTrue);
+      expect(c.subjectEvidence.value, isTrue);
+      expect(c.modeBlocked, isTrue);
+      c.markRemainingPresent();
+      expect(c.marks, hasLength(4));
+      expect(c.canSubmit, isFalse);
+      final callsBefore = attendance.rangeCalls.length;
+      expect(await c.submit(), isA<SubmitBlocked>());
+      expect(attendance.submitted, isEmpty);
+      expect(c.marks, hasLength(4), reason: 'marks are kept');
+      expect(attendance.rangeCalls.length, callsBefore, reason: 'the guard uses the records already loaded');
+    });
+
+    test('a record with an EMPTY subject is not evidence', () async {
+      attendance.mode = () async => throw forbidden;
+      attendance.range = (g, s, f, l) async => [_subjectRecord(roster[0], now, '  ')];
+      final c = await make();
+      await c.load();
+      expect(c.subjectEvidence.value, isFalse);
+      c.markRemainingPresent();
+      expect(c.canSubmit, isTrue);
+    });
+
+    test('Check again -> the setting is now subject_wise: banner state clears and the screen reloads into subject mode', () async {
+      var readable = false;
+      attendance.mode = () async => readable ? AttendanceMode.subjectWise : throw forbidden;
+      attendance.subjectNames = () async => ['English', 'Maths'];
+      attendance.range = (g, s, f, l) async => [_subjectRecord(roster[0], now, 'English')];
+      final c = await make();
+      await c.load();
+      expect(c.modeBlocked, isTrue);
+      readable = true;
+      expect(await c.recheckMode(), isTrue);
+      expect(c.modeUnreadable.value, isFalse);
+      expect(c.isSubjectWise, isTrue);
+      expect(c.subjects, ['English', 'Maths']);
+      expect(c.selectedSubject.value, 'English');
+      expect(c.modeBlocked, isFalse);
+      expect(attendance.rangeCalls.last.subject, 'English', reason: 'reloaded for the subject');
+    });
+
+    test('Check again -> daily now readable: banner clears and a whole-day save is allowed again', () async {
+      var readable = false;
+      attendance.mode = () async => readable ? AttendanceMode.daily : throw forbidden;
+      attendance.range = (g, s, f, l) async => [_subjectRecord(roster[0], now, 'Maths')];
+      final c = await make();
+      await c.load();
+      expect(c.modeBlocked, isTrue);
+      readable = true;
+      expect(await c.recheckMode(), isTrue);
+      expect(c.modeUnreadable.value, isFalse);
+      expect(c.modeBlocked, isFalse);
+      expect(c.isSubjectWise, isFalse);
+    });
+
+    test('Check again while still 403 (or offline): the warning stays and nothing changes', () async {
+      attendance.mode = () async => throw forbidden;
+      final c = await make();
+      await c.load();
+      expect(await c.recheckMode(), isFalse);
+      expect(c.modeUnreadable.value, isTrue);
+      expect(c.roster.value.status, SectionStatus.data);
+      attendance.mode = () async => throw ApiException('offline');
+      expect(await c.recheckMode(), isFalse);
+      expect(c.modeUnreadable.value, isTrue);
+    });
+
+    test('through the REAL repository: 403 -> daily + unreadable; 404 and 501 -> silent daily (no flag); 500 / offline / 401 -> strict error state, roster never requested', () async {
+      Future<AttendanceController> boot(_StubClient client) async {
+        Get.reset();
+        Get.testMode = true;
+        students.calls.clear();
+        attendance = _RealModeRepo(AttendanceRepository(client));
+        return make();
+      }
+
+      var c = await boot(_StubClient(status: 403));
+      await c.load();
+      expect((c.roster.value.status, c.modeUnreadable.value, c.isSubjectWise), (SectionStatus.data, true, false));
+      for (final code in [404, 501]) {
+        c = await boot(_StubClient(status: code));
+        await c.load();
+        expect((c.roster.value.status, c.modeUnreadable.value, c.isSubjectWise), (SectionStatus.data, false, false), reason: '$code');
+      }
+      for (final code in [500, 401, 502]) {
+        c = await boot(_StubClient(status: code));
+        await c.load();
+        expect(c.roster.value.status, SectionStatus.error, reason: '$code');
+        expect(c.modeUnreadable.value, isFalse, reason: '$code');
+        expect(students.calls, isEmpty, reason: '$code');
+      }
+    });
+
+    test('a plain (non-typed) 403 from some other call is not swallowed: only the mode read is tolerant', () async {
+      attendance.mode = () async => throw ApiException('Forbidden', statusCode: 403);
+      final c = await make();
+      await c.load();
+      expect(c.roster.value.status, SectionStatus.forbidden, reason: 'an untyped 403 keeps the existing strict forbidden state');
+      expect(c.modeUnreadable.value, isFalse);
+    });
+
+    test('blocking conditions combine: a closed school day keeps submit disabled while the mode is unreadable', () async {
+      attendance.mode = () async => throw forbidden;
+      attendance.checkResult = (_, __) async => const SchoolDayStatus(valid: false, configured: true, reason: 'weekend');
+      final c = await make();
+      await c.load();
+      await pumpEventQueue();
+      c.markRemainingPresent();
+      expect(c.modeUnreadable.value, isTrue);
+      expect(c.dayInvalid, isTrue);
+      expect(c.canSubmit, isFalse);
     });
   });
 }

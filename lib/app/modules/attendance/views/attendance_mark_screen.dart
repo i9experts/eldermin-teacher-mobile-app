@@ -137,6 +137,26 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     }
   }
 
+  /// The school's attendance mode could not be read (403, custom role without `attendance-settings`): a warning while marking whole days, or an
+  /// error when the day already holds subject records (the whole-day save is then blocked). Both offer "Check again".
+  List<Widget> _modeUnreadableBanners() {
+    if (!c.modeUnreadable.value) return const [];
+    final blocked = c.modeBlocked;
+    return [
+      EmInfoBanner(
+        key: Key(blocked ? 'mode_unreadable_blocked_banner' : 'mode_unreadable_banner'),
+        tone: blocked ? EmTone.error : EmTone.warning,
+        icon: Icons.rule_rounded,
+        text: blocked
+            ? "Your school marks attendance by subject, but we couldn't read the setting, so saving is blocked. Ask your school admin, then tap Check again."
+            : "We couldn't read your school's attendance setting, so you're marking whole-day attendance. Ask your school admin if your school marks by subject.",
+        actionLabel: 'Check again',
+        actionKey: const Key('mode_recheck'),
+        onAction: c.recheckMode,
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -221,6 +241,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
             actionKey: const Key('school_day_recheck'),
             onAction: c.recheckDay,
           ),
+        ..._modeUnreadableBanners(),
         if (!c.editable)
           EmInfoBanner(
             key: const Key('read_only_banner'),
@@ -406,7 +427,7 @@ class _BottomBar extends StatelessWidget {
                 key: const Key('submit_button'),
                 loading: saving,
                 label: saved ? 'Saved' : (missing > 0 ? 'Review & submit ($missing not marked)' : 'Review & submit'),
-                onPressed: (!c.editable || c.classStale || c.dayInvalid || saving || saved) ? null : onSubmit,
+                onPressed: (!c.editable || c.classStale || c.dayInvalid || c.modeBlocked || saving || saved) ? null : onSubmit,
               ),
           ]),
         ),
