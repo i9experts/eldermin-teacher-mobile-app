@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/home/class_snapshot.dart';
@@ -124,15 +125,22 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
 
   String? _lastStaffId;
   bool? _lastClassTeacher;
+  List<String> _lastClassKeys = const [];
+
+  /// The class keys the class card was last (re)loaded for, in profile order.
+  List<String> get _classKeys => [for (final c in classTeacherClasses(auth.staffMe.value?.teacherProfile)) c.key];
 
   void _onProfileChanged() {
-    final id = staffId, ct = auth.isClassTeacher;
+    final id = staffId, ct = auth.isClassTeacher, keys = _classKeys;
     if (id != _lastStaffId) {
       _lastStaffId = id;
       _lastClassTeacher = ct;
+      _lastClassKeys = keys;
       if (id != null) loadAll();
-    } else if (ct != _lastClassTeacher) {
+    } else if (ct != _lastClassTeacher || !listEquals(keys, _lastClassKeys)) {
+      // Class-teacher flag OR the set of classes changed (e.g. a section was added while Home stayed alive): reload the cards.
       _lastClassTeacher = ct;
+      _lastClassKeys = keys;
       loadClassCard();
     }
   }
@@ -187,6 +195,7 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
   Future<void> loadAll({bool userInitiated = false}) async {
     _lastStaffId = staffId;
     _lastClassTeacher = auth.isClassTeacher;
+    _lastClassKeys = _classKeys;
     _dateKey = dateKeyOf(clock());
     now.value = clock();
     await Future.wait([
