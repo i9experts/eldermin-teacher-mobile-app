@@ -72,6 +72,7 @@ class ApiConstants {
 
   // ── Student attendance (class teacher) ───────────────────────
   static const String attendanceList = '$apiPrefix/students/attendance/list'; // use from/to (not `date`)
+  static const String attendanceCheckDay = '$apiPrefix/students/attendance/check-day'; // GET ?date&grade -> {valid, configured, reason?}
   static const String attendanceMark = '$apiPrefix/students/attendance';
   static const String attendanceBulk = '$apiPrefix/students/attendance/bulk';
   /// School-wide mode `{ mode: 'daily' | 'subject_wise' }` (teaching.controller.ts:51-52; readable by any signed-in user; the web reads it in AttendanceTab.tsx).

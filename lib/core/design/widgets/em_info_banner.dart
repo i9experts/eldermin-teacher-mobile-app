@@ -7,13 +7,14 @@ import 'em_tone.dart';
 /// Inline notice: tone container + dark text + a leading icon (so the meaning never relies on colour alone), optional trailing action.
 /// Replaces the legacy ad-hoc banners (`ErrorBanner`, attendance `_Banner`, ...).
 class EmInfoBanner extends StatelessWidget {
-  const EmInfoBanner({super.key, required this.text, this.tone = EmTone.info, this.icon, this.actionLabel, this.onAction});
+  const EmInfoBanner({super.key, required this.text, this.tone = EmTone.info, this.icon, this.actionLabel, this.onAction, this.actionKey});
 
   final String text;
   final EmTone tone;
   final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final Key? actionKey;
 
   static IconData _defaultIcon(EmTone t) => switch (t) {
         EmTone.error => Icons.error_outline_rounded,
@@ -40,7 +41,7 @@ class EmInfoBanner extends StatelessWidget {
               const SizedBox(width: EmSpacing.s8),
               Expanded(child: Padding(padding: const EdgeInsets.only(top: EmSpacing.s2), child: Text(text, style: EmType.body.copyWith(color: tone.foreground, fontWeight: FontWeight.w500)))),
               if (actionLabel != null)
-                TextButton(onPressed: onAction, style: TextButton.styleFrom(foregroundColor: tone.foreground), child: Text(actionLabel!, style: EmType.label.copyWith(color: tone.foreground))),
+                TextButton(key: actionKey, onPressed: onAction, style: TextButton.styleFrom(foregroundColor: tone.foreground), child: Text(actionLabel!, style: EmType.label.copyWith(color: tone.foreground))),
             ]),
           ),
         ),
