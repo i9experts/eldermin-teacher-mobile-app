@@ -8,6 +8,7 @@ import '../../../../core/widgets/shimmer_widgets.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/leave_controller.dart';
+import 'leave_detail_sheet.dart' show showLeaveDetailSheet;
 import '../../../../core/design/design.dart';
 
 EmTone leaveStatusTag(StaffLeaveStatus s) => switch (s) {
@@ -163,6 +164,7 @@ class _RequestCard extends StatelessWidget {
     final note = l.status == StaffLeaveStatus.rejected && l.rejectionReason.isNotEmpty ? l.rejectionReason : l.approverNote;
     return AppCard(
       key: ValueKey('leave_${l.id}'),
+      onTap: () => showLeaveDetailSheet(context, l),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Text('${l.typeLabel} leave', style: EmType.body.copyWith(fontWeight: FontWeight.w800, color: EmColors.ink))),
