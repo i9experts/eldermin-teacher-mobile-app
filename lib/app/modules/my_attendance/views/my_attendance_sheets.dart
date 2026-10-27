@@ -11,7 +11,7 @@ import 'my_attendance_format.dart';
 /// Opens the detail sheet of one attendance day, with the "Request correction" action. [pending] = a correction request for that day is
 /// already waiting (shown as a note; the server still accepts another).
 Future<void> showAttendanceDaySheet(BuildContext context, StaffAttendanceDay day, {AttendanceCorrectionRequest? pending}) =>
-    DetailBottomSheet.show<void>(context, data: () => attendanceDaySheetData(day, pending: pending));
+    DetailBottomSheet.show<void>(context, data: () => attendanceDaySheetData(day, pending: pending), fitContent: true);
 
 DetailSheetData attendanceDaySheetData(StaffAttendanceDay d, {AttendanceCorrectionRequest? pending}) {
   final workHours = d.workingHours;
@@ -45,7 +45,7 @@ DetailSheetData attendanceDaySheetData(StaffAttendanceDay d, {AttendanceCorrecti
 
 /// Opens the detail sheet of one of my correction requests (read-only: a decision is made by the school).
 Future<void> showCorrectionSheet(BuildContext context, AttendanceCorrectionRequest r) =>
-    DetailBottomSheet.show<void>(context, data: () => correctionSheetData(r));
+    DetailBottomSheet.show<void>(context, data: () => correctionSheetData(r), fitContent: true);
 
 DetailSheetData correctionSheetData(AttendanceCorrectionRequest r) {
   final decided = r.status != CorrectionStatus.pending;

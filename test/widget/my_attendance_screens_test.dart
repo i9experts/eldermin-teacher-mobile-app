@@ -181,6 +181,17 @@ void main() {
     expect(pend.sections.first.fields.first.value, 'No record');
   });
 
+  testWidgets('day sheet fits its content and keeps the request button tappable', (t) async {
+    await show(t, Builder(builder: (c) => TextButton(onPressed: () => showAttendanceDaySheet(c, dayRow('2026-10-27', status: 'present', checkIn: '08:02')), child: const Text('open'))));
+    await t.tap(find.text('open'));
+    await settle(t);
+    expect(t.getSize(find.byKey(const Key('detail_sheet'))).height, lessThan(400));
+    expectNoLayoutError(t);
+    await t.tap(find.byKey(const Key('my_att_request_correction')));
+    await settle(t);
+    expect(find.text('went:${Routes.myAttendanceCorrect}'), findsOneWidget);
+  });
+
   group('correction form', () {
     Future<AttendanceCorrectionController> form(WidgetTester t, {DateTime? date, double width = 390, double scale = 1.0}) async {
       final list = Get.put(MyAttendanceController(repository: repo, clock: () => now));
