@@ -130,6 +130,10 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
           behavior: SnackBarBehavior.floating,
           margin: EmSpacing.snackAboveBar,
           content: Text('Attendance saved')));
+    } else if (r is SubmitFailed && r.failure.kind == SubmitFailureKind.notSchoolDay) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(key: const Key('not_school_day_snack'), behavior: SnackBarBehavior.floating, margin: EmSpacing.snackAboveBar, content: Text(r.failure.message)));
     }
   }
 
@@ -207,6 +211,16 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
             icon: Icons.menu_book_outlined,
             text: 'Your school marks attendance subject by subject, but no subjects are set up yet. Ask your admin to add subjects.',
           ),
+        if (c.dayInvalid)
+          EmInfoBanner(
+            key: const Key('school_day_banner'),
+            tone: EmTone.warning,
+            icon: Icons.event_busy_rounded,
+            text: notSchoolDayText(c.dayStatus.value.reason),
+            actionLabel: 'Check again',
+            actionKey: const Key('school_day_recheck'),
+            onAction: c.recheckDay,
+          ),
         if (!c.editable)
           EmInfoBanner(
             key: const Key('read_only_banner'),
@@ -239,7 +253,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                   student: s,
                   status: c.marks[s.id],
                   legacyStatus: c.legacyStatus[s.id],
-                  enabled: c.editable && !c.submitting.value,
+                  enabled: c.markable && !c.submitting.value,
                   highlightMissing: c.showUnmarked.value,
                   onSelect: (st) => c.setStatus(s.id, st),
                 )),
@@ -376,7 +390,7 @@ class _BottomBar extends StatelessWidget {
                   style: EmType.label.copyWith(color: missing == 0 ? EmColors.onSuccessContainer : EmColors.onWarningContainer),
                 ),
               ),
-              if (missing > 0 && c.editable)
+              if (missing > 0 && c.markable)
                 TextButton(
                   key: const Key('mark_remaining_present'),
                   onPressed: saving ? null : onMarkRemaining,
@@ -392,7 +406,7 @@ class _BottomBar extends StatelessWidget {
                 key: const Key('submit_button'),
                 loading: saving,
                 label: saved ? 'Saved' : (missing > 0 ? 'Review & submit ($missing not marked)' : 'Review & submit'),
-                onPressed: (!c.editable || c.classStale || saving || saved) ? null : onSubmit,
+                onPressed: (!c.editable || c.classStale || c.dayInvalid || saving || saved) ? null : onSubmit,
               ),
           ]),
         ),
