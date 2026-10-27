@@ -67,7 +67,7 @@ void main() {
   tearDown(Get.reset);
 
   Future<void> pumpMore(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.physicalSize = const Size(800, 1800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
