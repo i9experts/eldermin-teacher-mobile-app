@@ -145,6 +145,10 @@ class ApiConstants {
   static const String leaveSelfHistory = '$apiPrefix/hr/leave/self/history';
   static const String leaveSelfApply = '$apiPrefix/hr/leave/self'; // POST
 
+  // ── My Attendance (staff self-service, permission `attendance:self`) ──
+  static const String attendanceSelf = '$apiPrefix/hr/attendance/self'; // GET ?month=&year=
+  static const String attendanceSelfCorrections = '$apiPrefix/hr/attendance/self/correction-requests'; // GET, POST
+
   // ── Calendar / events / circulars ────────────────────────────
   static const String calendarEvents = '$apiPrefix/school-calendar/events'; // ?from&to
   static const String circulars = '$apiPrefix/school-calendar/circulars'; // pass status=published
