@@ -1,5 +1,6 @@
 // ignore_for_file: invalid_use_of_protected_member
 import 'dart:async';
+import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:eldermin_teacher_app/app/components/external_link.dart';
 import 'package:eldermin_teacher_app/app/modules/about/controllers/about_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/about/views/about_screen.dart';
@@ -53,6 +54,24 @@ final now = DateTime(2026, 10, 9, 12);
 CalendarEntry entry(String id, String title, {String start = '2026-10-09T00:00:00.000Z', String? end, bool allDay = true, String type = 'event', String description = ''}) => CalendarEntry.tryParse(calRow(id, title, start: start, end: end, allDay: allDay, type: type, description: description))!;
 Circular circ(String id, String title, {bool ack = false, bool urgent = false, String body = '<p>Hello</p>', List<String> attachments = const []}) => Circular.tryParse(circRow(id, title, ack: ack, urgent: urgent, body: body, attachments: attachments))!;
 SchoolEvent ev(String id, String title, {List<Map<String, Object?>>? sessions, String status = 'published', String description = ''}) => SchoolEvent.tryParse(eventRow(id, title, sessions: sessions, status: status, description: description))!;
+
+/// Taps the rich-text link span whose text is [text]; fails if it is not a link (no tap recognizer).
+void _tapRichLink(WidgetTester t, String text) {
+  for (final w in t.widgetList<RichText>(find.byType(RichText))) {
+    TextSpan? hit;
+    w.text.visitChildren((s) {
+      if (s is TextSpan && s.text == text) hit = s;
+      return true;
+    });
+    if (hit != null) {
+      final r = hit!.recognizer;
+      if (r is! TapGestureRecognizer) fail('"$text" is not a tappable link');
+      r.onTap!();
+      return;
+    }
+  }
+  fail('no text span "$text"');
+}
 
 void main() {
   setUpAll(loadDesignFonts); // real glyph widths (the default Ahem test font fakes overflows)
@@ -1028,6 +1047,65 @@ void main() {
       expect(find.textContaining('This is bold and a safe link and bad.', findRichText: true), findsOneWidget);
       expect(find.text('How to use it'), findsOneWidget);
       expect(find.textContaining('Sign in', findRichText: true), findsOneWidget);
+    });
+
+    testWidgets('article with an HTML body: paragraph, heading, ordered list and safe links render; script and bad links never do; links ask first', (t) async {
+      final opened = <Uri>[];
+      ExternalLinks.launcher = (u) async {
+        opened.add(u);
+        return true;
+      };
+      const body = '<p>Welcome to the <b>portal</b>.</p><h2>Getting started</h2><ol><li>Sign in</li><li>Open Classes</li></ol>'
+          '<p>Read <a href="https://example.test/guide">the guide</a>, email <a href="mailto:help@school.example">the help desk</a> '
+          'or <a href="javascript:alert(1)">click here</a>.</p><script>alert("xss")';
+      repo.one = (m, tk) async => const KbArticle(module: 'general', tabKey: 'start', title: 'Getting started', tagline: 'A tour', body: body, steps: []);
+      final c = Get.put(HelpArticleController(repository: repo, module: 'general', tabKey: 'start'));
+      await open(t, const HelpArticleScreen());
+      await t.runAsync(() => c.load());
+      await settle(t);
+
+      // paragraph, heading, ordered list
+      expect(find.textContaining('Welcome to the portal.', findRichText: true), findsOneWidget);
+      expect(find.text('Getting started', findRichText: true), findsWidgets); // the title and the heading
+      expect(find.text('1.'), findsOneWidget);
+      expect(find.text('2.'), findsOneWidget);
+      expect(find.textContaining('Sign in', findRichText: true), findsOneWidget);
+      expect(find.textContaining('Open Classes', findRichText: true), findsOneWidget);
+      expect(find.textContaining('•'), findsNothing, reason: 'an ordered list is not bullets');
+
+      // no raw tags, no script text
+      expect(find.textContaining(RegExp(r'</?[a-zA-Z]'), findRichText: true), findsNothing);
+      expect(find.textContaining('<', findRichText: true), findsNothing);
+      expect(find.textContaining('xss', findRichText: true), findsNothing);
+      expect(find.textContaining('alert', findRichText: true), findsNothing);
+
+      // the disallowed scheme is plain text
+      expect(find.textContaining('click here', findRichText: true), findsOneWidget);
+      expect(() => _tapRichLink(t, 'click here'), throwsA(isA<TestFailure>()));
+
+      // http link: confirmation first, Cancel opens nothing, Open launches
+      _tapRichLink(t, 'the guide');
+      await settle(t);
+      expect(find.text('Open this link?'), findsOneWidget);
+      expect(opened, isEmpty);
+      await t.tap(find.byKey(const Key('confirm_dialog_cancel')));
+      await settle(t);
+      expect(opened, isEmpty);
+      _tapRichLink(t, 'the guide');
+      await settle(t);
+      await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
+      await settle(t);
+      expect(opened.single.toString(), 'https://example.test/guide');
+
+      // mailto link: also behind the confirmation
+      opened.clear();
+      _tapRichLink(t, 'the help desk');
+      await settle(t);
+      expect(find.text('Open this link?'), findsOneWidget);
+      expect(opened, isEmpty);
+      await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
+      await settle(t);
+      expect(opened.single.toString(), 'mailto:help@school.example');
     });
 
     testWidgets('article 404 and error', (t) async {

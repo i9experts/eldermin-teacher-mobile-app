@@ -12,12 +12,14 @@ class ExternalLinks {
   /// Test seam: replace to capture launches without a platform channel.
   static Future<bool> Function(Uri uri) launcher = (u) => launchUrl(u, mode: LaunchMode.externalApplication);
 
-  static Future<void> openWithConfirm(String? url) async {
-    final u = safeExternalUri(url);
+  /// [allowContact] additionally accepts `mailto:` and `tel:` (links inside rich text); attachments and everything else stay http(s) only.
+  static Future<void> openWithConfirm(String? url, {bool allowContact = false}) async {
+    final u = allowContact ? safeLinkUri(url) : safeExternalUri(url);
     if (u == null) return;
+    final web = u.scheme == 'http' || u.scheme == 'https';
     final ok = await ConfirmDialog.show(
       title: 'Open this link?',
-      message: 'It opens in your browser, outside Eldermin Teacher:\n${u.host}${u.path.length > 1 ? u.path : ''}',
+      message: 'It opens outside Eldermin Teacher:\n${web ? '${u.host}${u.path.length > 1 ? u.path : ''}' : u.toString()}',
       confirmLabel: 'Open',
     );
     if (!ok) return;

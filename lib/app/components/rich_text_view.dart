@@ -1,3 +1,4 @@
+// Mirrored in eldermin-parent-mobile-app lib/app/components/rich_text_view.dart — keep in sync.
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../../core/design/design.dart';
@@ -34,9 +35,16 @@ class _RichTextViewState extends State<RichTextView> {
           TextSpan(
             text: r.text,
             style: const TextStyle(color: EmColors.primary, decoration: TextDecoration.underline),
-            recognizer: (TapGestureRecognizer()..onTap = () => ExternalLinks.openWithConfirm(r.link)),
+            recognizer: _link(r.link!),
           ),
     ]);
+  }
+
+  /// Tracked so they are disposed with the next build and with the state (they used to leak).
+  TapGestureRecognizer _link(String url) {
+    final r = TapGestureRecognizer()..onTap = () => ExternalLinks.openWithConfirm(url, allowContact: true);
+    _recognizers.add(r);
+    return r;
   }
 
   @override

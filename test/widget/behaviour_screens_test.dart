@@ -3,13 +3,16 @@ import 'dart:async';
 import 'package:eldermin_teacher_app/app/modules/behaviour/controllers/behaviour_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/behaviour/controllers/behaviour_log_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/behaviour/controllers/behaviour_student_controller.dart';
+import 'package:eldermin_teacher_app/app/modules/behaviour/views/behaviour_detail_sheet.dart';
 import 'package:eldermin_teacher_app/app/modules/behaviour/views/behaviour_new_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/behaviour/views/behaviour_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/behaviour/views/behaviour_student_screen.dart';
+import 'package:eldermin_teacher_app/app/routes/app_routes.dart';
 import 'package:eldermin_teacher_app/core/models/behaviour/behaviour_models.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/student_models.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
+import 'package:eldermin_teacher_app/core/widgets/detail_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -83,6 +86,49 @@ void main() {
     await t.pump(const Duration(milliseconds: 300));
   }
 
+  group('behaviourSheetData', () {
+    BehaviourRecord full({String type = 'negative', bool resolved = true, String note = 'Spoke to the family', int points = -5, String severity = 'high'}) => BehaviourRecord.fromJson({
+          '_id': 'x1', 'studentId': 'st1', 'studentName': 'Zara Malik', 'grade': 'Grade 5', 'section': 'A', 'type': type, 'category': 'misconduct',
+          'title': 'Disrupted the lesson', 'description': 'Talked over the teacher for most of the period and refused to stop when asked twice.',
+          'date': '2026-10-01T00:00:00.000Z', 'points': points, 'reportedBy': 'Omar Colleague', 'reportedById': 'INTERNAL-USER-ID',
+          'severity': severity, 'resolved': resolved, 'resolvedNote': note,
+        });
+    String? v(DetailSheetData d, String l) => d.fields.where((f) => f.label == l).firstOrNull?.value;
+
+    test('a resolved demerit shows everything, including the resolution note', () {
+      final d = behaviourSheetData(full(), mine: false);
+      expect(d.title, 'Disrupted the lesson');
+      expect(d.statusLabel, 'Demerit');
+      expect(v(d, 'Student'), 'Zara Malik');
+      expect(v(d, 'Class'), 'Grade 5 - A');
+      expect(v(d, 'Date'), '1 Oct 2026');
+      expect(v(d, 'Category'), 'Misconduct');
+      expect(v(d, 'Severity'), 'High');
+      expect(v(d, 'Points'), '-5');
+      expect(v(d, 'Logged by'), 'Omar Colleague');
+      expect(v(d, 'Status'), 'Resolved');
+      expect(v(d, 'Resolution note'), 'Spoke to the family');
+      expect(d.longText, startsWith('Talked over the teacher'));
+    });
+    test('mine shows "You"; the internal reporter id is never shown', () {
+      final d = behaviourSheetData(full(), mine: true);
+      expect(v(d, 'Logged by'), 'You');
+      expect([for (final f in d.fields) f.value].join(' '), isNot(contains('INTERNAL-USER-ID')));
+    });
+    test('an open demerit says Open and has no resolution note', () {
+      final d = behaviourSheetData(full(resolved: false, note: 'stale note'), mine: false);
+      expect(v(d, 'Status'), 'Open');
+      expect(d.fields.where((f) => f.label == 'Resolution note' && f.visible), isEmpty);
+    });
+    test('a merit has no severity / status and zero points are hidden', () {
+      final d = behaviourSheetData(full(type: 'positive', points: 0, severity: 'medium', resolved: false, note: ''), mine: false);
+      expect(d.statusLabel, 'Merit');
+      expect(v(d, 'Severity'), isNull);
+      expect(v(d, 'Status'), isNull);
+      expect(v(d, 'Points'), isNull);
+    });
+  });
+
   group('Behaviour home', () {
     Future<BehaviourController> boot(WidgetTester t, {List<Map<String, Object?>> assignments = const [cls5a], List<String>? permissions}) async {
       final h = await signIn(t, assignments: assignments, permissions: permissions);
@@ -123,6 +169,30 @@ void main() {
       expect(find.text('HIGH'), findsOneWidget);
       expect(find.text('RESOLVED'), findsOneWidget);
       expect(find.text('MISCONDUCT'), findsOneWidget);
+    });
+
+    testWidgets('tapping a record on the main list still opens the student screen (no sheet)', (t) async {
+      repo.gradeRecords = (g) async => [rec('r1', by: 'Tess Teacher', byId: 'u', title: 'Great teamwork')];
+      final h = await signIn(t);
+      final c = Get.put(BehaviourController(repository: repo, students: students, auth: h.auth, permissions: h.perms));
+      await t.binding.setSurfaceSize(const Size(430, 3000));
+      addTearDown(() => t.binding.setSurfaceSize(null));
+      await t.pumpWidget(GetMaterialApp(
+        theme: AppTheme.light,
+        home: const Scaffold(body: Text('root')),
+        getPages: [GetPage(name: Routes.behaviourStudent, page: () => const Scaffold(body: Text('student screen')))],
+      ));
+      unawaited(Get.to(() => const BehaviourScreen()));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      await c.load();
+      await settle(t);
+      await t.tap(find.text('Great teamwork'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      expect(Get.currentRoute, '/behaviour/student/st1');
+      expect(find.text('student screen'), findsOneWidget);
+      expect(find.byKey(const Key('detail_sheet')), findsNothing);
     });
 
     testWidgets('class chips appear with several classes and narrow the list; search narrows by student', (t) async {
@@ -477,6 +547,35 @@ void main() {
       expect(find.text('GOOD'), findsOneWidget);
       expect(find.text('Truthfulness (Sidq)'), findsOneWidget);
       expect(find.byKey(const Key('beh_student_log')), findsOneWidget);
+    });
+
+    testWidgets('tapping a record opens its detail sheet with the full description; the sheet is read-only', (t) async {
+      repo.studentRecords = (id) async => [
+            BehaviourRecord.fromJson({
+              '_id': 'x1', 'studentId': 'st1', 'studentName': 'Zara Malik', 'grade': 'Grade 5', 'section': 'A', 'type': 'negative', 'category': 'late_coming',
+              'title': 'Late to class', 'description': 'Arrived twenty minutes late without a note and disturbed the start of the lesson for everyone.',
+              'date': '2026-10-01T00:00:00.000Z', 'points': -2, 'reportedBy': 'Omar Colleague', 'severity': 'medium', 'resolved': true, 'resolvedNote': 'Parent informed',
+            }),
+            rec('r2', by: 'Tess Teacher', byId: 'u', title: 'Helped a classmate'),
+          ];
+      await boot(t, initial: mine);
+      expect(find.byKey(const Key('detail_sheet')), findsNothing);
+      await t.tap(find.text('Late to class'));
+      await settle(t);
+      await t.pump(const Duration(milliseconds: 400));
+      final sheet = find.byKey(const Key('detail_sheet'));
+      expect(sheet, findsOneWidget);
+      expect(find.descendant(of: sheet, matching: find.text('Demerit')), findsOneWidget);
+      expect(find.descendant(of: sheet, matching: find.text('Late Coming')), findsOneWidget);
+      expect(find.descendant(of: sheet, matching: find.text('Omar Colleague')), findsOneWidget);
+      expect(find.descendant(of: sheet, matching: find.text('Parent informed')), findsOneWidget);
+      expect(find.descendant(of: sheet, matching: find.textContaining('twenty minutes late without a note and disturbed the start of the lesson for everyone')), findsOneWidget);
+      expect(find.byKey(const Key('detail_sheet_footer')), findsNothing);
+      t.state<NavigatorState>(find.byType(Navigator).first).pop();
+      await t.pumpAndSettle();
+      await t.tap(find.text('Helped a classmate'));
+      await t.pumpAndSettle();
+      expect(find.descendant(of: find.byKey(const Key('detail_sheet')), matching: find.text('You')), findsOneWidget); // my own record
     });
 
     testWidgets('empty history says so; tarbiyah empty explains it is created on the web', (t) async {
