@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/home/class_snapshot.dart';
@@ -10,6 +11,7 @@ import '../../../../core/utils/ptm_agenda.dart';
 import '../../../../core/services/home_repository.dart';
 import '../../../../core/services/permission_service.dart';
 import '../../../../core/utils/home_time.dart';
+import '../../../../core/utils/roster_scope.dart';
 import '../../../common/module_catalog.dart';
 import '../../../routes/app_routes.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -56,7 +58,8 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
   late final now = Rx<DateTime>(clock());
 
   final timetable = Rx<SectionState<List<TeacherPeriod>>>(const SectionState.loading());
-  final classCard = Rx<SectionState<ClassAttendanceSnapshot>>(const SectionState.loading());
+  /// One snapshot per class the teacher is class teacher of (one entry for a single-class teacher).
+  final classCard = Rx<SectionState<List<ClassAttendanceSnapshot>>>(const SectionState.loading());
   final homework = Rx<SectionState<HomeworkToGrade>>(const SectionState.loading());
   final lessonPlans = Rx<SectionState<LessonPlanSummary>>(const SectionState.loading());
   final ptms = Rx<SectionState<List<PtmMeeting>>>(const SectionState.loading());
@@ -122,15 +125,22 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
 
   String? _lastStaffId;
   bool? _lastClassTeacher;
+  List<String> _lastClassKeys = const [];
+
+  /// The class keys the class card was last (re)loaded for, in profile order.
+  List<String> get _classKeys => [for (final c in classTeacherClasses(auth.staffMe.value?.teacherProfile)) c.key];
 
   void _onProfileChanged() {
-    final id = staffId, ct = auth.isClassTeacher;
+    final id = staffId, ct = auth.isClassTeacher, keys = _classKeys;
     if (id != _lastStaffId) {
       _lastStaffId = id;
       _lastClassTeacher = ct;
+      _lastClassKeys = keys;
       if (id != null) loadAll();
-    } else if (ct != _lastClassTeacher) {
+    } else if (ct != _lastClassTeacher || !listEquals(keys, _lastClassKeys)) {
+      // Class-teacher flag OR the set of classes changed (e.g. a section was added while Home stayed alive): reload the cards.
       _lastClassTeacher = ct;
+      _lastClassKeys = keys;
       loadClassCard();
     }
   }
@@ -185,6 +195,7 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
   Future<void> loadAll({bool userInitiated = false}) async {
     _lastStaffId = staffId;
     _lastClassTeacher = auth.isClassTeacher;
+    _lastClassKeys = _classKeys;
     _dateKey = dateKeyOf(clock());
     now.value = clock();
     await Future.wait([
@@ -241,25 +252,21 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
 
   Future<void> loadClassCard() async {
     if (!showClassCard) return;
-    final info = auth.staffMe.value?.teacherProfile?.classTeacherOf;
-    final grade = info?.gradeName;
-    if (info == null || grade == null || grade.isEmpty) {
+    final mine = classTeacherClasses(auth.staffMe.value?.teacherProfile);
+    if (mine.isEmpty) {
       classCard.value = const SectionState.error('Your class details are missing. Pull to refresh.');
       return;
     }
-    final section = info.sectionName ?? '';
-    await _load<ClassAttendanceSnapshot>(classCard, () async {
+    await _load<List<ClassAttendanceSnapshot>>(classCard, () async {
       final range = todayRangeUtc(clock());
-      final roster = await repo.fetchRoster(grade: grade, section: section);
-      final marked =
-          await repo.fetchAttendanceCount(grade: grade, section: section, from: range.from, to: range.to);
-      return ClassAttendanceSnapshot(
-        label: info.displayName,
-        grade: grade,
-        section: section,
-        rosterSize: roster.activeCount,
-        markedCount: marked,
-      );
+      return Future.wait([
+        for (final c in mine)
+          () async {
+            final roster = await repo.fetchRoster(grade: c.grade, section: c.section);
+            final marked = await repo.fetchAttendanceCount(grade: c.grade, section: c.section, from: range.from, to: range.to);
+            return ClassAttendanceSnapshot(label: c.label, grade: c.grade, section: c.section, rosterSize: roster.activeCount, markedCount: marked);
+          }(),
+      ]);
     });
   }
 

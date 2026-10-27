@@ -42,8 +42,9 @@ void main() {
   Future<({HomeDashboardController c, AuthController auth, HomeBadgesController badges})> make({
     bool classTeacher = false,
     List<String>? permissions,
+    List<Map<String, Object?>>? classTeacherAssignments,
   }) async {
-    final h = await signedIn(classTeacher: classTeacher, permissions: permissions);
+    final h = await signedIn(classTeacher: classTeacher, permissions: permissions, classTeacherAssignments: classTeacherAssignments);
     final badges = HomeBadgesController(repository: repo, auth: h.auth, autoPoll: false);
     final c = HomeDashboardController(
         repository: repo, auth: h.auth, permissions: h.perms, badges: badges, clock: () => now, tick: null);
@@ -117,13 +118,26 @@ void main() {
     Get.testMode = true;
     final ct = await make(classTeacher: true);
     await ct.c.loadAll();
-    final snap = ct.c.classCard.value.data!;
+    expect(ct.c.classCard.value.data, hasLength(1)); // one class: one card
+    final snap = ct.c.classCard.value.data!.single;
     expect(snap.label, 'Grade 5 - A');
     expect(snap.rosterSize, 30);
     expect(snap.markedCount, 12);
     expect(snap.state, AttendanceMarkState.partial);
     expect(repo.calls, contains('roster:Grade 5:A'));
     expect(repo.calls, contains('attendance:Grade 5:A'));
+  });
+
+  test('class-teacher card: one card per class for a multi-section class teacher (first assignment first)', () async {
+    repo.attendance = (_, __, ___, ____) async => 30;
+    final ct = await make(classTeacher: true, classTeacherAssignments: [
+      {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionId': 's1', 'sectionName': 'A', 'name': 'Grade 5 - A'},
+      {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionId': 's2', 'sectionName': 'B', 'name': 'Grade 5 - B'},
+    ]);
+    await ct.c.loadAll();
+    final snaps = ct.c.classCard.value.data!;
+    expect([for (final s in snaps) s.label], ['Grade 5 - A', 'Grade 5 - B']);
+    expect(repo.calls, containsAll(['roster:Grade 5:A', 'roster:Grade 5:B', 'attendance:Grade 5:A', 'attendance:Grade 5:B']));
   });
 
   test('homework N+1 is capped at 10 assignments and reports it', () async {

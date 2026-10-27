@@ -44,6 +44,31 @@ class AttendanceWrite {
       };
 }
 
+/// Answer of `GET /students/attendance/check-day`: is [day] a school day for the class's grade?
+/// [unknown] = the check itself failed (never blocks marking; the server re-validates on save).
+class SchoolDayStatus {
+  final bool valid;
+  final bool configured;
+  final String? reason;
+  final bool unknown;
+  const SchoolDayStatus({required this.valid, this.configured = false, this.reason}) : unknown = false;
+  const SchoolDayStatus.unknown()
+      : valid = true,
+        configured = false,
+        reason = null,
+        unknown = true;
+
+  /// Defensive: anything but an explicit `valid: false` counts as valid.
+  factory SchoolDayStatus.fromJson(Map<String, dynamic> m) {
+    final reason = readString(m['reason'])?.trim();
+    return SchoolDayStatus(
+      valid: m['valid'] != false,
+      configured: m['configured'] == true,
+      reason: reason == null || reason.isEmpty ? null : reason,
+    );
+  }
+}
+
 /// Student attendance calls (class teachers).
 class AttendanceRepository {
   final BaseClient _client;
@@ -95,6 +120,24 @@ class AttendanceRepository {
         }
         return out;
       });
+
+  /// `GET /students/attendance/check-day?date&grade` (students.controller.ts:529-538): whether [day] is a school day for [grade]
+  /// (working days + holidays of the academic year; not configured = valid). `date` is noon UTC of [day] ([attendanceWireDate]).
+  /// Never throws: 404 (older server) = valid; every other failure = [SchoolDayStatus.unknown] (the save-time 400 still protects).
+  Future<SchoolDayStatus> checkDay({required DateTime day, String? grade}) async {
+    try {
+      final res = await _guard(() => _client.get(ApiConstants.attendanceCheckDay, queryParameters: {
+            'date': attendanceWireDate(day),
+            if (grade != null && grade.isNotEmpty) 'grade': grade,
+          }));
+      return SchoolDayStatus.fromJson(expectMap(res.data, what: 'the school-day check'));
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return const SchoolDayStatus(valid: true);
+      return const SchoolDayStatus.unknown();
+    } catch (_) {
+      return const SchoolDayStatus.unknown();
+    }
+  }
 
   /// `POST /students/attendance/bulk` { records: [...] } -> HTTP 201 with a Mongo BulkWriteResult
   /// (students.controller.ts:481-493 -> students.service.ts:1810-1823). The response BODY IS IGNORED

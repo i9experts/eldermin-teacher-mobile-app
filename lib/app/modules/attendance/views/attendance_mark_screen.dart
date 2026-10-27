@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/models/classroom/attendance_models.dart';
 import '../../../../core/models/classroom/student_models.dart';
 import '../../../../core/utils/home_time.dart';
+import '../../../../core/utils/roster_scope.dart';
 import '../../../../core/utils/timetable_week.dart';
 import '../../../../core/widgets/app_date_picker.dart';
 import '../../../../core/widgets/app_widgets.dart';
@@ -70,6 +71,12 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     }
   }
 
+  Future<void> _changeClass(ClassRef cls) async {
+    if (!await c.selectClass(cls)) {
+      if (await _confirmDiscard()) await c.selectClass(cls, discard: true);
+    }
+  }
+
   Future<void> _changeSubject(String name) async {
     if (!await c.selectSubject(name)) {
       if (await _confirmDiscard()) await c.selectSubject(name, discard: true);
@@ -123,6 +130,10 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
           behavior: SnackBarBehavior.floating,
           margin: EmSpacing.snackAboveBar,
           content: Text('Attendance saved')));
+    } else if (r is SubmitFailed && r.failure.kind == SubmitFailureKind.notSchoolDay) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(key: const Key('not_school_day_snack'), behavior: SnackBarBehavior.floating, margin: EmSpacing.snackAboveBar, content: Text(r.failure.message)));
     }
   }
 
@@ -183,6 +194,15 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
           onSelect: _changeDay,
           onPick: _pickDay,
         ),
+        if (c.hasPicker) _ClassBar(controller: c, onSelect: _changeClass),
+        if (c.classStale)
+          EmInfoBanner(
+            key: const Key('stale_class_banner'),
+            tone: EmTone.warning,
+            text: staleClassText(cls.label),
+            actionLabel: 'Sign out',
+            onAction: c.auth.logout,
+          ),
         if (c.isSubjectWise) _SubjectBar(controller: c, onSelect: _changeSubject),
         if (c.needsSubject)
           const EmInfoBanner(
@@ -190,6 +210,16 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
             tone: EmTone.warning,
             icon: Icons.menu_book_outlined,
             text: 'Your school marks attendance subject by subject, but no subjects are set up yet. Ask your admin to add subjects.',
+          ),
+        if (c.dayInvalid)
+          EmInfoBanner(
+            key: const Key('school_day_banner'),
+            tone: EmTone.warning,
+            icon: Icons.event_busy_rounded,
+            text: notSchoolDayText(c.dayStatus.value.reason),
+            actionLabel: 'Check again',
+            actionKey: const Key('school_day_recheck'),
+            onAction: c.recheckDay,
           ),
         if (!c.editable)
           EmInfoBanner(
@@ -223,7 +253,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                   student: s,
                   status: c.marks[s.id],
                   legacyStatus: c.legacyStatus[s.id],
-                  enabled: c.editable && !c.submitting.value,
+                  enabled: c.markable && !c.submitting.value,
                   highlightMissing: c.showUnmarked.value,
                   onSelect: (st) => c.setStatus(s.id, st),
                 )),
@@ -269,6 +299,35 @@ class _DayBar extends StatelessWidget {
       );
 }
 
+/// Teachers who are class teacher of more than one class: which class is being marked (shown only then; a single-class teacher sees no picker).
+class _ClassBar extends StatelessWidget {
+  final AttendanceController controller;
+  final ValueChanged<ClassRef> onSelect;
+  const _ClassBar({required this.controller, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final current = c.myClass;
+    return Padding(
+      key: const Key('class_bar'),
+      padding: const EdgeInsets.only(bottom: EmSpacing.row),
+      child: EmCard(
+        padding: EmSpacing.cardPadCompact,
+        radius: EmRadius.md,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Class', style: EmType.label.copyWith(color: EmColors.textSecondary)),
+          const SizedBox(height: EmSpacing.s4),
+          Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s8, children: [
+            for (final cls in c.classes)
+              EmChip(key: ValueKey('class_chip_${cls.key}'), label: cls.label, selected: current?.key == cls.key, onTap: c.submitting.value ? null : () => onSelect(cls)),
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
 /// Subject-wise schools: which subject's attendance is being marked (the web shows the same picker, first subject selected).
 class _SubjectBar extends StatelessWidget {
   final AttendanceController controller;
@@ -312,7 +371,7 @@ class _BottomBar extends StatelessWidget {
       if (!c.roster.value.hasData) return const SizedBox.shrink();
       final missing = c.unmarked.length;
       final total = c.students_.length;
-      final failed = c.submitFailure.value != null;
+      final failed = c.submitFailure.value != null && !c.classStale;
       final saving = c.submitting.value;
       final saved = !c.dirty && c.hasServerRecords && missing == 0;
       return DecoratedBox(
@@ -331,7 +390,7 @@ class _BottomBar extends StatelessWidget {
                   style: EmType.label.copyWith(color: missing == 0 ? EmColors.onSuccessContainer : EmColors.onWarningContainer),
                 ),
               ),
-              if (missing > 0 && c.editable)
+              if (missing > 0 && c.markable)
                 TextButton(
                   key: const Key('mark_remaining_present'),
                   onPressed: saving ? null : onMarkRemaining,
@@ -347,7 +406,7 @@ class _BottomBar extends StatelessWidget {
                 key: const Key('submit_button'),
                 loading: saving,
                 label: saved ? 'Saved' : (missing > 0 ? 'Review & submit ($missing not marked)' : 'Review & submit'),
-                onPressed: (!c.editable || saving || saved) ? null : onSubmit,
+                onPressed: (!c.editable || c.classStale || c.dayInvalid || saving || saved) ? null : onSubmit,
               ),
           ]),
         ),
