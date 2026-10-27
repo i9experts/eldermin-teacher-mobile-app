@@ -7,6 +7,7 @@ import '../../../../core/widgets/screen_state_view.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/behaviour_student_controller.dart';
+import 'behaviour_detail_sheet.dart';
 import 'widgets/behaviour_widgets.dart';
 import '../../../../core/design/design.dart';
 
@@ -60,7 +61,13 @@ class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
               emptyKey: 'student_no_records',
               emptyText: 'No behaviour recorded for this student yet.',
               retry: c.load,
-              builder: (list) => [for (final r in list) BehaviourTile(record: r, mine: r.isMine(userId: myId, userName: myName), showStudent: false)],
+              builder: (list) => [
+                for (final r in list)
+                  () {
+                    final mine = r.isMine(userId: myId, userName: myName);
+                    return BehaviourTile(record: r, mine: mine, showStudent: false, onTap: () => showBehaviourDetailSheet(context, r, mine: mine));
+                  }(),
+              ],
             ),
             const SubHeading('Tarbiyah assessments'),
             ..._section<List<TarbiyahAssessment>>(
