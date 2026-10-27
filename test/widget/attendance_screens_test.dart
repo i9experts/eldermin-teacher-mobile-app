@@ -7,6 +7,7 @@ import 'package:eldermin_teacher_app/app/modules/attendance/views/attendance_scr
 import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/attendance_models.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
+import 'package:eldermin_teacher_app/core/services/attendance_repository.dart';
 import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -599,6 +600,76 @@ void main() {
       expect(find.byKey(const Key('submit_retry')), findsNothing);
       expect(find.text('Sign out'), findsOneWidget);
       expect(c.marks, hasLength(5));
+    });
+  });
+
+  group('school-day gate', () {
+    const reason = 'Sun Oct 25 2026 is a weekend day under this school\'s configured school days (mon, tue)';
+    const closed = SchoolDayStatus(valid: false, configured: true, reason: reason);
+
+    testWidgets('valid day: no banner, Mark remaining present available (single-class teacher unchanged)', (t) async {
+      await boot(t, const AttendanceMarkScreen());
+      expect(find.byKey(const Key('school_day_banner')), findsNothing);
+      expect(find.byKey(const Key('mark_remaining_present')), findsOneWidget);
+      expect(find.byKey(const Key('class_bar')), findsNothing);
+    });
+
+    testWidgets('unknown (check failed): no banner, marking works', (t) async {
+      attendance.checkResult = (_, __) async => const SchoolDayStatus.unknown();
+      await boot(t, const AttendanceMarkScreen());
+      expect(find.byKey(const Key('school_day_banner')), findsNothing);
+      expect(find.byKey(const Key('mark_remaining_present')), findsOneWidget);
+    });
+
+    testWidgets('closed day: reason banner with Check again, no bulk-mark, submit disabled; Check again unblocks', (t) async {
+      attendance.checkResult = (_, __) async => closed;
+      await boot(t, const AttendanceMarkScreen());
+      await t.pump();
+      expect(find.byKey(const Key('school_day_banner')), findsOneWidget);
+      expect(find.text('No attendance today: $reason'), findsOneWidget);
+      expect(find.byKey(const Key('school_day_recheck')), findsOneWidget);
+      expect(find.byKey(const Key('mark_remaining_present')), findsNothing);
+      expect(t.widget<EmPrimaryButton>(find.byKey(const Key('submit_button'))).onPressed, isNull);
+      attendance.checkResult = (_, __) async => const SchoolDayStatus(valid: true);
+      await t.tap(find.byKey(const Key('school_day_recheck')));
+      await t.pump();
+      await t.pump();
+      expect(find.byKey(const Key('school_day_banner')), findsNothing);
+      expect(find.byKey(const Key('mark_remaining_present')), findsOneWidget);
+    });
+
+    testWidgets('a save rejected as not-a-school-day shows the server message, the banner and keeps the marks', (t) async {
+      const msg = 'Cannot mark attendance: 2026-10-05 is a holiday: Eid';
+      attendance.onSubmit = (_, __) async => throw ApiException(msg, statusCode: 400);
+      await boot(t, const AttendanceMarkScreen());
+      await t.tap(find.byKey(const Key('mark_remaining_present')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('submit_button')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('attendance_confirm_submit')));
+      await t.pump();
+      await t.pump();
+      expect(find.text(msg), findsOneWidget); // snack, verbatim
+      expect(find.text('No attendance today: 2026-10-05 is a holiday: Eid'), findsOneWidget);
+      expect(find.byKey(const Key('school_day_recheck')), findsOneWidget);
+      expect(find.byKey(const Key('submit_error_banner')), findsNothing);
+      expect(c.marks, hasLength(roster.length));
+    });
+
+    testWidgets('stale class + closed day: both banners render and submit stays disabled', (t) async {
+      final two = [
+        {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionName': 'A', 'name': 'Grade 5 - A'},
+        {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionName': 'B', 'name': 'Grade 5 - B'},
+      ];
+      attendance.checkResult = (_, __) async => closed;
+      await boot(t, const AttendanceMarkScreen(), assignments: two, token: classTeacherJwt([(grade: 'Grade 5', section: 'A')]));
+      await t.tap(find.byKey(const ValueKey('class_chip_5|b')));
+      await t.pump();
+      await t.pump();
+      expect(find.byKey(const Key('stale_class_banner')), findsOneWidget);
+      expect(find.byKey(const Key('school_day_banner')), findsOneWidget);
+      expect(c.canSubmit, isFalse);
+      expect(t.widget<EmPrimaryButton>(find.byKey(const Key('submit_button'))).onPressed, isNull);
     });
   });
 }

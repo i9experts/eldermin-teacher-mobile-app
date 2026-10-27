@@ -5,6 +5,7 @@ import 'package:eldermin_teacher_app/app/modules/home/models/section_state.dart'
 import 'package:eldermin_teacher_app/core/models/classroom/attendance_models.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/student_models.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
+import 'package:eldermin_teacher_app/core/services/attendance_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_harness.dart';
@@ -619,6 +620,164 @@ void main() {
       await c.selectClass(c.classes[1]);
       c.markRemainingPresent();
       expect(await c.submit(), isA<SubmitSaved>());
+    });
+  });
+
+  group('school-day gate', () {
+    const reason = 'Sun Oct 25 2026 is a weekend day under this school\'s configured school days (mon, tue)';
+    const closed = SchoolDayStatus(valid: false, configured: true, reason: reason);
+    final grades = [
+      {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionName': 'A', 'name': 'Grade 5 - A'},
+      {'gradeId': 'g6', 'gradeName': 'Grade 6', 'sectionName': 'A', 'name': 'Grade 6 - A'},
+    ];
+    final both = classTeacherJwt([(grade: 'Grade 5', section: 'A'), (grade: 'Grade 6', section: 'A')]);
+
+    test('a valid day: checked once with the class grade and the noon-UTC-able day; nothing blocks', () async {
+      final c = await make();
+      await c.load();
+      await pumpEventQueue();
+      expect(attendance.checkCalls.single, (day: DateTime(2026, 10, 5), grade: 'Grade 5'));
+      expect(c.dayStatus.value.kind, DayCheckKind.valid);
+      c.markRemainingPresent();
+      expect(c.canSubmit, isTrue);
+    });
+
+    test('an invalid day exposes the reason, blocks marking and submit', () async {
+      attendance.checkResult = (_, __) async => closed;
+      final c = await make();
+      await c.load();
+      await pumpEventQueue();
+      expect(c.dayInvalid, isTrue);
+      expect(c.dayStatus.value.reason, reason);
+      c.markRemainingPresent();
+      c.setStatus(roster[0].id, AttendanceStatus.present);
+      expect(c.marks, isEmpty);
+      expect(c.canSubmit, isFalse);
+      expect(await c.submit(), isA<SubmitIgnored>());
+      expect(attendance.submitted, isEmpty);
+    });
+
+    test('a failed check is unknown and never blocks', () async {
+      attendance.checkResult = (_, __) async => const SchoolDayStatus.unknown();
+      final c = await make();
+      await c.load();
+      await pumpEventQueue();
+      expect(c.dayStatus.value.kind, DayCheckKind.unknown);
+      c.markRemainingPresent();
+      expect(c.canSubmit, isTrue);
+      attendance.checkResult = (_, __) async => throw StateError('boom');
+      await c.recheckDay();
+      expect(c.dayStatus.value.kind, DayCheckKind.unknown);
+    });
+
+    test('re-checks on date change; a stale response is ignored; the cache serves a revisit until reload', () async {
+      final c = await make();
+      await c.load();
+      await pumpEventQueue();
+      final slow = Completer<SchoolDayStatus>();
+      attendance.checkQueue.add(() => slow.future);
+      final a = c.openDay(DateTime(2026, 10, 2));
+      await Future<void>.delayed(Duration.zero);
+      attendance.checkQueue.add(() async => const SchoolDayStatus(valid: true));
+      await c.openDay(DateTime(2026, 10, 3));
+      await pumpEventQueue();
+      slow.complete(closed);
+      await a;
+      await pumpEventQueue();
+      expect(c.day.value, DateTime(2026, 10, 3));
+      expect(c.dayStatus.value.kind, DayCheckKind.valid);
+      final n = attendance.checkCalls.length;
+      await c.openDay(DateTime(2026, 10, 3), discard: true);
+      await c.openDay(DateTime(2026, 10, 5), discard: true);
+      await pumpEventQueue();
+      expect(attendance.checkCalls.length, n); // 10-05 was cached from the first load
+      await c.reload();
+      await pumpEventQueue();
+      expect(attendance.checkCalls.length, n + 1); // pull-to-refresh invalidates the cache
+    });
+
+    test('class change re-checks with the NEW grade and drops a late answer for the old one', () async {
+      final c = await make(assignments: grades, token: both);
+      final slow = Completer<SchoolDayStatus>();
+      attendance.checkQueue.add(() => slow.future); // Grade 5, still pending
+      await c.load();
+      attendance.checkResult = (_, g) async => g == 'Grade 6' ? closed : const SchoolDayStatus(valid: true);
+      await c.selectClass(c.classes[1]);
+      await pumpEventQueue();
+      expect(attendance.checkCalls.map((x) => x.grade), ['Grade 5', 'Grade 6']);
+      expect(c.dayInvalid, isTrue);
+      slow.complete(const SchoolDayStatus(valid: true));
+      await pumpEventQueue();
+      expect(c.dayInvalid, isTrue); // the Grade 5 answer did not overwrite Grade 6
+    });
+
+    test('Check again re-asks the server and clears the block when the calendar was fixed', () async {
+      attendance.checkResult = (_, __) async => closed;
+      final c = await make();
+      await c.load();
+      await pumpEventQueue();
+      expect(c.dayInvalid, isTrue);
+      attendance.checkResult = (_, __) async => const SchoolDayStatus(valid: true);
+      await c.recheckDay();
+      expect(c.dayInvalid, isFalse);
+      expect(attendance.checkCalls, hasLength(2));
+    });
+
+    test('read-only (older) days are not checked and never gated', () async {
+      final c = await make();
+      await c.load();
+      await pumpEventQueue();
+      await c.openDay(DateTime(2026, 9, 1), discard: true);
+      expect(attendance.checkCalls, hasLength(1));
+      expect(c.dayInvalid, isFalse);
+    });
+
+    group('submit 400 "Cannot mark attendance:"', () {
+      Future<AttendanceController> ready() async {
+        final c = await make();
+        await c.load();
+        await pumpEventQueue();
+        c.markRemainingPresent();
+        return c;
+      }
+
+      test('maps to notSchoolDay, keeps marks, is verbatim, and flips the status to invalid', () async {
+        final c = await ready();
+        const msg = 'Cannot mark attendance: 2026-10-05 is a holiday: Eid';
+        attendance.onSubmit = (_, __) async => throw ApiException(msg, statusCode: 400);
+        final r = await c.submit();
+        expect(r, isA<SubmitFailed>().having((f) => f.failure.kind, 'kind', SubmitFailureKind.notSchoolDay).having((f) => f.failure.message, 'message', msg));
+        expect(c.marks, hasLength(roster.length));
+        expect(c.dayInvalid, isTrue);
+        expect(c.dayStatus.value.reason, '2026-10-05 is a holiday: Eid');
+        expect(c.canSubmit, isFalse);
+        // the admin fixes the calendar: Check again unblocks and the marks are still there
+        await c.recheckDay();
+        expect(c.dayInvalid, isFalse);
+        expect(c.canSubmit, isTrue);
+      });
+
+      test('other 400s keep the validation behaviour and do not touch the status', () async {
+        final c = await ready();
+        attendance.onSubmit = (_, __) async => throw ApiException('records.0.status invalid', statusCode: 400);
+        final r = await c.submit();
+        expect(r, isA<SubmitFailed>().having((f) => f.failure.kind, 'kind', SubmitFailureKind.validation));
+        expect((r as SubmitFailed).failure.message, 'The server rejected the attendance: records.0.status invalid');
+        expect(c.dayInvalid, isFalse);
+      });
+    });
+
+    test('precedence: a stale class and a closed day both block; each flag stays set', () async {
+      final onlyA = classTeacherJwt([(grade: 'Grade 5', section: 'A')]);
+      attendance.checkResult = (_, g) async => g == 'Grade 6' ? closed : const SchoolDayStatus(valid: true);
+      final c = await make(assignments: grades, token: onlyA);
+      await c.load();
+      await c.selectClass(c.classes[1]);
+      await pumpEventQueue();
+      expect(c.classStale, isTrue);
+      expect(c.dayInvalid, isTrue);
+      expect(c.canSubmit, isFalse);
+      expect(await c.submit(), isA<SubmitIgnored>());
     });
   });
 }

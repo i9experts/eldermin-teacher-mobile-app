@@ -66,6 +66,10 @@ class FakeAttendanceRepository extends AttendanceRepository {
   Future<List<String>> Function() subjectNames = () async => [];
   int modeCalls = 0;
   int subjectCalls = 0;
+  /// School-day gate: scripted results (queue first, then [checkResult]); default = a valid school day.
+  final checkCalls = <({DateTime day, String? grade})>[];
+  final checkQueue = <Future<SchoolDayStatus> Function()>[];
+  Future<SchoolDayStatus> Function(DateTime day, String? grade) checkResult = (_, __) async => const SchoolDayStatus(valid: true);
   final submitted = <List<AttendanceWrite>>[];
   final years = <String?>[];
 
@@ -79,6 +83,13 @@ class FakeAttendanceRepository extends AttendanceRepository {
   }) {
     rangeCalls.add((grade: grade, section: section, first: firstDay, last: lastDay, subject: subject));
     return range(grade, section, firstDay, lastDay);
+  }
+
+  @override
+  Future<SchoolDayStatus> checkDay({required DateTime day, String? grade}) {
+    checkCalls.add((day: day, grade: grade));
+    if (checkQueue.isNotEmpty) return checkQueue.removeAt(0)();
+    return checkResult(day, grade);
   }
 
   @override
