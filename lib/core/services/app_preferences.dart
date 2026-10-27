@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/login_config.dart';
 import 'secure_storage_service.dart';
 
 /// Static, app-wide access to locally persisted account state. The access
@@ -58,7 +59,7 @@ class AppPreferences {
     await _secureStorage.clearToken();
     final prefs = await SharedPreferences.getInstance();
     final introSeen = prefs.getBool(_keyIntroSeen);
-    final slug = prefs.getString(_keySchoolSlug);
+    final slug = LoginConfig.showSchoolCode ? prefs.getString(_keySchoolSlug) : null; // feature off: the code is not kept
     await prefs.clear();
     if (introSeen != null) await prefs.setBool(_keyIntroSeen, introSeen);
     if (slug != null) await prefs.setString(_keySchoolSlug, slug);

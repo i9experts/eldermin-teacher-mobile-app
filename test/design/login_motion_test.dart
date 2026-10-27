@@ -10,6 +10,7 @@ import 'package:eldermin_teacher_app/core/models/staff_me.dart';
 import 'package:eldermin_teacher_app/core/models/teacher_user.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/network/base_client.dart';
+import 'package:eldermin_teacher_app/core/constants/login_config.dart';
 import 'package:eldermin_teacher_app/core/services/auth_api_service.dart';
 import 'package:eldermin_teacher_app/core/services/permission_service.dart';
 import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
@@ -106,6 +107,7 @@ Future<void> fillAndSubmit(WidgetTester t) async {
 void main() {
   setUpAll(loadDesignFonts);
   tearDown(() {
+    LoginConfig.showSchoolCodeOverride = null;
     Get.reset();
     EmLogoHandoff.reset();
   });
@@ -257,7 +259,10 @@ void main() {
     });
   });
 
-  group('school code', () {
+  // The school code is off by default (kShowSchoolCode); these cover the re-enabled path so it keeps working when the flag is flipped.
+  group('school code (re-enabled)', () {
+    setUp(() => LoginConfig.showSchoolCodeOverride = true);
+
     testWidgets('collapsed by default; the toggle expands the slug field with a size animation', (t) async {
       await mount(t);
       expect(find.text('Have a school code?'), findsOneWidget);
@@ -297,6 +302,7 @@ void main() {
     });
 
     testWidgets('school code expands and the photo collapses instantly (no animated resize, no layout assertion)', (t) async {
+      LoginConfig.showSchoolCodeOverride = true; // re-enabled path
       await mount(t, reduce: true);
       await t.tap(find.byKey(const Key('school_code_toggle')));
       await t.pump();

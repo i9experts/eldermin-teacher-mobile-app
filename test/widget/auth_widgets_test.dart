@@ -1,7 +1,9 @@
+import 'package:eldermin_teacher_app/core/services/app_preferences.dart';
 import 'package:eldermin_teacher_app/app/common/services/deep_link_service.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/views/login_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/forgot_password/controllers/forgot_password_controller.dart';
+import 'package:eldermin_teacher_app/core/constants/login_config.dart';
 import 'package:eldermin_teacher_app/app/modules/forgot_password/views/forgot_password_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/intro/controllers/intro_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/intro/views/intro_screen.dart';
@@ -120,7 +122,10 @@ void main() {
     Get.put<AuthController>(auth);
   });
 
-  tearDown(Get.reset);
+  tearDown(() {
+    LoginConfig.showSchoolCodeOverride = null;
+    Get.reset();
+  });
 
   Finder field(String hint) => find.widgetWithText(TextFormField, hint);
 
@@ -144,14 +149,14 @@ void main() {
       expect(api.loginCalls, isEmpty);
     });
 
-    testWidgets('valid credentials sign in (no school code sent when collapsed)', (tester) async {
+    testWidgets('valid credentials sign in (school code is off: no slug sent)', (tester) async {
       await _pump(tester, const LoginScreen());
       await tester.enterText(field('Email'), '  tess@stub.test ');
       await tester.enterText(field('Password'), 'StubPass123');
       await tester.tap(find.text('Sign in'));
       await settleAuth(tester);
       expect(api.loginCalls.single['email'], 'tess@stub.test');
-      expect(api.loginCalls.single['slug'], '');
+      expect(api.loginCalls.single['slug'], isNull);
       expect(auth.status.value, AuthStatus.authenticated);
     });
 
@@ -167,7 +172,33 @@ void main() {
       expect(find.text('Sign in'), findsOneWidget); // button back to idle, not stuck loading
     });
 
-    testWidgets('school code is hidden until the toggle is tapped, then sent', (tester) async {
+    testWidgets('school code is off by default: no toggle, no field', (tester) async {
+      expect(kShowSchoolCode, isFalse);
+      await _pump(tester, const LoginScreen());
+      await settleAuth(tester);
+      expect(find.byKey(const Key('school_code_toggle')), findsNothing);
+      expect(find.text('Have a school code?'), findsNothing);
+      expect(field('School code'), findsNothing);
+      expect(field('Email'), findsOneWidget);
+      expect(field('Password'), findsOneWidget);
+    });
+
+    testWidgets('a stored school code is ignored: not shown, not prefilled, not sent', (tester) async {
+      SharedPreferences.setMockInitialValues({'eldermin_teacher_school_slug': 'demo-school'});
+      await _pump(tester, const LoginScreen());
+      await settleAuth(tester);
+      expect(field('School code'), findsNothing);
+      expect(find.text('demo-school'), findsNothing);
+      await tester.enterText(field('Email'), 'tess@stub.test');
+      await tester.enterText(field('Password'), 'StubPass123');
+      await tester.tap(find.text('Sign in'));
+      await settleAuth(tester);
+      expect(api.loginCalls.single['slug'], isNull);
+      expect(await AppPreferences.getSchoolSlug(), isNull); // and the successful login leaves nothing behind
+    });
+
+    testWidgets('re-enabled: school code is hidden until the toggle is tapped, then sent', (tester) async {
+      LoginConfig.showSchoolCodeOverride = true;
       await _pump(tester, const LoginScreen());
       expect(field('School code'), findsNothing);
       await tester.tap(find.byKey(const Key('school_code_toggle')));
@@ -181,7 +212,8 @@ void main() {
       expect(api.loginCalls.single['slug'], 'demo-school');
     });
 
-    testWidgets('a remembered school code is prefilled and the section is expanded', (tester) async {
+    testWidgets('re-enabled: a remembered school code is prefilled and the section is expanded', (tester) async {
+      LoginConfig.showSchoolCodeOverride = true;
       SharedPreferences.setMockInitialValues({'eldermin_teacher_school_slug': 'demo-school'});
       await _pump(tester, const LoginScreen());
       await settleAuth(tester);
@@ -217,6 +249,16 @@ void main() {
       await tester.pump();
       expect(find.text('Enter a valid email address.'), findsOneWidget);
       expect(api.forgotCalls, isEmpty);
+    });
+
+    testWidgets('is unaffected by a stale stored school code', (tester) async {
+      SharedPreferences.setMockInitialValues({'eldermin_teacher_school_slug': 'demo-school'});
+      await _pump(tester, const ForgotPasswordScreen());
+      await tester.enterText(field('Email'), 'whoever@stub.test');
+      await tester.tap(find.text('Send reset link'));
+      await settleAuth(tester);
+      expect(api.forgotCalls, ['whoever@stub.test']); // the request carries the email only; there is no slug parameter at all
+      expect(find.text('Check your email'), findsOneWidget);
     });
 
     testWidgets('shows the same generic success screen regardless of the email', (tester) async {

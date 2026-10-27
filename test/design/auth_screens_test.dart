@@ -14,6 +14,7 @@ import 'package:eldermin_teacher_app/app/modules/splash/views/splash_screen.dart
 import 'package:eldermin_teacher_app/core/design/design.dart';
 import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:eldermin_teacher_app/core/constants/login_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import '../support/auth_design_harness.dart';
@@ -60,7 +61,10 @@ void main() {
   setUpAll(loadDesignFonts);
   late AuthController auth;
   setUp(() => auth = setUpAuthDeps());
-  tearDown(Get.reset);
+  tearDown(() {
+    LoginConfig.showSchoolCodeOverride = null;
+    Get.reset();
+  });
 
   group('layout matrix: widths 320/360/375/430 x text 1.0/1.3 x LTR/RTL x keyboard closed/open', () {
     for (final c in cases) {
@@ -168,7 +172,8 @@ void main() {
       }
     });
 
-    testWidgets('touch targets: back, password eye, school toggle, links are >= 48dp', (t) async {
+    testWidgets('touch targets: back, password eye, school toggle (re-enabled), links are >= 48dp', (t) async {
+      LoginConfig.showSchoolCodeOverride = true;
       await pumpScreen(t, const LoginScreen());
       expect(t.getSize(find.byKey(const Key('school_code_toggle'))).height, greaterThanOrEqualTo(48));
       expectMinTouch(t, find.byType(PasswordVisibilityButton));

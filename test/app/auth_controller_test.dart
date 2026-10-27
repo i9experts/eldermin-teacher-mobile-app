@@ -1,4 +1,5 @@
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
+import 'package:eldermin_teacher_app/core/constants/login_config.dart';
 import 'package:eldermin_teacher_app/core/models/auth_me.dart';
 import 'package:eldermin_teacher_app/core/models/institution.dart';
 import 'package:eldermin_teacher_app/core/models/login_result.dart';
@@ -41,6 +42,7 @@ class _FakeApi extends AuthApiService {
   AuthMe? authMe;
   ApiException? authMeError;
   String? lastAuthMeToken;
+  final loginSlugs = <String?>[];
   int authMeCalls = 0;
   int meCalls = 0;
   int logoutCalls = 0;
@@ -48,6 +50,7 @@ class _FakeApi extends AuthApiService {
 
   @override
   Future<LoginResult> login({required String email, required String password, String? slug}) async {
+    loginSlugs.add(slug);
     if (loginError != null) throw loginError!;
     return loginResult!;
   }
@@ -308,11 +311,56 @@ void main() {
     expect(toasts, [kSessionExpiredMessage]);
   });
 
-  test('login remembers the school slug; blank slug forgets it', () async {
+  group('school code is off (kShowSchoolCode = false)', () {
+    tearDown(() => LoginConfig.showSchoolCodeOverride = null);
+
+    test('login never sends a slug, even when the caller passes one, and stores nothing', () async {
+      expect(kShowSchoolCode, isFalse);
+      api.loginResult = _login();
+      api.me = _staffMe();
+      final c = make();
+      await c.login(email: 'a@s.test', password: 'pw', slug: ' demo-school ');
+      expect(api.loginSlugs, [null]);
+      expect(await AppPreferences.getSchoolSlug(), isNull);
+    });
+
+    test('a slug stored by an older install is cleared on start and never sent', () async {
+      SharedPreferences.setMockInitialValues({'eldermin_teacher_school_slug': 'old-school'});
+      final c = make();
+      await c.bootstrap();
+      expect(await AppPreferences.getSchoolSlug(), isNull);
+      api.loginResult = _login();
+      api.me = _staffMe();
+      await c.login(email: 'a@s.test', password: 'pw');
+      expect(api.loginSlugs, [null]);
+    });
+
+    test('a stored slug is not kept across logout either', () async {
+      SharedPreferences.setMockInitialValues({'eldermin_teacher_school_slug': 'old-school', 'eldermin_teacher_intro_seen': true});
+      await AppPreferences.clearPreference();
+      expect(await AppPreferences.getSchoolSlug(), isNull);
+      expect(await AppPreferences.isIntroSeen(), isTrue); // the other device convenience still survives
+    });
+
+    test('deep-link sign-in still works and does not remember the slug', () async {
+      api.authMe = const AuthMe(id: 'u1', name: 'A', email: 'a@s.test', role: 'teacher');
+      api.me = _staffMe();
+      final c = make();
+      c.status.value = AuthStatus.unauthenticated;
+      expect(await c.signInWithToken(token: 'jwt.from.link', slug: 'demo-school'), isTrue);
+      expect(c.status.value, AuthStatus.authenticated);
+      expect(await AppPreferences.getSchoolSlug(), isNull);
+    });
+  });
+
+  test('re-enabled: login remembers the school slug; blank slug forgets it', () async {
+    LoginConfig.showSchoolCodeOverride = true;
+    addTearDown(() => LoginConfig.showSchoolCodeOverride = null);
     api.loginResult = _login();
     api.me = _staffMe();
     final c = make();
     await c.login(email: 'a@s.test', password: 'pw', slug: ' demo-school ');
+    expect(api.loginSlugs, [' demo-school ']);
     expect(await AppPreferences.getSchoolSlug(), 'demo-school');
     await c.logout();
     // logout keeps the slug + intro flag (device conveniences)
@@ -335,7 +383,9 @@ void main() {
   });
 
   group('intro flag', () {
-    test('bootstrap reads it; clearPreference (logout) keeps it and the slug', () async {
+    test('bootstrap reads it; clearPreference (logout) keeps it and, with the school code re-enabled, the slug', () async {
+      LoginConfig.showSchoolCodeOverride = true;
+      addTearDown(() => LoginConfig.showSchoolCodeOverride = null);
       SharedPreferences.setMockInitialValues({});
       final c = make();
       await c.bootstrap();
@@ -369,7 +419,7 @@ void main() {
       expect(c.status.value, AuthStatus.authenticated);
       expect(c.isClassTeacher, isTrue);
       expect(c.tokenLoginInProgress.value, isFalse);
-      expect(await AppPreferences.getSchoolSlug(), 'demo-school');
+      expect(await AppPreferences.getSchoolSlug(), isNull); // school code is off: the link's slug is not remembered
       expect(hooks, 1);
     });
 

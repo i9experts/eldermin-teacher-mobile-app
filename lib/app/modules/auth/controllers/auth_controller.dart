@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import '../../../../core/constants/login_config.dart';
 import '../../../../core/models/auth_me.dart';
 import '../../../../core/models/institution.dart';
 import '../../../../core/models/staff_me.dart';
@@ -134,6 +135,12 @@ class AuthController extends GetxController with WidgetsBindingObserver {
   /// falls to login. Never leaves the app on the splash screen.
   Future<void> bootstrap() async {
     final minSplash = Future<void>.delayed(_minSplash);
+    if (!LoginConfig.showSchoolCode) {
+      // An older install may still hold a remembered school code: drop it so it can never be sent or prefilled again.
+      try {
+        await AppPreferences.clearSchoolSlug();
+      } catch (_) {}
+    }
     try {
       introSeen.value = await AppPreferences.isIntroSeen();
     } catch (_) {
@@ -189,9 +196,11 @@ class AuthController extends GetxController with WidgetsBindingObserver {
   /// Signs in. Throws [ApiException] (e.g. 401 invalid credentials) so the
   /// login form can show the message; never triggers logout itself.
   Future<void> login({required String email, required String password, String? slug}) async {
-    final result = await _api.login(email: email, password: password, slug: slug);
+    // School code off (see login_config.dart): never send one, whatever the caller passed.
+    final effectiveSlug = LoginConfig.showSchoolCode ? slug : null;
+    final result = await _api.login(email: email, password: password, slug: effectiveSlug);
     await _completeSignIn(result.accessToken, result.user, result.institution);
-    final trimmed = slug?.trim() ?? '';
+    final trimmed = effectiveSlug?.trim() ?? '';
     if (trimmed.isEmpty) {
       await AppPreferences.clearSchoolSlug();
     } else {
@@ -223,7 +232,7 @@ class AuthController extends GetxController with WidgetsBindingObserver {
         loginNotice.value = e.message;
         return false;
       }
-      await AppPreferences.saveSchoolSlug(slug);
+      if (LoginConfig.showSchoolCode) await AppPreferences.saveSchoolSlug(slug);
       return true;
     } catch (_) {
       loginNotice.value = 'Something went wrong. Please sign in manually.';
