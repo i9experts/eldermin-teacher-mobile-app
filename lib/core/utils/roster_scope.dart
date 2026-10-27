@@ -5,7 +5,7 @@ import 'class_match.dart';
 /// One class (grade + optional section) this teacher is responsible for.
 ///
 /// Sources, all from `GET /staff-portal/me` (never the JWT):
-///  * `teacherProfile.classTeacherOf.gradeName/sectionName` (class teacher)
+///  * `teacherProfile.classTeacherAssignments[].gradeName/sectionName` (class teacher, one per section)
 ///  * `teacherProfile.currentAssignments[].gradeLevel/sectionName` (subject classes)
 class ClassRef {
   final String grade;
@@ -33,16 +33,28 @@ class ClassRef {
       );
 }
 
-/// The teacher's classes: the class-teacher class first, then every distinct
+/// EVERY class this teacher is class teacher of (one per `classTeacherAssignments` entry, in the server's order, deduplicated by
+/// normalised grade+section). Empty unless `isClassTeacher`. An assignment without a section is a whole-grade class (section '').
+List<ClassRef> classTeacherClasses(TeacherProfile? profile) {
+  if (profile == null || !profile.isClassTeacher) return const [];
+  final out = <String, ClassRef>{};
+  for (final ct in profile.classTeacherAssignments) {
+    final g = (ct.gradeName ?? '').trim();
+    if (g.isEmpty) continue;
+    final c = ClassRef(grade: g, section: (ct.sectionName ?? '').trim(), isClassTeacherClass: true);
+    out.putIfAbsent(c.key, () => c);
+  }
+  return out.values.toList();
+}
+
+/// The teacher's classes: the class-teacher classes first, then every distinct
 /// assignment (deduplicated by normalised grade+section, subjects merged).
 /// Assignments without a grade are ignored. Empty when the teacher has no
 /// class at all (the Students screen then says so instead of listing anyone).
 List<ClassRef> teacherClassesOf(TeacherProfile? profile) {
   if (profile == null) return const [];
   final byKey = <String, ClassRef>{};
-  final ct = profile.classTeacherOf;
-  if (profile.isClassTeacher && ct != null && (ct.gradeName ?? '').trim().isNotEmpty) {
-    final c = ClassRef(grade: ct.gradeName!.trim(), section: (ct.sectionName ?? '').trim(), isClassTeacherClass: true);
+  for (final c in classTeacherClasses(profile)) {
     byKey[c.key] = c;
   }
   for (final a in profile.currentAssignments) {
