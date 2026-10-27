@@ -1,0 +1,6 @@
+[
+  {"_id": "64e000000000000000000003", "staffId": {"_id": "64a0000000000000000000a1", "firstName": "Tess", "lastName": "Teacher", "employeeId": "T-01"}, "date": "2026-10-03T00:00:00.000Z", "status": "late", "checkInTime": "08:25", "checkOutTime": "14:30", "lateByMins": 25, "workingHours": 6.1, "notes": "Bus delay", "source": "manual"},
+  {"_id": "64e000000000000000000002", "staffId": "64a0000000000000000000a1", "date": "2026-10-02T00:00:00.000Z", "status": "present", "checkInTime": "07:58", "checkOutTime": "14:35", "workingHours": 6.6, "source": "biometric"},
+  {"_id": "64e000000000000000000001", "staffId": "64a0000000000000000000a1", "date": "2026-10-01T00:00:00.000Z", "status": "absent"},
+  {"_id": "64e000000000000000000004", "date": "2026-10-04T00:00:00.000Z", "status": "weekend"}
+]

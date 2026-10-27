@@ -1,0 +1,4 @@
+[
+  {"_id": "64f000000000000000000002", "staffId": "64a0000000000000000000a1", "attendanceDate": "2026-10-03T00:00:00.000Z", "currentStatus": "late", "currentCheckInTime": "08:25", "requestedStatus": "present", "requestedCheckInTime": "07:55", "requestedCheckOutTime": "14:30", "reason": "The biometric reader was down, the gate log shows 07:55.", "status": "pending", "createdAt": "2026-10-05T06:00:00.000Z"},
+  {"_id": "64f000000000000000000001", "staffId": "64a0000000000000000000a1", "attendanceDate": "2026-10-01T00:00:00.000Z", "requestedStatus": "sick_leave", "reason": "I was ill and informed the office by phone.", "status": "rejected", "reviewerName": "Hina HR Manager", "reviewedAt": "2026-10-02T09:00:00.000Z", "reviewNotes": "Please apply for leave instead.", "reviewedBy": "64b000000000000000000001", "createdAt": "2026-10-01T10:00:00.000Z"}
+]
