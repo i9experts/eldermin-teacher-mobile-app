@@ -16,7 +16,7 @@ class BaseClient {
     bool requiresAuth = true,
     Map<String, String>? headers,
   }) async {
-    debugPrint('GET → $url');
+    if (kDebugMode) debugPrint('GET → $url');
     return DioService.getDio().get(
       url,
       queryParameters: queryParameters,
@@ -31,7 +31,7 @@ class BaseClient {
     bool requiresAuth = true,
     Map<String, String>? headers,
   }) async {
-    debugPrint('POST → $url');
+    if (kDebugMode) debugPrint('POST → $url');
     final options = _jsonOptions(requiresAuth);
     if (headers != null) options.headers = {...?options.headers, ...headers};
     return DioService.getDio().post(url, data: data, queryParameters: queryParameters, options: options);
@@ -43,7 +43,7 @@ class BaseClient {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
   }) async {
-    debugPrint('PATCH → $url');
+    if (kDebugMode) debugPrint('PATCH → $url');
     return DioService.getDio().patch(url,
         data: data, queryParameters: queryParameters, options: _jsonOptions(requiresAuth));
   }
@@ -56,7 +56,7 @@ class BaseClient {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
   }) async {
-    debugPrint('PUT → $url');
+    if (kDebugMode) debugPrint('PUT → $url');
     return DioService.getDio().put(url,
         data: data, queryParameters: queryParameters, options: _jsonOptions(requiresAuth));
   }
@@ -67,7 +67,7 @@ class BaseClient {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
   }) async {
-    debugPrint('DELETE → $url');
+    if (kDebugMode) debugPrint('DELETE → $url');
     return DioService.getDio().delete(url,
         data: data, queryParameters: queryParameters, options: _jsonOptions(requiresAuth));
   }
@@ -82,7 +82,7 @@ class BaseClient {
     void Function(int sent, int total)? onSendProgress,
     bool requiresAuth = true,
   }) async {
-    debugPrint('$method (multipart) → $url');
+    if (kDebugMode) debugPrint('$method (multipart) → $url');
     final form = FormData();
     fields?.forEach((k, v) => form.fields.add(MapEntry(k, v.toString())));
     files.forEach((field, list) {

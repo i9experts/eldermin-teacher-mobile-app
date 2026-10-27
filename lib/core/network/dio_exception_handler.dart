@@ -9,9 +9,9 @@ class DioExceptionHandler {
   DioExceptionHandler._();
 
   static ApiException handle(DioException e) {
-    debugPrint('Dio error status  --> ${e.response?.statusCode}');
-    debugPrint('Dio error type    --> ${e.type}');
-    debugPrint('Dio error data    --> ${e.response?.data}');
+    if (kDebugMode) debugPrint('Dio error status  --> ${e.response?.statusCode}');
+    if (kDebugMode) debugPrint('Dio error type    --> ${e.type}');
+    if (kDebugMode) debugPrint('Dio error data    --> ${e.response?.data}');
 
     final status = e.response?.statusCode;
 
