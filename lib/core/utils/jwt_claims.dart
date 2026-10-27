@@ -43,8 +43,11 @@ class JwtClaims {
     out.add(ClassRef(grade: g, section: section is String ? section.trim() : ''));
   }
 
-  /// Does the token let the teacher act on [c]? The backend's own rule (scope.util.ts resolveClassSectionScope): same grade, and the
-  /// sections agree unless either side has none (a whole-grade claim covers every section; a whole-grade request matches any).
+  /// Does the token let the teacher act on [c]? Deliberately the backend's own rule, not ClassRef.key equality: eldermin-backend
+  /// src/auth/scope.util.ts resolveClassSectionScope (~lines 201-229) matches `sameGrade(a, requested) && (!a.section || !requestedSection ||
+  /// sameSection(a, requested))`. So: same grade, and the sections agree unless either side has none (a whole-grade claim covers every
+  /// section of that grade; a whole-grade request matches any claim of that grade). Keep this in step with that file: if the backend
+  /// rule changes, the stale prompt would otherwise warn when the server allows the call, or stay silent when it would 403.
   bool covers(ClassRef c) => claimedClasses.any((a) => sameGrade(a.grade, c.grade) && (a.section.isEmpty || c.section.isEmpty || sameSection(a.section, c.section)));
 
   /// [mine] classes the token does NOT cover. Empty when the token has no class claims at all (nothing is restricted then).
