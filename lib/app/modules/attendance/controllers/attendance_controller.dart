@@ -223,8 +223,9 @@ class AttendanceController extends GetxController {
     return auth.isClassTeacher;
   }
 
-  /// Class teachers only. Needs `students:view` like the Home class card (no attendance permission exists).
-  bool get allowed => isClassTeacher && myClass != null && perms.canAccess('students:view');
+  /// Class teachers only. Same rule as the Attendance module entry (permission `teaching:view` for the `attendance` sub-module; the web's
+  /// Teaching > Attendance tab). NOT `students:view`: a custom role can grant `teaching:attendance:*` without any `students:*` key.
+  bool get allowed => isClassTeacher && myClass != null && perms.canAccess('teaching:view', subModuleKey: 'attendance');
 
   // ── derived ──────────────────────────────────────────────────
   DateTime get today => dateOnly(clock());

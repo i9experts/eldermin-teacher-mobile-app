@@ -46,9 +46,19 @@ void main() {
       expect(attendance.rangeCalls, isEmpty);
     });
 
-    test('class teacher without students:view is not allowed (UI gating)', () async {
-      final c = await make(permissions: ['teaching:view']);
-      expect(c.allowed, isFalse);
+    // CHANGED (fix/custom-role-permissions): the gate is `teaching:view` + sub-module `attendance`, no longer `students:view`.
+    test('class teacher: allowed with teaching:view or teaching:attendance:*; NOT with students:view alone or another sub-module (UI gating)', () async {
+      expect((await make(permissions: ['teaching:view'])).allowed, isTrue);
+      Get.reset();
+      expect((await make(permissions: ['teaching:attendance:view'])).allowed, isTrue);
+      Get.reset();
+      expect((await make(permissions: ['teaching:attendance:manage'])).allowed, isTrue);
+      Get.reset();
+      expect((await make(permissions: ['students:view'])).allowed, isFalse);
+      Get.reset();
+      expect((await make(permissions: ['teaching:homework:view'])).allowed, isFalse);
+      Get.reset();
+      expect((await make(permissions: <String>[])).allowed, isFalse);
     });
 
     test('class teacher: roster for MY class from /me, class strings used for the day query', () async {

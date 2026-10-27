@@ -82,17 +82,21 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
 
   /// Permissions are rebuilt together with `auth.staffMe` (see AuthController._applyMe),
   /// so reading it here makes Obx widgets re-evaluate when permissions change.
-  bool get canTeaching {
+  /// Each Home section uses the SAME sub-module-aware rule as its module entry (Classes / More / route guard), so a custom role that lacks the
+  /// sub-module never triggers the (403-ing) request or a forbidden card: the section is skipped.
+  bool _entryVisible(String moduleId) {
     auth.staffMe.value;
-    return perms.canAccess('teaching:view');
+    return ModuleCatalog.byId(moduleId)?.isVisibleTo(perms, isClassTeacher: auth.isClassTeacher) ?? false;
   }
 
-  bool get showTimetable => canTeaching;
-  bool get showHomework => canTeaching;
-  bool get showLessonPlans => canTeaching;
-  bool get showPtms => canTeaching;
-  bool get showSubstitutions => canTeaching;
-  bool get showClassCard => auth.isClassTeacher && perms.canAccess('students:view');
+  bool get showTimetable => _entryVisible('timetable');
+  bool get showHomework => _entryVisible('homework');
+  bool get showLessonPlans => _entryVisible('lesson_plans');
+  bool get showPtms => _entryVisible('ptm');
+  bool get showSubstitutions => _entryVisible('fixtures');
+
+  /// Class teachers with the Attendance entry (teaching:view / sub-module `attendance`; the built-in teacher via `teaching:view`).
+  bool get showClassCard => _entryVisible('attendance');
 
   // ── Lifecycle ────────────────────────────────────────────────
   @override
@@ -377,7 +381,7 @@ class HomeDashboardController extends GetxController with WidgetsBindingObserver
   /// class-teacher only (same rule as the Attendance tab).
   List<QuickAction> get quickActions {
     final out = <QuickAction>[];
-    if (auth.isClassTeacher && perms.canAccess('students:view')) {
+    if (ModuleCatalog.byId('attendance')!.isVisibleTo(perms, isClassTeacher: auth.isClassTeacher)) {
       out.add(const QuickAction('Attendance', Icons.fact_check_outlined, Routes.attendance));
     }
     const ids = ['homework', 'lesson_plans', 'assessments', 'behaviour', 'leave', 'ptm'];

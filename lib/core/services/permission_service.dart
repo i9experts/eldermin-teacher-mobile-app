@@ -36,6 +36,9 @@ class PermissionService {
   void clear() => update(null, null);
 
   String? get role => _set.role;
+
+  /// True when a school-defined custom role (`user.permissions` non-null) replaces the base matrix.
+  bool get isCustomRole => _set.custom != null;
   List<String> get activeModules => _activeModules;
 
   bool canAccess(String permission, {String? subModuleKey}) =>

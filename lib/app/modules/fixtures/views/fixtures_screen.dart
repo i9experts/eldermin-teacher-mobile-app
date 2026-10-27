@@ -212,7 +212,7 @@ class _FixtureDetailScreenState extends State<FixtureDetailScreen> {
                   if (s.notes.isNotEmpty) _line(Icons.notes_rounded, s.notes),
                 ]),
               ),
-              if (canMarkComplete(s, c.myStaffId))
+              if (c.canManageFixtures && canMarkComplete(s, c.myStaffId))
                 EmPrimaryButton(key: const Key('fx_complete'), label: 'Mark complete', loading: working, onPressed: c.completing.value != null ? null : () => _complete(s)),
             ];
           },
