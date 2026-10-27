@@ -8,8 +8,10 @@ import '../network/response_shape.dart';
 
 /// The login has no Staff record: `404 'No staff record is linked to your account. Contact HR ...'` (hr.service.ts getOwnStaffRecord). A typed
 /// state, NOT a generic "not available": the screen explains it plainly. Still an [ApiException] (404) for code that only knows those.
+const String kNoStaffRecordMessage = "Your account isn't linked to a staff record yet. Ask your school admin to link it.";
+
 class NoStaffRecord extends ApiException {
-  NoStaffRecord([String message = "Your account isn't linked to a staff record yet. Ask your school admin to link it."]) : super(message, statusCode: 404);
+  NoStaffRecord() : super(kNoStaffRecordMessage, statusCode: 404);
 }
 
 /// True for the server's 404 text of a missing Staff link (other 404s, such as an undeployed route, are not).
