@@ -5,7 +5,7 @@
 //
 // Facts this test pins (see eldermin-teacher-app-docs/phase8/ERROR_HANDLING_AUDIT.md for the server-side caveat):
 //  * UI gating only; the server stays the authority.
-//  * `institution.activeModules` never hides anything (owner decision A, web does not gate on it either).
+//  * `institution.activeModules` never hides anything in the app (the web gates on it; the app intentionally does not in v1 - pending an owner decision).
 //  * Route level: every GetPage carries RouteGuard (lib/app/routes/route_guard.dart), which applies the SAME ModuleEntry.isVisibleTo rule as the
 //    entry lists, so a hidden entry is also unreachable by notification target / deep link (test/app/route_guard_test.dart). Controller gates are
 //    the second line.

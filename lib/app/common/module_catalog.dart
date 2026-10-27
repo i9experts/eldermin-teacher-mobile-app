@@ -6,9 +6,11 @@ import '../routes/app_routes.dart';
 enum ModulePlacement { classes, more }
 
 /// One user-facing module entry (Part D.3 of the audit). Visibility is
-/// ALWAYS: permission (web `canAccess` semantics) AND the v1 /
-/// class-teacher flags below. `institution.activeModules` is NOT consulted
-/// (the web does not gate on it - owner decision A).
+/// ALWAYS: permission (web `canAccess` semantics, incl. the optional
+/// [subModuleKey] for custom roles) AND the v1 / class-teacher flags below.
+/// The web gates menu/routes on institution.activeModules (Sidebar.tsx
+/// moduleId via hasModule; ProtectedRoute `module`); the app intentionally
+/// does not in v1 - visibility is by permissions only - pending an owner decision.
 class ModuleEntry {
   final String id;
   final String title;
