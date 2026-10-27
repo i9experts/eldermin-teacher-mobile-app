@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/models/classroom/attendance_models.dart';
 import '../../../../core/models/classroom/student_models.dart';
 import '../../../../core/utils/home_time.dart';
+import '../../../../core/utils/roster_scope.dart';
 import '../../../../core/utils/timetable_week.dart';
 import '../../../../core/widgets/app_date_picker.dart';
 import '../../../../core/widgets/app_widgets.dart';
@@ -67,6 +68,12 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   Future<void> _changeDay(DateTime d) async {
     if (!await c.openDay(d)) {
       if (await _confirmDiscard()) await c.openDay(d, discard: true);
+    }
+  }
+
+  Future<void> _changeClass(ClassRef cls) async {
+    if (!await c.selectClass(cls)) {
+      if (await _confirmDiscard()) await c.selectClass(cls, discard: true);
     }
   }
 
@@ -183,6 +190,15 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
           onSelect: _changeDay,
           onPick: _pickDay,
         ),
+        if (c.hasPicker) _ClassBar(controller: c, onSelect: _changeClass),
+        if (c.classStale)
+          EmInfoBanner(
+            key: const Key('stale_class_banner'),
+            tone: EmTone.warning,
+            text: staleClassText(cls.label),
+            actionLabel: 'Sign out',
+            onAction: c.auth.logout,
+          ),
         if (c.isSubjectWise) _SubjectBar(controller: c, onSelect: _changeSubject),
         if (c.needsSubject)
           const EmInfoBanner(
@@ -269,6 +285,35 @@ class _DayBar extends StatelessWidget {
       );
 }
 
+/// Teachers who are class teacher of more than one class: which class is being marked (shown only then; a single-class teacher sees no picker).
+class _ClassBar extends StatelessWidget {
+  final AttendanceController controller;
+  final ValueChanged<ClassRef> onSelect;
+  const _ClassBar({required this.controller, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final current = c.myClass;
+    return Padding(
+      key: const Key('class_bar'),
+      padding: const EdgeInsets.only(bottom: EmSpacing.row),
+      child: EmCard(
+        padding: EmSpacing.cardPadCompact,
+        radius: EmRadius.md,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Class', style: EmType.label.copyWith(color: EmColors.textSecondary)),
+          const SizedBox(height: EmSpacing.s4),
+          Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s8, children: [
+            for (final cls in c.classes)
+              EmChip(key: ValueKey('class_chip_${cls.key}'), label: cls.label, selected: current?.key == cls.key, onTap: c.submitting.value ? null : () => onSelect(cls)),
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
 /// Subject-wise schools: which subject's attendance is being marked (the web shows the same picker, first subject selected).
 class _SubjectBar extends StatelessWidget {
   final AttendanceController controller;
@@ -312,7 +357,7 @@ class _BottomBar extends StatelessWidget {
       if (!c.roster.value.hasData) return const SizedBox.shrink();
       final missing = c.unmarked.length;
       final total = c.students_.length;
-      final failed = c.submitFailure.value != null;
+      final failed = c.submitFailure.value != null && !c.classStale;
       final saving = c.submitting.value;
       final saved = !c.dirty && c.hasServerRecords && missing == 0;
       return DecoratedBox(
@@ -347,7 +392,7 @@ class _BottomBar extends StatelessWidget {
                 key: const Key('submit_button'),
                 loading: saving,
                 label: saved ? 'Saved' : (missing > 0 ? 'Review & submit ($missing not marked)' : 'Review & submit'),
-                onPressed: (!c.editable || saving || saved) ? null : onSubmit,
+                onPressed: (!c.editable || c.classStale || saving || saved) ? null : onSubmit,
               ),
           ]),
         ),

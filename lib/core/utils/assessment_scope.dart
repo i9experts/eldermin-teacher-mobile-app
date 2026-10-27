@@ -46,7 +46,7 @@ List<Assessment> myAssessments(Iterable<Assessment> all, Iterable<ClassRef> clas
 List<ClassRef> myClassTeacherClassesFor(Assessment a, Iterable<ClassRef> classes) => [for (final c in myClassesFor(a, classes)) if (c.isClassTeacherClass) c];
 
 /// Quiz-attempt visibility rule (owner decision 2026-10-07), evaluated per attempt over my classes (UNION of both roles):
-///  * a CLASS TEACHER sees ALL subjects' attempts of THEIR OWN class ([ClassRef.isClassTeacherClass], from /staff-portal/me classTeacherOf);
+///  * a CLASS TEACHER sees ALL subjects' attempts of THEIR OWN class ([ClassRef.isClassTeacherClass], from /staff-portal/me classTeacherAssignments, one per section);
 ///  * a SUBJECT teacher sees only attempts of the subjects they teach in a class they teach (currentAssignments).
 /// So class teacher of 5-A who also teaches English in 6-B sees every subject in 5-A plus English in 6-B. Grade / section use the same
 /// tolerant matcher as the roster; subject names compare case-insensitively. A teacher with no classes sees nothing.

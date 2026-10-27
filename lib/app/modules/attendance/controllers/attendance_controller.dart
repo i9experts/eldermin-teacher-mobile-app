@@ -21,7 +21,10 @@ import '../../home/models/section_state.dart';
 /// silent rewrites of the register. Set to 0 to make it "today only".
 const int kAttendanceEditWindowDays = 7;
 
-enum SubmitFailureKind { offline, forbidden, conflict, validation, server, other }
+enum SubmitFailureKind { offline, forbidden, staleClass, conflict, validation, server, other }
+
+/// The backend's 403 when the token's class claims do not include the requested class (auth/scope.util.ts resolveClassSectionScope).
+bool isClassScopeDenied(String message) => message.toLowerCase().contains('class teacher of your own assigned class');
 
 class SubmitFailure {
   final SubmitFailureKind kind;
@@ -37,6 +40,7 @@ class SubmitFailure {
       case null:
         return SubmitFailure(SubmitFailureKind.offline, '${e.message} Your marks are kept: reconnect and tap Retry.');
       case 403:
+        if (isClassScopeDenied(e.message)) return SubmitFailure(SubmitFailureKind.staleClass, kStaleClassMessage);
         return SubmitFailure(SubmitFailureKind.forbidden, "You can't mark attendance for this class. ${e.message}");
       case 409:
         return SubmitFailure(SubmitFailureKind.conflict, 'This day was changed or is locked on the server. ${e.message}');
@@ -51,6 +55,12 @@ class SubmitFailure {
     }
   }
 }
+
+/// What the stale-sign-in banner says for [label] (a class assigned after the teacher signed in).
+String staleClassText(String label) => 'Your sign-in predates your new class. Sign out and back in to mark $label.';
+
+/// Generic form of [staleClassText] for the failure message (the screen shows the class-specific text).
+const String kStaleClassMessage = 'Your sign-in predates your new class. Sign out and back in to mark it.';
 
 /// Outcome of [AttendanceController.submit].
 sealed class SubmitResult {
@@ -141,13 +151,44 @@ class AttendanceController extends GetxController {
   ClassRef? _cls;
 
   // ── access (UI gating only; the backend is the security layer) ─
-  /// The class-teacher class from `/staff-portal/me` (null when not a class teacher or the class is missing).
-  ClassRef? get myClass {
+  /// Every class-teacher class from `/staff-portal/me` (first assignment first). Empty when not a class teacher.
+  List<ClassRef> get classes {
     auth.staffMe.value; // dependency for Obx
-    for (final c in teacherClassesOf(auth.staffMe.value?.teacherProfile)) {
-      if (c.isClassTeacherClass) return c;
-    }
-    return null;
+    return classTeacherClasses(auth.staffMe.value?.teacherProfile);
+  }
+
+  /// The class being marked: the session's last choice ([AuthController.attendanceClassKey]) when it is still one of [classes],
+  /// else the first. Updated by [selectClass]. Null when there is no class.
+  final selectedClass = Rxn<ClassRef>();
+
+  ClassRef? _resolveSelected() {
+    final all = classes;
+    if (all.isEmpty) return selectedClass.value = null;
+    final key = auth.attendanceClassKey.value ?? selectedClass.value?.key;
+    final pick = all.firstWhere((c) => c.key == key, orElse: () => all.first);
+    // assign only on a real change: listeners (the history screen) reload on every assignment
+    if (selectedClass.value?.key != pick.key) selectedClass.value = pick;
+    return pick;
+  }
+
+  /// The class being marked (kept under its old name for the views): [selectedClass], resolved against the current profile.
+  ClassRef? get myClass {
+    classes; // dependency for Obx
+    selectedClass.value;
+    auth.attendanceClassKey.value;
+    final all = classes;
+    if (all.isEmpty) return null;
+    final key = auth.attendanceClassKey.value ?? selectedClass.value?.key;
+    return all.firstWhere((c) => c.key == key, orElse: () => all.first);
+  }
+
+  /// The picker shows only for a teacher with more than one class.
+  bool get hasPicker => classes.length > 1;
+
+  /// The token behind this session does not cover the selected class: marking it would 403 until the teacher signs in again.
+  bool get classStale {
+    final c = myClass;
+    return c != null && auth.isClassStale(c);
   }
 
   bool get isClassTeacher {
@@ -184,7 +225,7 @@ class AttendanceController extends GetxController {
   /// Subject-wise school with no subject chosen (none exist yet): nothing can be saved, as on the web.
   bool get needsSubject => isSubjectWise && selectedSubject.value == null;
 
-  bool get canSubmit => editable && !submitting.value && roster.value.hasData && allMarked && dirty && !needsSubject;
+  bool get canSubmit => editable && !classStale && !submitting.value && roster.value.hasData && allMarked && dirty && !needsSubject;
 
   String? get academicYear => academicYearOf(students_);
 
@@ -198,7 +239,7 @@ class AttendanceController extends GetxController {
   /// Loads the roster and the day's existing records.
   Future<void> load({bool refreshProfile = false}) async {
     if (refreshProfile) await auth.refreshProfile(force: true);
-    final cls = myClass;
+    final cls = _resolveSelected();
     if (!allowed || cls == null) return;
     _cls = cls;
     final token = ++_token;
@@ -228,6 +269,19 @@ class AttendanceController extends GetxController {
   }
 
   Future<void> retry() => load();
+
+  /// Switches to [c] (one of [classes]) and reloads its roster and day. Returns false (and does nothing) when there are unsaved marks and
+  /// [discard] is false: the view asks the teacher first (same contract as [openDay]).
+  Future<bool> selectClass(ClassRef c, {bool discard = false}) async {
+    final target = classes.where((x) => x.key == c.key).firstOrNull;
+    if (target == null) return false;
+    if (target.key == myClass?.key && !discard) return true;
+    if (dirty && !discard) return false;
+    auth.attendanceClassKey.value = target.key;
+    selectedClass.value = target;
+    await load();
+    return true;
+  }
 
   /// Pull-to-refresh: re-reads the profile (class-teacher changes), the roster and the day. The view
   /// asks the teacher first when there are unsaved marks, because this replaces them.
@@ -378,7 +432,7 @@ class AttendanceController extends GetxController {
   /// Submits the whole day. Guarded against double taps; refuses while any student is unmarked.
   Future<SubmitResult> submit() async {
     if (submitting.value) return const SubmitIgnored();
-    if (!editable || !roster.value.hasData || needsSubject) return const SubmitIgnored();
+    if (!editable || !roster.value.hasData || needsSubject || classStale) return const SubmitIgnored();
     final missing = unmarked.length;
     if (missing > 0) {
       showUnmarked.value = true;
@@ -398,7 +452,9 @@ class AttendanceController extends GetxController {
       return SubmitSaved(StatusCounts.fromStatuses(snapshot.values));
     } catch (e) {
       final f = SubmitFailure.from(e);
-      submitFailure.value = f; // marks are NOT touched
+      if (f.kind == SubmitFailureKind.staleClass && _cls != null) auth.markClassDenied(_cls!);
+      // marks are NOT touched; a stale-class refusal is shown by the sign-out banner instead of a generic error
+      submitFailure.value = f.kind == SubmitFailureKind.staleClass ? null : f;
       return SubmitFailed(f);
     } finally {
       submitting.value = false;

@@ -34,8 +34,8 @@ void main() {
   });
   tearDown(Get.reset);
 
-  Future<void> boot(WidgetTester t, Widget screen, {bool classTeacher = true, bool tall = true, double width = 430, double scale = 1.0, TextDirection dir = TextDirection.ltr}) async {
-    final h = (await t.runAsync(() => signedIn(classTeacher: classTeacher)))!;
+  Future<void> boot(WidgetTester t, Widget screen, {bool classTeacher = true, List<Map<String, Object?>>? assignments, String token = 'tok', bool tall = true, double width = 430, double scale = 1.0, TextDirection dir = TextDirection.ltr}) async {
+    final h = (await t.runAsync(() => signedIn(classTeacher: classTeacher, classTeacherAssignments: assignments, token: token)))!;
     c = AttendanceController(students: students, attendance: attendance, auth: h.auth, permissions: h.perms, clock: () => now);
     Get.put(c);
     Get.put(AttendanceHistoryController(attendance: attendance, daily: c, clock: () => now));
@@ -138,7 +138,7 @@ void main() {
     });
 
     testWidgets('403 from the server is shown as an access message; marks survive', (t) async {
-      attendance.onSubmit = (_, __) async => throw ApiException('Access denied. You are the class teacher of your own assigned class only.', statusCode: 403);
+      attendance.onSubmit = (_, __) async => throw ApiException('Forbidden resource', statusCode: 403);
       await boot(t, const AttendanceMarkScreen());
       await t.tap(find.byKey(const Key('mark_remaining_present')));
       await t.pump();
@@ -513,6 +513,92 @@ void main() {
       await t.pump();
       expect(ymd(c.day.value), '2026-10-05');
       expect(c.marks[roster[0].id], AttendanceStatus.absent);
+    });
+  });
+  group('multi-section class teacher', () {
+    final two = [
+      {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionName': 'A', 'name': 'Grade 5 - A'},
+      {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionName': 'B', 'name': 'Grade 5 - B'},
+    ];
+    final both = classTeacherJwt([(grade: 'Grade 5', section: 'A'), (grade: 'Grade 5', section: 'B')]);
+    final onlyA = classTeacherJwt([(grade: 'Grade 5', section: 'A')]);
+
+    testWidgets('single-class teacher: no class picker, no stale banner (unchanged screen)', (t) async {
+      await boot(t, const AttendanceMarkScreen());
+      expect(find.byKey(const Key('class_bar')), findsNothing);
+      expect(find.byKey(const Key('stale_class_banner')), findsNothing);
+      expect(find.byKey(const Key('day_strip')), findsOneWidget);
+    });
+
+    testWidgets('two classes: the picker shows both; choosing B reloads for B and the save carries B', (t) async {
+      await boot(t, const AttendanceMarkScreen(), assignments: two, token: both);
+      expect(find.byKey(const Key('class_bar')), findsOneWidget);
+      expect(find.byKey(const ValueKey('class_chip_5|a')), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('class_chip_5|b')));
+      await t.pump();
+      await t.pump();
+      expect(c.selectedClass.value!.label, 'Grade 5 - B');
+      await t.tap(find.byKey(const Key('mark_remaining_present')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('submit_button')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('attendance_confirm_submit')));
+      await t.pump();
+      await t.pump();
+      expect(attendance.submitted.single.map((w) => (w.grade, w.section)).toSet(), {('Grade 5', 'B')});
+    });
+
+    testWidgets('switching class with unsaved marks asks first; Keep editing leaves everything as it was', (t) async {
+      await boot(t, const AttendanceMarkScreen(), assignments: two, token: both);
+      await t.tap(chip(0, AttendanceStatus.absent));
+      await t.pump();
+      await t.tap(find.byKey(const ValueKey('class_chip_5|b')));
+      await t.pump();
+      expect(find.byKey(const Key('discard_dialog')), findsOneWidget);
+      await t.tap(find.byKey(const Key('discard_keep')));
+      await t.pump();
+      expect(c.selectedClass.value!.label, 'Grade 5 - A');
+      expect(c.marks[roster[0].id], AttendanceStatus.absent);
+    });
+
+    testWidgets('a class missing from the token: warning banner with Sign out, submit disabled for it only', (t) async {
+      await boot(t, const AttendanceMarkScreen(), assignments: two, token: onlyA);
+      expect(find.byKey(const Key('stale_class_banner')), findsNothing); // class A is fine
+      await t.tap(find.byKey(const ValueKey('class_chip_5|b')));
+      await t.pump();
+      await t.pump();
+      expect(find.byKey(const Key('stale_class_banner')), findsOneWidget);
+      expect(find.text('Your sign-in predates your new class. Sign out and back in to mark Grade 5 - B.'), findsOneWidget);
+      expect(find.text('Sign out'), findsOneWidget);
+      await t.tap(find.byKey(const Key('mark_remaining_present')));
+      await t.pump();
+      expect(c.canSubmit, isFalse);
+      expect(t.widget<EmPrimaryButton>(find.byKey(const Key('submit_button'))).onPressed, isNull);
+      await t.tap(find.byKey(const ValueKey('class_chip_5|a')));
+      await t.pump();
+      await t.pump();
+      expect(find.byKey(const Key('discard_dialog')), findsOneWidget); // marks on B are dirty
+      await t.tap(find.byKey(const Key('discard_confirm')));
+      await t.pump();
+      await t.pump();
+      expect(find.byKey(const Key('stale_class_banner')), findsNothing);
+    });
+
+    testWidgets('the class-scope 403 shows the same prompt (not a generic error) and keeps the marks', (t) async {
+      attendance.onSubmit = (_, __) async => throw ApiException('Access denied. You are the class teacher of your own assigned class only.', statusCode: 403);
+      await boot(t, const AttendanceMarkScreen());
+      await t.tap(find.byKey(const Key('mark_remaining_present')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('submit_button')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('attendance_confirm_submit')));
+      await t.pump();
+      await t.pump();
+      expect(find.byKey(const Key('stale_class_banner')), findsOneWidget);
+      expect(find.byKey(const Key('submit_error_banner')), findsNothing);
+      expect(find.byKey(const Key('submit_retry')), findsNothing);
+      expect(find.text('Sign out'), findsOneWidget);
+      expect(c.marks, hasLength(5));
     });
   });
 }

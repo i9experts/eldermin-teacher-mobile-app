@@ -31,8 +31,8 @@ void main() {
   });
   tearDown(Get.reset);
 
-  Future<AttendanceController> make({bool classTeacher = true, List<String>? permissions}) async {
-    final h = await signedIn(classTeacher: classTeacher, permissions: permissions);
+  Future<AttendanceController> make({bool classTeacher = true, List<String>? permissions, List<Map<String, Object?>>? assignments, String token = 'tok'}) async {
+    final h = await signedIn(classTeacher: classTeacher, permissions: permissions, classTeacherAssignments: assignments, token: token);
     return AttendanceController(students: students, attendance: attendance, auth: h.auth, permissions: h.perms, clock: () => now);
   }
 
@@ -225,7 +225,7 @@ void main() {
 
     for (final tc in <(String, ApiException, SubmitFailureKind)>[
       ('offline', ApiException("Couldn't reach Eldermin. Check your internet connection."), SubmitFailureKind.offline),
-      ('403', ApiException('Access denied. You are the class teacher of your own assigned class only.', statusCode: 403), SubmitFailureKind.forbidden),
+      ('403', ApiException('Forbidden resource', statusCode: 403), SubmitFailureKind.forbidden),
       ('409', ApiException('Locked', statusCode: 409), SubmitFailureKind.conflict),
       ('400', ApiException('records.0.status must be one of the following values: present, absent, late, excused, half_day', statusCode: 400), SubmitFailureKind.validation),
       ('500', ApiException('Internal server error', statusCode: 500), SubmitFailureKind.server),
@@ -242,7 +242,7 @@ void main() {
         expect(c.submitting.value, isFalse);
         expect(c.submitFailure.value!.message, isNotEmpty);
         if (tc.$3 == SubmitFailureKind.offline) expect(c.submitFailure.value!.message, contains('marks are kept'));
-        if (tc.$3 == SubmitFailureKind.forbidden) expect(c.submitFailure.value!.message, contains('Access denied'));
+        if (tc.$3 == SubmitFailureKind.forbidden) expect(c.submitFailure.value!.message, contains('Forbidden resource'));
         attendance.onSubmit = (_, __) async {};
         final again = await c.submit();
         expect(again, isA<SubmitSaved>());
@@ -252,6 +252,18 @@ void main() {
         expect(attendance.submitted.last.map((w) => w.status), attendance.submitted.first.map((w) => w.status));
       });
     }
+
+    test('403 "class teacher of your own assigned class only" maps to the staleClass kind and blocks that class until re-login', () async {
+      final c = await ready();
+      attendance.onSubmit = (_, __) async => throw ApiException('Access denied. You are the class teacher of your own assigned class only.', statusCode: 403);
+      final r = await c.submit();
+      expect(r, isA<SubmitFailed>().having((f) => f.failure.kind, 'kind', SubmitFailureKind.staleClass));
+      expect(c.classStale, isTrue);
+      expect(c.canSubmit, isFalse);
+      expect(c.marks, isNotEmpty); // marks untouched
+      expect(c.submitFailure.value, isNull); // the sign-out banner replaces the generic error
+      expect(await c.submit(), isA<SubmitIgnored>());
+    });
 
     test('changing a mark clears the failure banner; the marks are still there', () async {
       final c = await ready();
@@ -516,6 +528,97 @@ void main() {
       await c.load();
       expect(c.roster.value.status, SectionStatus.error);
       expect(attendance.submitted, isEmpty);
+    });
+  });
+
+  group('multi-section class teacher', () {
+    final twoSections = [
+      {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionId': 's1', 'sectionName': 'A', 'name': 'Grade 5 - A'},
+      {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionId': 's2', 'sectionName': 'B', 'name': 'Grade 5 - B'},
+    ];
+    final both = classTeacherJwt([(grade: 'Grade 5', section: 'A'), (grade: 'Grade 5', section: 'B')]);
+    final onlyA = classTeacherJwt([(grade: 'Grade 5', section: 'A')]);
+
+    test('classes lists every section, first selected by default; single-class teacher has no picker', () async {
+      final c = await make(assignments: twoSections, token: both);
+      expect([for (final x in c.classes) x.label], ['Grade 5 - A', 'Grade 5 - B']);
+      expect(c.hasPicker, isTrue);
+      await c.load();
+      expect(c.selectedClass.value!.label, 'Grade 5 - A');
+      final single = await make();
+      expect(single.classes, hasLength(1));
+      expect(single.hasPicker, isFalse);
+    });
+
+    test('picking a class reloads roster+day for it and every write carries THAT class grade/section', () async {
+      final c = await make(assignments: twoSections, token: both);
+      await c.load();
+      expect(await c.selectClass(c.classes[1]), isTrue);
+      expect(c.selectedClass.value!.label, 'Grade 5 - B');
+      expect(students.calls.last, 'roster:Grade 5 - B');
+      expect((attendance.rangeCalls.last.grade, attendance.rangeCalls.last.section), ('Grade 5', 'B'));
+      c.markRemainingPresent();
+      await c.submit();
+      expect(attendance.submitted.single.map((w) => (w.grade, w.section)).toSet(), {('Grade 5', 'B')});
+    });
+
+    test('selection survives a controller rebuild in the same session (kept on AuthController, not on disk)', () async {
+      final h = await signedIn(classTeacher: true, classTeacherAssignments: twoSections, token: both);
+      AttendanceController mk() => AttendanceController(students: students, attendance: attendance, auth: h.auth, permissions: h.perms, clock: () => now);
+      final a = mk();
+      await a.load();
+      await a.selectClass(a.classes[1]);
+      final b = mk();
+      await b.load();
+      expect(b.selectedClass.value!.label, 'Grade 5 - B');
+    });
+
+    test('switching class with unsaved marks needs discard; the marks of the old class are then dropped', () async {
+      final c = await make(assignments: twoSections, token: both);
+      await c.load();
+      c.setStatus(roster[0].id, AttendanceStatus.absent);
+      expect(await c.selectClass(c.classes[1]), isFalse);
+      expect(c.selectedClass.value!.label, 'Grade 5 - A');
+      expect(c.marks, isNotEmpty);
+      expect(await c.selectClass(c.classes[1], discard: true), isTrue);
+      expect(c.selectedClass.value!.label, 'Grade 5 - B');
+      expect(c.marks, isEmpty);
+    });
+
+    test('a class missing from the token is blocked; the class the token covers still submits', () async {
+      final c = await make(assignments: twoSections, token: onlyA);
+      await c.load();
+      expect(c.classStale, isFalse);
+      c.markRemainingPresent();
+      expect(await c.submit(), isA<SubmitSaved>());
+      await c.selectClass(c.classes[1]);
+      expect(c.classStale, isTrue);
+      c.markRemainingPresent();
+      expect(c.canSubmit, isFalse);
+      expect(await c.submit(), isA<SubmitIgnored>());
+      expect(attendance.submitted, hasLength(1)); // only class A was ever sent
+      await c.selectClass(c.classes[0], discard: true);
+      expect(c.classStale, isFalse);
+    });
+
+    test('a section assigned AFTER sign-in turns stale on the next /me refresh (and the banner state clears on logout)', () async {
+      final h = await signedIn(classTeacher: true, classTeacherAssignments: [twoSections[0]], token: onlyA);
+      expect(h.auth.reauthRequired, isFalse);
+      h.api.classTeacherAssignments = twoSections;
+      await h.auth.refreshProfile(force: true);
+      expect(h.auth.staleClassKeys.toList(), ['5|b']);
+      await h.auth.logout();
+      expect(h.auth.staleClassKeys, isEmpty);
+      expect(h.auth.attendanceClassKey.value, isNull);
+    });
+
+    test('a token with NO class claims never prompts (the backend is unrestricted then)', () async {
+      final c = await make(assignments: twoSections, token: fakeJwt({'sub': 'u'}));
+      expect(c.auth.reauthRequired, isFalse);
+      await c.load();
+      await c.selectClass(c.classes[1]);
+      c.markRemainingPresent();
+      expect(await c.submit(), isA<SubmitSaved>());
     });
   });
 }

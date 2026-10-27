@@ -44,6 +44,18 @@ class AttendanceHistoryController extends GetxController {
   void onReady() {
     super.onReady();
     if (daily.allowed) loadMonth();
+    // another class was picked on the mark screen: the register on show is that class's (after its roster load has started)
+    _classWorker = ever(daily.selectedClass, (_) => Future.microtask(() {
+          if (daily.allowed) loadMonth();
+        }));
+  }
+
+  Worker? _classWorker;
+
+  @override
+  void onClose() {
+    _classWorker?.dispose();
+    super.onClose();
   }
 
   /// Moves the calendar; never past the current month.
