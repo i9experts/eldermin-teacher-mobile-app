@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/constants/login_config.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../routes/app_routes.dart';
@@ -7,7 +8,7 @@ import '../bindings/login_binding.dart';
 import '../controllers/login_controller.dart';
 import 'auth_widgets.dart';
 
-/// Email + password sign-in with an optional, collapsible school code.
+/// Email + password sign-in. The optional, collapsible school code is hidden while [kShowSchoolCode] is false (login_config.dart).
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -30,9 +31,11 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     LoginBinding().dependencies();
     c = Get.find<LoginController>();
-    c.savedSlug().then((slug) {
-      if (slug != null && mounted && _schoolCode.text.isEmpty) _schoolCode.text = slug;
-    });
+    if (LoginConfig.showSchoolCode) {
+      c.savedSlug().then((slug) {
+        if (slug != null && mounted && _schoolCode.text.isEmpty) _schoolCode.text = slug;
+      });
+    }
   }
 
   @override
@@ -114,7 +117,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ))),
             const SizedBox(height: EmSpacing.s4),
-            EmStagger(
+            if (LoginConfig.showSchoolCode)
+              EmStagger(
                 index: 2,
                 child: Obx(() => Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,

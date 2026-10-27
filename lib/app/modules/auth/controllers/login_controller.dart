@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../../../../core/constants/login_config.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/services/app_preferences.dart';
 import 'auth_controller.dart';
@@ -27,6 +28,7 @@ class LoginController extends GetxController {
 
   /// The remembered school code (null when none).
   Future<String?> savedSlug() async {
+    if (!LoginConfig.showSchoolCode) return null; // feature off: a stored code is ignored (and cleared on start)
     try {
       final slug = await _loadSavedSlug();
       if (slug != null && slug.trim().isNotEmpty) {
@@ -44,7 +46,7 @@ class LoginController extends GetxController {
     error.value = null;
     auth.loginNotice.value = null;
     try {
-      await auth.login(email: email.trim(), password: password, slug: schoolCode);
+      await auth.login(email: email.trim(), password: password, slug: LoginConfig.showSchoolCode ? schoolCode : null);
       return true;
     } on ApiException catch (ex) {
       error.value = ex.message;
