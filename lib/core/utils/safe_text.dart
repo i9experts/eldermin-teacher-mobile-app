@@ -1,3 +1,4 @@
+// Mirrored in eldermin-parent-mobile-app lib/core/utils/safe_text.dart (parent differs: no htmlLinks, mailto:/tel: allowed in safeExternalUri) — keep in sync.
 // Safe rendering helpers for server-supplied rich text (circular / event bodies are HTML, KB bodies are markdown or plain text).
 //
 // RULE: nothing from the server is ever rendered as HTML / run as script / fetched as an image. HTML is reduced to plain text with
@@ -5,7 +6,9 @@
 // user confirms (https/http only).
 
 final _scriptStyle = RegExp(r'<(script|style|iframe|object|embed|svg|template)\b[^>]*>[\s\S]*?</\1\s*>', caseSensitive: false);
-final _openNoClose = RegExp(r'<(script|style|iframe|object|embed|svg|template)\b[^>]*>', caseSensitive: false);
+// An unclosed dangerous container drops everything after it too, so its body can never show as text. (<embed> is a void element with no body, so it
+// only loses its tag, in the generic tag strip.)
+final _openNoClose = RegExp(r'<(script|style|iframe|object|svg|template)\b[\s\S]*$', caseSensitive: false);
 final _comment = RegExp(r'<!--[\s\S]*?-->');
 final _brTag = RegExp(r'<br\s*/?>', caseSensitive: false);
 final _blockClose = RegExp(r'</(p|div|h[1-6]|tr|table|ul|ol|blockquote|section|article)\s*>', caseSensitive: false);
@@ -21,7 +24,7 @@ bool looksLikeHtml(String s) => RegExp(r'<\/?[a-zA-Z][^>]*>').hasMatch(s);
 String htmlToPlainText(String html) {
   var s = html.replaceAll(_comment, '');
   s = s.replaceAll(_scriptStyle, '');
-  s = s.replaceAll(_openNoClose, ''); // an unclosed <script ...> is dropped too (its tail text stays as inert text)
+  s = s.replaceAll(_openNoClose, ''); // an unclosed <script ...> is dropped with everything after it
   s = s.replaceAll(_brTag, '\n').replaceAll(_blockClose, '\n').replaceAll(_liClose, '\n').replaceAll(_liOpen, '• ');
   s = s.replaceAll(_anyTag, '');
   // A leftover '<' that started a broken tag ("<img src=x onerror=...") is dropped with the rest of its line. Done BEFORE entities are decoded, so a
@@ -29,6 +32,68 @@ String htmlToPlainText(String html) {
   s = s.replaceAll(RegExp(r'<[a-zA-Z/!][^\n]*$', multiLine: true), '');
   s = decodeEntities(s);
   s = s.replaceAll(RegExp(r'[ \t ]+'), ' ').replaceAll(RegExp(r' *\n *'), '\n').replaceAll(RegExp(r'\n{3,}'), '\n\n');
+  return s.trim();
+}
+
+final _anchor = RegExp(r'<a\b([^>]*)>([\s\S]*?)</a\s*>', caseSensitive: false);
+final _img = RegExp(r'<img\b[^>]*>', caseSensitive: false);
+final _heading = RegExp(r'<(/?)h[1-6]\b[^>]*>', caseSensitive: false);
+final _blockOpen = RegExp(r'<(p|div|tr|table|blockquote|section|article)\b[^>]*>', caseSensitive: false);
+final _blockCloseRich = RegExp(r'</(p|div|tr|table|blockquote|section|article)\s*>', caseSensitive: false);
+final _cellClose = RegExp(r'</t[dh]\s*>', caseSensitive: false);
+final _listTag = RegExp(r'<(/?)(ul|ol|li)\b[^>]*>', caseSensitive: false);
+
+String? _attr(String attrs, String name) {
+  final m = RegExp('\\b$name\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')', caseSensitive: false).firstMatch(attrs);
+  return m == null ? null : (m.group(1) ?? m.group(2));
+}
+
+// A URL safe to embed in a `[text](url)` token (no spaces or parentheses).
+String _mdUrl(Uri u) => u.toString().replaceAll(' ', '%20').replaceAll('(', '%28').replaceAll(')', '%29');
+
+class _ListState {
+  _ListState(this.ordered);
+  final bool ordered;
+  int n = 0;
+}
+
+/// HTML -> the markdown-lite source [parseRichText] understands, for the rich view only ([htmlToPlainText] stays plain text for the calendar
+/// models). Same safety rules as [htmlToPlainText], plus: `<a href>` becomes `[text](url)` and `<img src>` becomes `[alt](url)` (only for
+/// allowed links, otherwise the text or nothing), headings become "# ", ordered lists are numbered, every block / `<div>` / table row starts a
+/// new line and table cells are separated. Output never contains '<' from a tag.
+String htmlToRichSource(String html) {
+  var s = html.replaceAll(_comment, '');
+  s = s.replaceAll(_scriptStyle, '').replaceAll(_openNoClose, '');
+  s = s.replaceAllMapped(_anchor, (m) {
+    final text = m.group(2)!.replaceAll(_anyTag, '').replaceAll(RegExp(r'[\[\]]'), '').trim();
+    final u = safeLinkUri(decodeEntities(_attr(m.group(1)!, 'href') ?? ''));
+    if (u == null) return text;
+    return '[${text.isEmpty ? u.toString() : text}](${_mdUrl(u)})';
+  });
+  s = s.replaceAllMapped(_img, (m) {
+    final alt = (_attr(m.group(0)!, 'alt') ?? '').replaceAll(RegExp(r'[\[\]]'), '').trim();
+    final u = safeExternalUri(decodeEntities(_attr(m.group(0)!, 'src') ?? '')); // an image is only ever offered as an http(s) link
+    if (u == null) return alt;
+    return '\n[${alt.isEmpty ? 'Image' : alt}](${_mdUrl(u)})\n';
+  });
+  s = s.replaceAllMapped(_heading, (m) => m.group(1) == '/' ? '\n' : '\n# ');
+  final lists = <_ListState>[];
+  s = s.replaceAllMapped(_listTag, (m) {
+    final closing = m.group(1) == '/';
+    final tag = m.group(2)!.toLowerCase();
+    if (tag == 'li') return closing ? '\n' : (lists.isNotEmpty && lists.last.ordered ? '${++lists.last.n}. ' : '• ');
+    if (closing) {
+      if (lists.isNotEmpty) lists.removeLast();
+    } else {
+      lists.add(_ListState(tag == 'ol'));
+    }
+    return '\n';
+  });
+  s = s.replaceAll(_brTag, '\n').replaceAll(_blockOpen, '\n').replaceAll(_blockCloseRich, '\n').replaceAll(_cellClose, '  ');
+  s = s.replaceAll(_anyTag, '');
+  s = s.replaceAll(RegExp(r'<[a-zA-Z/!][^\n]*$', multiLine: true), '');
+  s = decodeEntities(s);
+  s = s.replaceAll(RegExp(r'[ \t\u00A0]+'), ' ').replaceAll(RegExp(r' *\n *'), '\n').replaceAll(RegExp(r'\n{3,}'), '\n\n');
   return s.trim();
 }
 
@@ -55,6 +120,18 @@ Uri? safeExternalUri(String? raw) {
   if (u == null || !u.hasAuthority || u.host.isEmpty) return null;
   final scheme = u.scheme.toLowerCase();
   return scheme == 'https' || scheme == 'http' ? u : null;
+}
+
+/// Links inside rich text: [safeExternalUri] plus `mailto:` and `tel:` with an address / number. Never used for attachments or anything the app
+/// fetches.
+Uri? safeLinkUri(String? raw) {
+  final web = safeExternalUri(raw);
+  if (web != null) return web;
+  if (raw == null) return null;
+  final u = Uri.tryParse(raw.trim());
+  if (u == null) return null;
+  final scheme = u.scheme.toLowerCase();
+  return (scheme == 'mailto' || scheme == 'tel') && u.path.isNotEmpty ? u : null;
 }
 
 /// All `href` values of anchors in [html] (https/http only), in order, for a "Links" list. Never opened without confirmation.
@@ -91,7 +168,7 @@ List<InlineRun> _inline(String line) {
   String clean(String t) => t.replaceAll(RegExp(r'(\*\*|__)'), '').replaceAll(RegExp(r'(?<![\w*])[*_`]|[*_`](?![\w*])'), '');
   for (final m in _mdLink.allMatches(line)) {
     if (m.start > last) runs.add(InlineRun(clean(line.substring(last, m.start))));
-    final u = safeExternalUri(m.group(2));
+    final u = safeLinkUri(m.group(2));
     runs.add(InlineRun(clean(m.group(1)!), u?.toString())); // an unsafe scheme (javascript:, file: ...) keeps the text, drops the link
     last = m.end;
   }
@@ -99,11 +176,13 @@ List<InlineRun> _inline(String line) {
   return runs.where((r) => r.text.isNotEmpty).toList();
 }
 
-/// Markdown-lite or plain text -> blocks. HTML (if the server sent any) is flattened first. Images (`![alt](url)`) are never fetched: only
-/// the alt text remains. Supported: `#` headings, `-`/`*`/`•` bullets, `1.` numbers, paragraphs, `[text](url)` links, `**bold**` (marker dropped).
+/// Markdown-lite or plain text -> blocks. HTML (if the server sent any) is flattened first ([htmlToRichSource]); each of its lines stays its own
+/// paragraph, plain text / markdown still joins consecutive lines. Images (`![alt](url)`) are never fetched: only
+/// the alt text remains. Supported: `#` headings, `-`/`*`/`•` bullets, `1.` numbers, paragraphs, `[text](url)` links (http, https, mailto, tel), `**bold**` (marker dropped).
 List<TextBlock> parseRichText(String raw) {
   var s = raw;
-  if (looksLikeHtml(s)) s = htmlToPlainText(s);
+  final html = looksLikeHtml(s);
+  if (html) s = htmlToRichSource(s);
   s = s.replaceAllMapped(RegExp(r'!\[([^\]]*)\]\([^)]*\)'), (m) => m.group(1) ?? '');
   final blocks = <TextBlock>[];
   final para = <String>[];
@@ -134,6 +213,7 @@ List<TextBlock> parseRichText(String raw) {
       blocks.add(TextBlock(TextBlockKind.numbered, _inline(n.group(2)!), number: int.parse(n.group(1)!)));
     } else {
       para.add(t);
+      if (html) flush(); // an HTML source's lines are the author's own paragraphs / line breaks
     }
   }
   flush();
