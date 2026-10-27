@@ -46,6 +46,9 @@ import '../modules/homework/views/homework_submissions_screen.dart';
 import '../modules/intro/bindings/intro_binding.dart';
 import '../modules/intro/views/intro_screen.dart';
 import '../modules/leave/bindings/leave_binding.dart';
+import '../modules/my_attendance/bindings/my_attendance_binding.dart';
+import '../modules/my_attendance/views/attendance_correction_screen.dart';
+import '../modules/my_attendance/views/my_attendance_screen.dart';
 import '../modules/leave/views/leave_apply_screen.dart';
 import '../modules/leave/views/leave_screen.dart';
 import '../modules/lesson_plans/bindings/lesson_plans_binding.dart';
@@ -282,6 +285,14 @@ class AppPages {
         name: Routes.leaveApply,
         page: () => const LeaveApplyScreen(),
         binding: LeaveApplyBinding()),
+    GetPage(
+        name: Routes.myAttendance,
+        page: () => const MyAttendanceScreen(),
+        binding: MyAttendanceBinding()),
+    GetPage(
+        name: Routes.myAttendanceCorrect,
+        page: () => const AttendanceCorrectionScreen(),
+        binding: AttendanceCorrectionBinding()),
     GetPage(
         name: Routes.studentLeaves,
         page: () => const StudentLeavesScreen(),

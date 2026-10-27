@@ -21,6 +21,7 @@ void main() {
         'school-calendar:view',
         'events:view',
         'leave:self',
+        'attendance:self',
       ]) {
         expect(p.canAccess(perm), isTrue, reason: perm);
       }

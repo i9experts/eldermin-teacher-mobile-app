@@ -34,6 +34,7 @@ class PermissionSet {
       'school-calendar:view',
       'events:view',
       'leave:self',
+      'attendance:self',
     },
   };
 

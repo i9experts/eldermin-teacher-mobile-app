@@ -65,6 +65,8 @@ void main() {
       String? id(String l) => ModuleCatalog.entryForRoute(l)?.id;
       expect(id('/student-leaves/$_id'), 'student_leaves');
       expect(id('/students/$_id'), 'students');
+      expect(id('/my-attendance'), 'my_attendance');
+      expect(id('/my-attendance/correct'), 'my_attendance');
       expect(id('/attendance/mark'), 'attendance');
       expect(id('/homework/$_id/submissions/$_id/grade'), 'homework');
       expect(id('/assessments/report-remarks?assessmentId=$_id'), 'assessments');
@@ -87,7 +89,7 @@ void main() {
         expect(await _opens(t, r), isFalse, reason: r);
       }
       expect(find.text('Not available for your account'), findsOneWidget);
-      for (final r in [Routes.students, Routes.studentDetailOf(_id), Routes.homework, Routes.homeworkGradeOf(_id, _id), Routes.leave, Routes.calendar, Routes.messageThreadOf(_id), Routes.profile, Routes.help, Routes.safeguarding, Routes.homeMore]) {
+      for (final r in [Routes.students, Routes.studentDetailOf(_id), Routes.homework, Routes.homeworkGradeOf(_id, _id), Routes.leave, Routes.myAttendance, Routes.myAttendanceCorrect, Routes.calendar, Routes.messageThreadOf(_id), Routes.profile, Routes.help, Routes.safeguarding, Routes.homeMore]) {
         expect(await _opens(t, r), isTrue, reason: r);
       }
     });
@@ -103,7 +105,7 @@ void main() {
     testWidgets('custom role without a permission is blocked from that module (and its detail routes) only', (t) async {
       await _boot(t, custom: ['teaching:view', 'students:view', 'leave:self']);
       await _app(t);
-      for (final r in [Routes.assessments, Routes.assessmentDetailOf(_id), Routes.assessmentMarksOf(_id), Routes.behaviour, Routes.behaviourStudentOf(_id), Routes.events, Routes.eventDetailOf(_id), Routes.calendar, Routes.curriculum, Routes.library]) {
+      for (final r in [Routes.assessments, Routes.assessmentDetailOf(_id), Routes.assessmentMarksOf(_id), Routes.behaviour, Routes.behaviourStudentOf(_id), Routes.events, Routes.eventDetailOf(_id), Routes.calendar, Routes.curriculum, Routes.library, Routes.myAttendance, Routes.myAttendanceCorrect]) {
         expect(await _opens(t, r), isFalse, reason: r);
       }
       for (final r in [Routes.homework, Routes.timetable, Routes.ptmDetailOf(_id), Routes.students, Routes.leaveApply, Routes.safeguarding]) {

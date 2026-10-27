@@ -36,7 +36,7 @@ void main() {
       '/assessments', '/assessments/:id/marks', '/assessments/report-remarks',
       '/assessments/quiz-attempts', '/assessments/quiz-attempts/:id',
       '/behaviour', '/behaviour/new', '/behaviour/student/:id',
-      '/ptm', '/ptm/new', '/ptm/:id', '/fixtures', '/fixtures/:id', '/leave', '/leave/apply',
+      '/ptm', '/ptm/new', '/ptm/:id', '/fixtures', '/fixtures/:id', '/leave', '/leave/apply', '/my-attendance', '/my-attendance/correct',
       '/student-leaves', '/student-leaves/:id', '/messages', '/messages/new', '/messages/:threadId',
       '/calendar', '/events', '/events/:id', '/curriculum', '/library',
       '/early-years', '/safeguarding',
@@ -87,7 +87,7 @@ void main() {
       final classes = ids(ModulePlacement.classes, p, classTeacher: false);
       expect(classes, containsAll(['students', 'homework', 'lesson_plans', 'assessments']));
       final more = ids(ModulePlacement.more, p, classTeacher: false);
-      expect(more, containsAll(['calendar', 'events', 'safeguarding', 'library', 'leave']));
+      expect(more, containsAll(['calendar', 'events', 'safeguarding', 'library', 'leave', 'my_attendance']));
     });
 
     test('custom permissions can hide entries a teacher normally has', () {
