@@ -13,6 +13,8 @@ import '../../../../core/services/auth_api_service.dart';
 import '../../../../core/services/permission_service.dart';
 import '../../../../core/services/post_login_hooks.dart';
 import '../../../../core/services/token_store.dart';
+import '../../../../core/utils/jwt_claims.dart';
+import '../../../../core/utils/roster_scope.dart';
 import '../../../utils/toast_util.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
@@ -101,6 +103,40 @@ class AuthController extends GetxController with WidgetsBindingObserver {
   DateTime? _lastProfileSync;
   bool _refreshing = false;
 
+  // ── class claims of the stored token (multi-section class teachers) ──
+  JwtClaims _claims = JwtClaims.empty;
+
+  /// Keys ([ClassRef.key]) of class-teacher classes of `/staff-portal/me` that the token's claims do not cover (the token predates the
+  /// assignment; the backend would answer 403 on attendance), plus classes the backend refused with that 403. Empty when the token has no
+  /// class claims at all (the backend is unrestricted then) or for a non-class-teacher.
+  final staleClassKeys = <String>{}.obs;
+  final _deniedClassKeys = <String>{};
+
+  /// The class the teacher last chose on the attendance screen (session only, never persisted; cleared on sign-out).
+  final attendanceClassKey = RxnString();
+
+  bool get reauthRequired => staleClassKeys.isNotEmpty;
+  bool isClassStale(ClassRef c) => staleClassKeys.toList().contains(c.key); // toList registers the Obx dependency
+
+  /// The backend answered 403 "class teacher of your own assigned class only" for [c]: treat it exactly like a stale claim.
+  void markClassDenied(ClassRef c) {
+    _deniedClassKeys.add(c.key);
+    staleClassKeys.add(c.key);
+  }
+
+  void _setClaimsFrom(String? token) {
+    _claims = JwtClaims.parse(token);
+    _deniedClassKeys.clear();
+  }
+
+  void _recomputeStale(StaffMe? me) {
+    final missing = {for (final c in _claims.missingFrom(classTeacherClasses(me?.teacherProfile))) c.key};
+    staleClassKeys
+      ..clear()
+      ..addAll(missing)
+      ..addAll(_deniedClassKeys);
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -145,6 +181,7 @@ class AuthController extends GetxController with WidgetsBindingObserver {
       if (status.value == AuthStatus.unknown) status.value = AuthStatus.unauthenticated;
       return;
     }
+    _setClaimsFrom(token);
     final ok = await _restore();
     await minSplash;
     if (status.value == AuthStatus.unknown) {
@@ -236,6 +273,7 @@ class AuthController extends GetxController with WidgetsBindingObserver {
   /// Stores the (already validated) token and resolves the profile.
   Future<void> _completeSignIn(String token, TeacherUser basic, Institution inst) async {
     await _tokens.saveToken(token);
+    _setClaimsFrom(token);
     loginNotice.value = null;
 
     if (!roleAllowed(basic.role)) {
@@ -315,6 +353,7 @@ class AuthController extends GetxController with WidgetsBindingObserver {
       _applyUnsupported(me.user, me.institution);
       return;
     }
+    _recomputeStale(me);
     final current = staffMe.value;
     if (current != null && jsonEncode(current.toJson()) == jsonEncode(me.toJson())) return;
     roleSupported.value = true;
@@ -391,6 +430,10 @@ class AuthController extends GetxController with WidgetsBindingObserver {
     profileError.value = null;
     profileLoading.value = false;
     _lastProfileSync = null;
+    _claims = JwtClaims.empty;
+    _deniedClassKeys.clear();
+    staleClassKeys.clear();
+    attendanceClassKey.value = null;
     _permissions.clear();
   }
 
