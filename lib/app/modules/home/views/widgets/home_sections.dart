@@ -112,7 +112,9 @@ class TimetableStrip extends StatelessWidget {
 class ClassTeacherCard extends StatelessWidget {
   final ClassAttendanceSnapshot snap;
   final VoidCallback onMarkAttendance;
-  const ClassTeacherCard({super.key, required this.snap, required this.onMarkAttendance});
+  /// Key of the button; several cards (a multi-class teacher) need distinct ones.
+  final Key buttonKey;
+  const ClassTeacherCard({super.key, required this.snap, required this.onMarkAttendance, this.buttonKey = const Key('mark_attendance_button')});
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +165,7 @@ class ClassTeacherCard extends StatelessWidget {
       ),
       const SizedBox(height: EmSpacing.s12),
       EmPrimaryButton(
-        key: const Key('mark_attendance_button'),
+        key: buttonKey,
         label: 'Mark Attendance',
         icon: Icons.fact_check_outlined,
         onPressed: onMarkAttendance,
