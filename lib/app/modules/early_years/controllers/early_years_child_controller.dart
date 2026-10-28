@@ -254,6 +254,13 @@ class EarlyYearsChildController extends GetxController {
     }();
   }
 
+  /// A new signed link for [e], ignoring the remembered one (used when the viewer's link expired).
+  Future<String?> freshPhotoUrl(EceEvidence e) {
+    final key = e.key;
+    if (key != null) _photoLinks.remove(key);
+    return photoUrl(e);
+  }
+
   /// Links for the photos of one record, fetched when its sheet opens (signed links are never stored on disk, see [photoUrl]).
   Future<EcePhotoLinks> photoLinks(List<EceEvidence> evidence) async {
     final photos = evidence.where((e) => e.isPhoto).toList();
@@ -261,7 +268,7 @@ class EarlyYearsChildController extends GetxController {
     final items = <DetailAttachment>[];
     for (var i = 0; i < photos.length; i++) {
       final u = urls[i];
-      if (u != null) items.add(DetailAttachment(photos[i].caption.isEmpty ? 'Photo ${i + 1}' : photos[i].caption, u));
+      if (u != null) items.add(DetailAttachment(photos[i].caption.isEmpty ? 'Photo ${i + 1}' : photos[i].caption, u, isImage: true, refreshUrl: () => freshPhotoUrl(photos[i])));
     }
     return EcePhotoLinks(items, photos.length - items.length);
   }

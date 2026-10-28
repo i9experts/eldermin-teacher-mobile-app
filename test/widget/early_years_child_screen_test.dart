@@ -6,6 +6,10 @@ import 'package:eldermin_teacher_app/core/models/early_years/ece_models.dart';
 import 'package:eldermin_teacher_app/core/design/design.dart' show EmLoading;
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
+import 'package:eldermin_teacher_app/app/components/external_link.dart';
+import 'package:eldermin_teacher_app/core/widgets/image_viewer.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show SynchronousFuture;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -230,6 +234,77 @@ void main() {
       expect(find.text('Painting'), findsWidgets);
     });
 
+    group('in-app viewer', () {
+      final png = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+      late List<String> requested;
+      late List<Uri> launched;
+      late bool failImages;
+      late ImageProvider Function(String) oldProvider;
+      late Future<bool> Function(Uri) oldLauncher;
+
+      setUp(() {
+        requested = [];
+        launched = [];
+        failImages = false;
+        oldProvider = ImageViewer.providerFor;
+        oldLauncher = ExternalLinks.launcher;
+        ExternalLinks.launcher = (u) async {
+          launched.add(u);
+          return true;
+        };
+        ImageViewer.providerFor = (u) {
+          requested.add(u);
+          return failImages ? _FailingImage(u) : MemoryImage(png) as ImageProvider;
+        };
+      });
+      tearDown(() {
+        ImageViewer.providerFor = oldProvider;
+        ExternalLinks.launcher = oldLauncher;
+      });
+
+      Future<void> openPhotoSheet(WidgetTester t) async {
+        repo.portfolio = (_) async => [entry('p1', evidence: const [photoEv])];
+        await boot(t);
+        await t.tap(find.text('Portfolio'));
+        await settle(t);
+        await t.tap(find.byKey(const ValueKey('ey_entry_p1')));
+        await t.pump();
+        await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+        await settle(t);
+      }
+
+      const rowKey = ValueKey('detail_attachment_https://signed.example/school/ece-evidence/a.jpg?sig=1');
+
+      testWidgets('tapping a photo opens the in-app viewer with the signed link; no browser, no confirm dialog', (t) async {
+        await openPhotoSheet(t);
+        await t.tap(find.byKey(rowKey));
+        await t.pump();
+        await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await t.pumpAndSettle();
+        expect(find.byKey(const Key('image_viewer')), findsOneWidget);
+        expect(requested, ['https://signed.example/school/ece-evidence/a.jpg?sig=1']);
+        expect(find.bySemanticsLabel('Our painting'), findsOneWidget);
+        expect(find.text('Open this link?'), findsNothing);
+        expect(launched, isEmpty);
+      });
+
+      testWidgets('after the link expires, Try again fetches a fresh signed link (not the remembered one)', (t) async {
+        await openPhotoSheet(t);
+        failImages = true;
+        var n = 0;
+        repo.onSigned = (k) async => 'https://signed.example/$k?sig=${++n + 1}';
+        await t.tap(find.byKey(rowKey));
+        await t.pumpAndSettle();
+        expect(find.byKey(const Key('image_viewer_error')), findsOneWidget);
+        expect(repo.calls.where((x) => x.startsWith('signed:')).length, 1);
+        await t.tap(find.text('Try again'));
+        await t.pumpAndSettle();
+        expect(repo.calls.where((x) => x.startsWith('signed:')).length, 2);
+        expect(requested.last, 'https://signed.example/school/ece-evidence/a.jpg?sig=2');
+        expect(launched, isEmpty);
+      });
+    });
+
     testWidgets('video and voice evidence are only counted, never played or fetched', (t) async {
       repo.portfolio = (_) async => [
             entry('p1', evidence: const [
@@ -286,4 +361,17 @@ void main() {
 Future<void> settle(WidgetTester t) async {
   await t.pump();
   await t.pump(const Duration(milliseconds: 300));
+}
+
+class _FailingImage extends ImageProvider<_FailingImage> {
+  _FailingImage(this.url);
+  final String url;
+  @override
+  Future<_FailingImage> obtainKey(ImageConfiguration c) => SynchronousFuture(this);
+  @override
+  ImageStreamCompleter loadImage(_FailingImage key, ImageDecoderCallback decode) => OneFrameImageStreamCompleter(Future<ImageInfo>.error(Exception('expired')));
+  @override
+  bool operator ==(Object o) => o is _FailingImage && o.url == url;
+  @override
+  int get hashCode => url.hashCode;
 }
