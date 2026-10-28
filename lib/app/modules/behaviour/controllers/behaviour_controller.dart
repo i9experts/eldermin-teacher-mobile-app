@@ -12,10 +12,11 @@ enum BehaviourScope { mine, classes }
 
 /// Behaviour & Tarbiyah home (`/behaviour`): the behaviour records of MY classes' students and the ones I logged.
 ///
-/// Source: `GET /behaviour/records?grade=<raw grade>` per distinct raw grade string of my classes (the route filters by an EXACT grade
-/// string only; no section / reporter / class filter, behaviour.service.ts:170-207), then re-scoped client-side with the tolerant class
-/// matcher so records of other classes (returned by the server) are NEVER shown. "My entries" = [BehaviourRecord.isMine]
-/// (`reportedById` when present, else the `reportedBy` name): there is no server-side "mine" filter.
+/// Source: `GET /behaviour/records?grade=<raw grade>&page=n&limit=50` per distinct raw grade string of my classes (the route filters by
+/// an EXACT grade string; since backend B1 it also pages and filters server-side: type, severity, resolved, from, to, search), then
+/// re-scoped client-side with the shared class matcher ([ClassRef.containsRecord]: a record WITHOUT a section matches by class only) so
+/// records of other classes are NEVER shown. "My entries" = [BehaviourRecord.isMine] (`reportedById` when present, else the
+/// `reportedBy` name). Paging is explicit: [hasMore] / [loadMore], nothing is silently dropped.
 class BehaviourController extends GetxController {
   final BehaviourRepository? _repo;
   final StudentsRepository? _students;
@@ -41,6 +42,16 @@ class BehaviourController extends GetxController {
   final query = ''.obs;
   int _token = 0;
 
+  /// Server-side filters (type, severity, resolved, date range, search). Changing them reloads from page 1.
+  final filters = Rx<RecordFilters>(RecordFilters.none);
+
+  /// One page = this many records per raw grade string.
+  static const int pageLimit = 50;
+  final _nextPage = <String, int>{}; // raw grade -> next page to fetch (absent = no more)
+  final hasMore = false.obs;
+  final loadingMore = false.obs;
+  final loadMoreError = RxnString();
+
   bool get canView {
     auth.staffMe.value;
     return perms.canAccess('behaviour:view');
@@ -65,13 +76,29 @@ class BehaviourController extends GetxController {
   List<BehaviourRecord> get visible {
     final cs = classes;
     final q = query.value.trim().toLowerCase();
+    final f = filters.value;
     return [
       for (final r in all)
         if ((scope.value == BehaviourScope.classes || r.isMine(userId: myId, userName: myName)) &&
             (classFilter.value < 0 || classFilter.value >= cs.length || cs[classFilter.value].containsRecord(r)) &&
+            f.accepts(r) &&
             (q.isEmpty || r.studentName.toLowerCase().contains(q) || r.title.toLowerCase().contains(q)))
           r
     ];
+  }
+
+  /// Replaces filters (and reloads from page 1).
+  Future<void> setFilters(RecordFilters f) async {
+    filters.value = f;
+    await load(force: true);
+  }
+
+  /// "Search" pressed on the keyboard: the text goes to the server too, so older pages are searched, not just the loaded ones.
+  Future<void> submitSearch(String text) async {
+    query.value = text;
+    if (filters.value.search == text.trim()) return;
+    filters.value = filters.value.copyWith(search: text.trim());
+    await load(force: true);
   }
 
   int countMine() => all.where((r) => r.isMine(userId: myId, userName: myName)).length;
@@ -106,20 +133,70 @@ class BehaviourController extends GetxController {
         known = null; // optional: the class's own strings are used
       }
       final grades = <String>{for (final c in cs) ...queryVariants(c, known).grades};
-      final seen = <String>{};
+      _nextPage.clear();
       final out = <BehaviourRecord>[];
       for (final g in grades) {
-        for (final r in await repo.fetchGradeRecords(g)) {
-          if (r.id.isNotEmpty && cs.any((c) => c.containsRecord(r)) && seen.add(r.id)) out.add(r);
-        }
+        final page = await repo.fetchRecordsPage(grade: g, filters: filters.value, page: 1, limit: pageLimit);
+        if (page.pages > 1) _nextPage[g] = 2;
+        _merge(out, page.records, cs);
       }
       if (token != _token) return;
-      out.sort((a, b) => (b.day ?? DateTime(0)).compareTo(a.day ?? DateTime(0)));
-      state.value = out.isEmpty ? const SectionState.empty() : SectionState.data(out);
+      _sort(out);
+      hasMore.value = _nextPage.isNotEmpty;
+      loadMoreError.value = null;
+      // With a filter on, an empty answer is "nothing matches" (the controls must stay so it can be cleared), not "no behaviour yet".
+      final filtered = filters.value.isActive || filters.value.search.isNotEmpty;
+      state.value = out.isEmpty && !filtered ? const SectionState.empty() : SectionState.data(out);
     } catch (e) {
       if (token != _token) return;
       state.value = SectionState<List<BehaviourRecord>>.fromError(e, previous: state.value);
     }
+  }
+
+  /// The next page of every grade that has one. A failure keeps what is shown and offers "Try again" ([loadMoreError]).
+  Future<void> loadMore() async {
+    if (loadingMore.value || _nextPage.isEmpty || !state.value.hasData) return;
+    final token = _token;
+    loadingMore.value = true;
+    loadMoreError.value = null;
+    try {
+      final cs = classes;
+      final out = [...all];
+      for (final g in _nextPage.keys.toList()) {
+        final n = _nextPage[g]!;
+        final page = await repo.fetchRecordsPage(grade: g, filters: filters.value, page: n, limit: pageLimit);
+        if (token != _token) return;
+        if (n >= page.pages) {
+          _nextPage.remove(g);
+        } else {
+          _nextPage[g] = n + 1;
+        }
+        _merge(out, page.records, cs);
+      }
+      _sort(out);
+      hasMore.value = _nextPage.isNotEmpty;
+      state.value = SectionState.data(out);
+    } catch (e) {
+      if (token != _token) return;
+      loadMoreError.value = 'Couldn\'t load more. Check your connection and try again.';
+    } finally {
+      loadingMore.value = false;
+    }
+  }
+
+  void _merge(List<BehaviourRecord> out, List<BehaviourRecord> incoming, List<ClassRef> cs) {
+    final seen = {for (final r in out) r.id};
+    for (final r in incoming) {
+      if (r.id.isNotEmpty && cs.any((c) => c.containsRecord(r)) && seen.add(r.id)) out.add(r);
+    }
+  }
+
+  void _sort(List<BehaviourRecord> out) => out.sort((a, b) => (b.day ?? DateTime(0)).compareTo(a.day ?? DateTime(0)));
+
+  /// An edited / resolved record replaces its old version in the list.
+  void replaceRecord(BehaviourRecord r) {
+    if (!all.any((x) => x.id == r.id)) return;
+    state.value = SectionState.data([for (final x in all) x.id == r.id ? r : x]);
   }
 
   Future<void> reload() async {

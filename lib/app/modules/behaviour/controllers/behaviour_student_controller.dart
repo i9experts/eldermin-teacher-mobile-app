@@ -43,6 +43,19 @@ class BehaviourStudentController extends GetxController {
   final tarbiyah = Rx<SectionState<List<TarbiyahAssessment>>>(const SectionState.loading());
   int _token = 0;
 
+  /// Records are paged (50 per page, newest first): nothing is silently cut off.
+  static const int recordsPageSize = 50;
+  int _recordsPage = 1;
+  final recordsHasMore = false.obs;
+  final loadingMoreRecords = false.obs;
+  final recordsLoadMoreError = RxnString();
+
+  /// All-time signed points of the student from `GET /behaviour/students/:id/profile` (`pointsTotal`), null until / unless it loads.
+  final pointsFromServer = Rxn<int>();
+
+  /// The school's character programme (name + trait labels); the built-in Tarbiyah names until / unless it loads.
+  final settings = Rx<CharacterSettings>(CharacterSettings.fallback);
+
   bool get canView {
     auth.staffMe.value;
     return perms.canAccess('behaviour:view');
@@ -58,8 +71,9 @@ class BehaviourStudentController extends GetxController {
   String get myId => auth.user.value?.id ?? '';
   String get myName => auth.user.value?.name ?? '';
 
-  /// Behaviour points of the loaded records (+ merit / - demerit).
-  int get totalPoints => (records.value.data ?? const <BehaviourRecord>[]).fold(0, (a, r) => a + r.points);
+  /// Behaviour points: the server's total for the student when known (it counts every record, not only the loaded pages), else the
+  /// sum of the loaded records (+ merit / - demerit).
+  int get totalPoints => pointsFromServer.value ?? (records.value.data ?? const <BehaviourRecord>[]).fold(0, (a, r) => a + r.points);
 
   @override
   void onReady() {
@@ -89,13 +103,29 @@ class BehaviourStudentController extends GetxController {
       student.value = SectionState<StudentSummary>.fromError(e, previous: student.value);
       return;
     }
-    await Future.wait([_loadRecords(token), _loadTarbiyah(token)]);
+    await Future.wait([_loadRecords(token), _loadTarbiyah(token), _loadPoints(token), _loadSettings(token)]);
+  }
+
+  /// Best effort: the header falls back to the loaded records' sum. A 403 / old server leaves it null.
+  Future<void> _loadPoints(int token) async {
+    try {
+      final p = await repo.fetchPointsTotal(studentId);
+      if (token == _token) pointsFromServer.value = p;
+    } catch (_) {}
+  }
+
+  /// Best effort: trait labels / programme name; the built-in names are the fallback.
+  Future<void> _loadSettings(int token) async {
+    try {
+      final st = await repo.fetchCharacterSettings();
+      if (token == _token) settings.value = st;
+    } catch (_) {}
   }
 
   Future<StudentSummary?> _resolveStudent() async {
     final cs = classes;
     final i = initial;
-    if (i != null && i.id == studentId) return inAnyClass(i, cs) ? i : null;
+    if (i != null && i.id == studentId) return inAnyClass(i, cs, includeUnsectioned: true) ? i : null;
     GradesSections? known;
     var triedKnown = false;
     for (final c in cs) {
@@ -105,7 +135,7 @@ class BehaviourStudentController extends GetxController {
           known = await students.fetchGradesSections();
         } catch (_) {}
       }
-      final roster = await students.fetchClassRoster(c, known: known);
+      final roster = await students.fetchClassRoster(c, known: known, includeUnsectioned: true);
       for (final s in roster) {
         if (s.id == studentId) return s;
       }
@@ -115,8 +145,12 @@ class BehaviourStudentController extends GetxController {
 
   Future<void> _loadRecords(int token) async {
     try {
-      final list = await repo.fetchStudentRecords(studentId);
+      _recordsPage = 1;
+      final page = await repo.fetchRecordsPage(studentId: studentId, page: 1, limit: recordsPageSize);
       if (token != _token) return;
+      final list = page.records.where((r) => r.studentId == studentId).toList();
+      recordsHasMore.value = page.pages > 1;
+      recordsLoadMoreError.value = null;
       records.value = list.isEmpty ? const SectionState.empty() : SectionState.data(list);
     } catch (e) {
       if (token != _token) return;
@@ -133,6 +167,34 @@ class BehaviourStudentController extends GetxController {
       if (token != _token) return;
       tarbiyah.value = SectionState<List<TarbiyahAssessment>>.fromError(e, previous: tarbiyah.value);
     }
+  }
+
+  Future<void> loadMoreRecords() async {
+    if (loadingMoreRecords.value || !recordsHasMore.value || !records.value.hasData) return;
+    final token = _token;
+    loadingMoreRecords.value = true;
+    recordsLoadMoreError.value = null;
+    try {
+      final next = _recordsPage + 1;
+      final page = await repo.fetchRecordsPage(studentId: studentId, page: next, limit: recordsPageSize);
+      if (token != _token) return;
+      _recordsPage = next;
+      final have = {for (final r in records.value.data!) r.id};
+      final more = page.records.where((r) => r.studentId == studentId && have.add(r.id));
+      recordsHasMore.value = next < page.pages;
+      records.value = SectionState.data([...records.value.data!, ...more]);
+    } catch (_) {
+      if (token == _token) recordsLoadMoreError.value = "Couldn't load more. Check your connection and try again.";
+    } finally {
+      loadingMoreRecords.value = false;
+    }
+  }
+
+  /// An edited / resolved record replaces its old version.
+  void replaceRecord(BehaviourRecord r) {
+    final cur = records.value.data;
+    if (cur == null || !cur.any((x) => x.id == r.id)) return;
+    records.value = SectionState.data([for (final x in cur) x.id == r.id ? r : x]);
   }
 
   Future<void> reload() => load();

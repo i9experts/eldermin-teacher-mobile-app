@@ -14,7 +14,8 @@ import '../controllers/behaviour_log_controller.dart';
 import 'widgets/behaviour_widgets.dart';
 import '../../../../core/design/design.dart';
 
-/// Quick log (`/behaviour/new`): merit / demerit / note for a student of MY classes.
+/// Quick log (`/behaviour/new`): merit / demerit / note for a student of MY classes. With a record in the route arguments it EDITS that
+/// record (student fixed, same fields).
 class BehaviourNewScreen extends GetView<BehaviourLogController> {
   const BehaviourNewScreen({super.key});
 
@@ -37,7 +38,7 @@ class BehaviourNewScreen extends GetView<BehaviourLogController> {
         Get.back();
       },
       child: EmScaffold(
-        appBar: EmAppBar(title: 'Log behaviour'),
+        appBar: EmAppBar(title: c.isEditing ? 'Edit entry' : 'Log behaviour'),
         body: Obx(() {
           if (!c.canLog) {
             return const AppEmptyView(key: Key('beh_no_access'), icon: Icons.lock_outline_rounded, title: "You don't have access", subtitle: "Your account isn't allowed to log behaviour. Ask your school admin if you think this is a mistake.");
@@ -60,6 +61,10 @@ class BehaviourNewScreen extends GetView<BehaviourLogController> {
     final day = c.day.value;
     final sev = c.severity.value;
     final mag = c.magnitude.value;
+    // read here so the form rebuilds when they change (the Obx in build() wraps this method)
+    c.consequence.value;
+    c.followUpRequired.value;
+    c.parentNotified.value;
     return ListView(
       padding: EmSpacing.listPadding,
       children: [
@@ -71,7 +76,17 @@ class BehaviourNewScreen extends GetView<BehaviourLogController> {
         ),
         const SizedBox(height: EmSpacing.block),
         FormLabel('Student *', error: errors['student']),
-        KeyedSubtree(
+        if (c.isEditing)
+          EmSelectField(
+            key: const Key('beh_student_fixed'),
+            leading: student == null ? null : StudentAvatar(student: student, size: 36),
+            title: student?.fullName,
+            subtitle: student == null ? null : [if (student.grade.isNotEmpty) '${student.grade}${student.section.isEmpty ? '' : ' - ${student.section}'}'].join(' · '),
+            trailingIcon: null,
+            onTap: null,
+          )
+        else
+          KeyedSubtree(
           key: const Key('beh_student_picker'),
           child: EmSelectField(
             leading: student == null ? const ExcludeSemantics(child: Icon(Icons.person_search_rounded, color: EmColors.primary)) : StudentAvatar(student: student, size: 36),
@@ -99,7 +114,7 @@ class BehaviourNewScreen extends GetView<BehaviourLogController> {
         if (kind != BehaviourKind.note) ...[
           FormLabel(kind == BehaviourKind.merit ? 'Merit points' : 'Demerit points'),
           Wrap(spacing: EmSpacing.s8, children: [
-            for (final m in BehaviourLogController.pointChoices) EmChip(key: Key('pts_$m'), label: kind == BehaviourKind.merit ? '+$m' : '-$m', selected: mag == m, onTap: () => c.setMagnitude(m)),
+            for (final m in c.magnitudeChoices) EmChip(key: Key('pts_$m'), label: kind == BehaviourKind.merit ? '+$m' : '-$m', selected: mag == m, onTap: () => c.setMagnitude(m)),
           ]),
           const SizedBox(height: EmSpacing.block),
         ],
@@ -118,6 +133,33 @@ class BehaviourNewScreen extends GetView<BehaviourLogController> {
           ),
         ),
         const SizedBox(height: EmSpacing.block),
+        // the same optional fields as the web teacher form (Eldermin-Frontend pages/behaviour/index.tsx:623-646)
+        const FormLabel('Consequence'),
+        Wrap(spacing: EmSpacing.s8, runSpacing: EmSpacing.s8, children: [
+          for (final k in kConsequences) EmChip(key: Key('cons_$k'), label: consequenceLabel(k), selected: c.consequence.value == k, onTap: () => c.setConsequence(k)),
+          // a stored value outside the web list (e.g. set by an admin) stays selectable / visible
+          if (c.consequence.value.isNotEmpty && !kConsequences.contains(c.consequence.value))
+            EmChip(key: Key('cons_${c.consequence.value}'), label: consequenceLabel(c.consequence.value), selected: true, onTap: () => c.setConsequence(c.consequence.value)),
+        ]),
+        const SizedBox(height: EmSpacing.s8),
+        LabeledField(label: 'Location', controller: c.locationC, fieldKey: const Key('beh_location'), hint: 'e.g. Classroom, Playground, Corridor'),
+        SwitchListTile(
+          key: const Key('beh_follow_up'),
+          contentPadding: EdgeInsets.zero,
+          title: Text('Follow-up required', style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: EmColors.ink)),
+          value: c.followUpRequired.value,
+          onChanged: c.setFollowUp,
+        ),
+        if (!c.isEditing)
+          SwitchListTile(
+            key: const Key('beh_parent_notified'),
+            contentPadding: EdgeInsets.zero,
+            title: Text('Notify parents', style: EmType.label.copyWith(fontWeight: FontWeight.w700, color: EmColors.ink)),
+            subtitle: Text('Sends them a notification when you save.', style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
+            value: c.parentNotified.value,
+            onChanged: c.setParentNotified,
+          ),
+        const SizedBox(height: EmSpacing.block),
         const ParentVisibleNote(text: "Parents can see this entry in their app as soon as you save it. Keep it factual and respectful. For safeguarding concerns use \"Raise a concern\" in More."),
       ],
     );
@@ -133,7 +175,7 @@ class BehaviourNewScreen extends GetView<BehaviourLogController> {
           child: Obx(() => EmPrimaryButton(
                 key: const Key('beh_submit'),
                 loading: c.saving.value,
-                label: 'Save ${c.kind.value.label.toLowerCase()}',
+                label: c.isEditing ? 'Save changes' : 'Save ${c.kind.value.label.toLowerCase()}',
                 onPressed: c.saving.value ? null : () => _submit(context),
               )),
         ),
@@ -146,7 +188,7 @@ class BehaviourNewScreen extends GetView<BehaviourLogController> {
     if (!context.mounted) return;
     switch (r) {
       case LogSaved():
-        ToastUtil.showToast('${c.kind.value.label} saved');
+        ToastUtil.showToast(c.isEditing ? 'Entry updated' : '${c.kind.value.label} saved');
         Get.back();
       case LogInvalid():
         _snack(context, r.errors.values.first);

@@ -37,9 +37,13 @@ class FakeStudentsRepository extends StudentsRepository {
     return grades();
   }
 
+  /// The `includeUnsectioned` flag of every roster request (to assert who asks for the lenient rule).
+  final rosterIncludeUnsectioned = <bool>[];
+
   @override
-  Future<List<StudentSummary>> fetchClassRoster(ClassRef cls, {GradesSections? known}) {
+  Future<List<StudentSummary>> fetchClassRoster(ClassRef cls, {GradesSections? known, bool includeUnsectioned = false}) async {
     calls.add('roster:${cls.label}');
+    rosterIncludeUnsectioned.add(includeUnsectioned);
     return roster(cls);
   }
 

@@ -86,7 +86,10 @@ class ParentVisibleNote extends StatelessWidget {
 
 class TarbiyahCard extends StatelessWidget {
   final TarbiyahAssessment a;
-  const TarbiyahCard({super.key, required this.a});
+
+  /// The school's programme: trait labels come from it (built-in Tarbiyah names, then the raw key, as the fallback).
+  final CharacterSettings settings;
+  const TarbiyahCard({super.key, required this.a, this.settings = CharacterSettings.fallback});
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +114,7 @@ class TarbiyahCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: EmSpacing.s4),
               child: Row(children: [
-                Expanded(child: Text(t.label, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400))),
+                Expanded(child: Text(settings.labelFor(t.key), style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400))),
                 Text(markText(t.score), style: EmType.valueSmall.copyWith(color: EmColors.ink)),
               ]),
             ),

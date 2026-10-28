@@ -59,21 +59,30 @@ class Attendance360 {
   }
 }
 
-/// `behaviour.recent[]` (Behaviour schema student-supporting.schema.ts:100-146).
+/// `behaviour.recent[]`. Since backend B1 it is a UNION of `behaviour_records` (the Behaviour module / parent app store) and the legacy
+/// `student_behaviour` (student-supporting.schema.ts:100-146), newest first, each item tagged `source` = 'records' | 'legacy'.
+/// An older server sends only legacy items without a source / id.
 class BehaviourItem {
+  final String id;
+  /// 'records' | 'legacy' | '' (older server)
+  final String source;
   final DateTime? date;
   /// positive | negative | neutral
   final String type;
   final String category;
+  final String title;
   final String description;
   /// low | medium | high | critical
   final String severity;
   final bool resolved;
   final int points;
   const BehaviourItem({
+    this.id = '',
+    this.source = '',
     this.date,
     this.type = 'neutral',
     this.category = '',
+    this.title = '',
     this.description = '',
     this.severity = '',
     this.resolved = false,
@@ -81,9 +90,12 @@ class BehaviourItem {
   });
 
   factory BehaviourItem.fromJson(Map<String, dynamic> j) => BehaviourItem(
+        id: readId(j['_id'] ?? j['id']) ?? '',
+        source: readText(j['source']),
         date: readDate(j['date']),
         type: readString(j['type']) ?? 'neutral',
         category: readText(j['category']),
+        title: readText(j['title']),
         description: readText(j['description']),
         severity: readText(j['severity']),
         resolved: readBool(j['resolved']),
@@ -91,10 +103,14 @@ class BehaviourItem {
       );
 
   String get categoryLabel => category.replaceAll('_', ' ');
+
+  /// The full record can be fetched (and edited / resolved) only for items of the Behaviour module's own store.
+  bool get isRecord => source == 'records' && id.isNotEmpty;
 }
 
 class Behaviour360 {
-  /// positive points - negative points (students.service.ts:1556-1557).
+  /// Merits (+|points|) minus demerits (|points|) over both stores of the current academic year (backend B1, student-360-behaviour.util.ts;
+  /// before B1: positive points - negative points of the legacy store only).
   final int totalPoints;
   final List<BehaviourItem> recent;
   const Behaviour360({this.totalPoints = 0, this.recent = const []});

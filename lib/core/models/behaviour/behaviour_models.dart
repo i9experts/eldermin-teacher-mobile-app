@@ -7,8 +7,9 @@ import '../json_helpers.dart';
 /// owner decision). Paths relative to eldermin-backend/src/behaviour/ (branch feat/staff-portal):
 ///  * BehaviourRecord: schemas/behaviour.schema.ts:14-106   * TarbiyahAssessment: schemas/behaviour.schema.ts:147-190
 ///  * enums: BSC:30-33 (type), :36-50 (category), :60-63 (severity)
-/// Never parsed (present in the payload, not needed by a teacher screen): witnesses, location, actionTaken, consequence,
-/// follow-up details, parent communication fields (parentNotifiedBy, parentResponse), verifiedBy, attachments, campusId.
+/// Parsed since T1 (everything a teacher may see in the detail sheet): location, consequence, actionTaken, witnesses, follow-up
+/// (required / date / note), resolved date + note, parentNotified (+ date / by), parentResponse, verification, attachments.
+/// Never parsed: campusId, schoolSlug.
 
 /// "Merit / demerit / note" = `type` positive / negative / neutral.
 enum BehaviourKind {
@@ -81,6 +82,30 @@ String categoryLabel(String wire) =>
 /// severity enum (behaviour.schema.ts:60-63).
 const List<String> kSeverities = ['low', 'medium', 'high', 'critical'];
 
+/// The consequences the WEB teacher form offers (Eldermin-Frontend pages/behaviour/index.tsx:623-626), a subset of the schema enum
+/// (behaviour.schema.ts:71-78). A stored value outside this list is still shown (see [consequenceLabel]).
+const List<String> kConsequences = [
+  'no_action', 'verbal_warning', 'written_warning', 'parent_notification', 'counselling', 'detention', 'suspension', 'commendation',
+];
+
+const Map<String, String> kConsequenceLabels = {
+  'no_action': 'No action',
+  'verbal_warning': 'Verbal warning',
+  'written_warning': 'Written warning',
+  'parent_notification': 'Parent notification',
+  'counselling': 'Counselling',
+  'detention': 'Detention',
+  'suspension': 'Suspension',
+  'commendation': 'Commendation',
+  'community_service': 'Community service',
+  'behaviour_contract': 'Behaviour contract',
+  'merit_award': 'Merit award',
+};
+
+String consequenceLabel(String wire) => kConsequenceLabels[wire] ?? (wire.isEmpty ? '' : wire[0].toUpperCase() + wire.substring(1).replaceAll('_', ' '));
+
+String severityLabel(String s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1);
+
 class BehaviourRecord {
   final String id;
   final String studentId;
@@ -96,8 +121,23 @@ class BehaviourRecord {
   final int points;
   final bool resolved;
   final String resolvedNote;
+  final DateTime? resolvedDate;
   final String reportedBy;
   final String reportedById;
+  final String location;
+  final String consequence;
+  final String actionTaken;
+  final List<String> witnesses;
+  final bool followUpRequired;
+  final DateTime? followUpDate;
+  final String followUpNote;
+  final bool parentNotified;
+  final DateTime? parentNotifiedDate;
+  final String parentNotifiedBy;
+  final String parentResponse;
+  final bool verified;
+  final String verifiedBy;
+  final List<String> attachments;
 
   const BehaviourRecord({
     required this.id,
@@ -114,8 +154,23 @@ class BehaviourRecord {
     this.points = 0,
     this.resolved = false,
     this.resolvedNote = '',
+    this.resolvedDate,
     this.reportedBy = '',
     this.reportedById = '',
+    this.location = '',
+    this.consequence = '',
+    this.actionTaken = '',
+    this.witnesses = const [],
+    this.followUpRequired = false,
+    this.followUpDate,
+    this.followUpNote = '',
+    this.parentNotified = false,
+    this.parentNotifiedDate,
+    this.parentNotifiedBy = '',
+    this.parentResponse = '',
+    this.verified = false,
+    this.verifiedBy = '',
+    this.attachments = const [],
   });
 
   factory BehaviourRecord.fromJson(Map<String, dynamic> j) => BehaviourRecord(
@@ -133,8 +188,35 @@ class BehaviourRecord {
         points: readNum(j['points'])?.round() ?? 0,
         resolved: readBool(j['resolved']),
         resolvedNote: readText(j['resolvedNote']),
+        resolvedDate: readDate(j['resolvedDate']),
         reportedBy: readText(j['reportedBy']),
         reportedById: readId(j['reportedById']) ?? '',
+        location: readText(j['location']),
+        consequence: readText(j['consequence']),
+        actionTaken: readText(j['actionTaken']),
+        witnesses: readStringList(j['witnesses']),
+        followUpRequired: readBool(j['followUpRequired']),
+        followUpDate: readDate(j['followUpDate']),
+        followUpNote: readText(j['followUpNote']),
+        parentNotified: readBool(j['parentNotified']),
+        parentNotifiedDate: readDate(j['parentNotifiedDate']),
+        parentNotifiedBy: readText(j['parentNotifiedBy']),
+        parentResponse: readText(j['parentResponse']),
+        verified: readBool(j['verified']),
+        verifiedBy: readText(j['verifiedBy']),
+        attachments: readStringList(j['attachments']),
+      );
+
+  /// A copy with the fields an edit / resolve changes (the server answers `PUT` / `PATCH resolve` with the whole document, which
+  /// is normally parsed instead; this is for optimistic UI and tests).
+  BehaviourRecord copyWith({bool? resolved, String? resolvedNote}) => BehaviourRecord(
+        id: id, studentId: studentId, studentName: studentName, grade: grade, section: section, date: date, typeWire: typeWire,
+        category: category, title: title, description: description, severity: severity, points: points,
+        resolved: resolved ?? this.resolved, resolvedNote: resolvedNote ?? this.resolvedNote, resolvedDate: resolvedDate,
+        reportedBy: reportedBy, reportedById: reportedById, location: location, consequence: consequence, actionTaken: actionTaken,
+        witnesses: witnesses, followUpRequired: followUpRequired, followUpDate: followUpDate, followUpNote: followUpNote,
+        parentNotified: parentNotified, parentNotifiedDate: parentNotifiedDate, parentNotifiedBy: parentNotifiedBy,
+        parentResponse: parentResponse, verified: verified, verifiedBy: verifiedBy, attachments: attachments,
       );
 
   BehaviourKind? get kind => BehaviourKind.fromWire(typeWire);
@@ -155,8 +237,9 @@ class BehaviourRecord {
 }
 
 extension ClassRefBehaviour on ClassRef {
-  /// Tolerant class match of a record's own grade/section strings (same rules as for students).
-  bool containsRecord(BehaviourRecord r) => sameGrade(r.grade, grade) && (section.isEmpty || sameSection(r.section, section));
+  /// Tolerant class match of a record's own grade/section strings via the ONE shared rule ([ClassRef.coversGradeSection] ->
+  /// [sectionCovered]): a record without a section matches by class only, exactly like the backend (behaviour-teacher-scope.ts).
+  bool containsRecord(BehaviourRecord r) => coversGradeSection(r.grade, r.section);
 }
 
 /// `{ data, meta:{ total, page, limit, pages } }` (behaviour.service.ts:170-207). `page`/`limit` are echoed as the raw query STRINGS
@@ -177,7 +260,70 @@ class BehaviourPage {
   }
 }
 
-/// What the quick-log form produces; [toJson] is the exact `POST /behaviour/records` body.
+/// Server-side filters of `GET /behaviour/records` (behaviour.service.ts getRecords: type, severity, resolved, from, to, search, mine).
+/// Empty = no filter. `from` / `to` are calendar days (sent as `YYYY-MM-DD`; `to` is inclusive of that whole day).
+class RecordFilters {
+  final String? type; // positive | negative | neutral
+  final String? severity;
+  final bool? resolved; // true = resolved only, false = open only
+  final DateTime? from;
+  final DateTime? to;
+  final String search;
+  const RecordFilters({this.type, this.severity, this.resolved, this.from, this.to, this.search = ''});
+
+  static const none = RecordFilters();
+
+  bool get isActive => type != null || severity != null || resolved != null || from != null || to != null;
+
+  /// How many filter dimensions are set (the search box does not count: it has its own field).
+  int get count => [type, severity, resolved, from, to].where((e) => e != null).length;
+
+  RecordFilters copyWith({
+    Object? type = _keep,
+    Object? severity = _keep,
+    Object? resolved = _keep,
+    Object? from = _keep,
+    Object? to = _keep,
+    String? search,
+  }) =>
+      RecordFilters(
+        type: identical(type, _keep) ? this.type : type as String?,
+        severity: identical(severity, _keep) ? this.severity : severity as String?,
+        resolved: identical(resolved, _keep) ? this.resolved : resolved as bool?,
+        from: identical(from, _keep) ? this.from : from as DateTime?,
+        to: identical(to, _keep) ? this.to : to as DateTime?,
+        search: search ?? this.search,
+      );
+
+  /// Query parameters for the list route. `to` is sent as the END of that day so a record logged on it is included
+  /// (the server compares `date <= to` on the stored instant).
+  Map<String, Object> toQuery() => {
+        if (type != null) 'type': type!,
+        if (severity != null) 'severity': severity!,
+        if (resolved != null) 'resolved': resolved! ? 'true' : 'false',
+        if (from != null) 'from': wireDay(from!),
+        if (to != null) 'to': '${wireDay(to!)}T23:59:59.999Z',
+        if (search.trim().isNotEmpty) 'search': search.trim(),
+      };
+
+  /// Does [r] pass the same filters? (client-side re-check of what the server already filtered, and the only filter on a server
+  /// that ignores a parameter.) Search matches student name, title and description like the server.
+  bool accepts(BehaviourRecord r) {
+    if (type != null && r.typeWire != type) return false;
+    if (severity != null && r.severity != severity) return false;
+    if (resolved != null && r.resolved != resolved) return false;
+    final d = r.day;
+    if (from != null && (d == null || d.isBefore(DateTime(from!.year, from!.month, from!.day)))) return false;
+    if (to != null && (d == null || d.isAfter(DateTime(to!.year, to!.month, to!.day)))) return false;
+    final q = search.trim().toLowerCase();
+    if (q.isNotEmpty && !(r.studentName.toLowerCase().contains(q) || r.title.toLowerCase().contains(q) || r.description.toLowerCase().contains(q))) return false;
+    return true;
+  }
+}
+
+const Object _keep = Object();
+
+/// What the log / edit form produces. [toJson] is the exact `POST /behaviour/records` body, [toUpdateJson] the `PUT` body.
 class BehaviourDraft {
   final StudentSummary student;
   final BehaviourKind kind;
@@ -189,6 +335,11 @@ class BehaviourDraft {
   final DateTime day;
   final String reporterName;
   final String reporterId;
+  // Same fields as the web teacher form (Eldermin-Frontend pages/behaviour/index.tsx:576-581,623-646).
+  final String consequence; // '' = not set (the web sends undefined)
+  final String location;
+  final bool parentNotified;
+  final bool followUpRequired;
 
   const BehaviourDraft({
     required this.student,
@@ -201,17 +352,22 @@ class BehaviourDraft {
     required this.day,
     required this.reporterName,
     required this.reporterId,
+    this.consequence = '',
+    this.location = '',
+    this.parentNotified = false,
+    this.followUpRequired = false,
   });
 
   /// Required by the mongoose schema (any failure there is a bare 500, behaviour.service.ts:159-168): studentId, studentName, grade,
   /// date, type, category, title, description, reportedBy, academicYear (+ schoolSlug, added from the token). Notes:
   ///  * studentName/grade/section/rollNumber are the STUDENT'S OWN stored values (as the web does, index.tsx:568-573).
   ///  * `date` is `YYYY-MM-DD` (as the web); read back as the UTC components.
-  ///  * `reportedBy` = my name and `reportedById` = my user id: the server only defaults the name (to the JWT name, else 'Admin') and
-  ///    never sets the id; the id lets the app find "my entries" later.
+  ///  * `reportedBy` = my name and `reportedById` = my user id: the server only defaults the name (to the JWT name, else 'Admin'); the
+  ///    id lets the app find "my entries" later (a teacher token's id is also forced server-side since B0).
   ///  * `academicYear` = the student's own `currentAcademicYear` when known, else omitted (server default: header / '2025-26').
-  ///  * `parentNotified` / `followUpRequired` are sent false: the app does not notify anyone and has no follow-up flow. The parent app
-  ///    shows EVERY record of the student regardless (parent-portal.service.ts:390-396), so the entry is visible to guardians at once.
+  ///  * `parentNotified: true` makes the server write an in-app notification for the guardians when the record is CREATED
+  ///    (behaviour.service.ts:170-176). The parent app shows EVERY record of the student regardless of this flag.
+  ///  * `consequence` / `location` are sent only when set (the web does the same).
   ///  * `points`: + for merit, - for demerit, 0 for a note (behaviour.schema.ts:67).
   Map<String, Object?> toJson() => {
         'studentId': student.id,
@@ -226,12 +382,71 @@ class BehaviourDraft {
         'description': description.trim(),
         'severity': severity,
         'points': points,
-        'parentNotified': false,
-        'followUpRequired': false,
+        if (consequence.isNotEmpty) 'consequence': consequence,
+        if (location.trim().isNotEmpty) 'location': location.trim(),
+        'parentNotified': parentNotified,
+        'followUpRequired': followUpRequired,
         'reportedBy': reporterName,
         'reportedById': reporterId,
         if ((student.academicYear ?? '').isNotEmpty) 'academicYear': student.academicYear,
       };
+
+  /// `PUT /behaviour/records/:id` body (behaviour.controller.ts:68-78): ONLY what the form edits. Never the student, the reporter,
+  /// `parentNotified` (the server notifies parents on create only) or any tenancy field (the server strips those for a teacher anyway,
+  /// B0). `consequence` / `location` are sent even when cleared ('') so an edit can remove them.
+  Map<String, Object?> toUpdateJson() => {
+        'date': wireDay(day),
+        'type': kind.wire,
+        'category': category,
+        'title': title.trim(),
+        'description': description.trim(),
+        'severity': severity,
+        'points': points,
+        'consequence': consequence,
+        'location': location.trim(),
+        'followUpRequired': followUpRequired,
+      };
+}
+
+/// `GET /behaviour/character-settings` (behaviour.service.ts getCharacterSettings): the school's programme name, characteristics and
+/// rating scale. A school with no document gets the built-in Tarbiyah defaults server-side, so this is rarely empty.
+class CharacterSettings {
+  final String moduleDisplayName;
+  final Map<String, String> traitLabels; // key -> English name
+  final int scaleMin;
+  final int scaleMax;
+  const CharacterSettings({this.moduleDisplayName = '', this.traitLabels = const {}, this.scaleMin = 1, this.scaleMax = 5});
+
+  static const fallback = CharacterSettings(moduleDisplayName: 'Tarbiyah', traitLabels: kTarbiyahTraits);
+
+  factory CharacterSettings.fromJson(Map<String, dynamic> j) {
+    final labels = <String, String>{};
+    for (final c in asJsonMapList(j['characteristics'])) {
+      final k = readText(c['key']);
+      final n = readText(c['nameEn']);
+      if (k.isNotEmpty && n.isNotEmpty) labels[k] = n;
+    }
+    final scale = asJsonMap(j['ratingScale']);
+    return CharacterSettings(
+      moduleDisplayName: readText(j['moduleDisplayName']),
+      traitLabels: labels,
+      scaleMin: readInt(scale['min']) ?? 1,
+      scaleMax: readInt(scale['max']) ?? 5,
+    );
+  }
+
+  /// The programme name, or "Tarbiyah" when the school set none.
+  String get programName => moduleDisplayName.isEmpty ? 'Tarbiyah' : moduleDisplayName;
+
+  /// Trait label: the school's name, else the built-in Tarbiyah name, else a readable form of the key.
+  String labelFor(String key) {
+    final own = traitLabels[key];
+    if (own != null && own.isNotEmpty) return own;
+    final builtIn = kTarbiyahTraits[key];
+    if (builtIn != null) return builtIn;
+    if (key.isEmpty) return '';
+    return key[0].toUpperCase() + key.substring(1).replaceAll('_', ' ');
+  }
 }
 
 /// Tarbiyah trait names, from the backend's static list (behaviour.schema.ts:120-133). Unknown keys (a school can customise its

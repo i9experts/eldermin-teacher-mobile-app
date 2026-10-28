@@ -124,8 +124,19 @@ class FakeBehaviourRepository extends BehaviourRepository {
   Future<BehaviourRecord> Function(Map<String, Object?> body) onCreate =
       (b) async => BehaviourRecord.fromJson({'_id': 'new1', ...b});
   Future<List<TarbiyahAssessment>> Function(String studentId) tarbiyah = (_) async => [];
+  Future<BehaviourRecord> Function(String id, Map<String, Object?> body) onUpdate = (id, b) async => BehaviourRecord.fromJson({'_id': id, ...b});
+  Future<BehaviourRecord> Function(String id, String note) onResolve =
+      (id, n) async => BehaviourRecord.fromJson({'_id': id, 'resolved': true, 'resolvedNote': n});
+  Future<BehaviourRecord> Function(String id) onFetchRecord = (id) async => BehaviourRecord.fromJson({'_id': id});
+  Future<CharacterSettings> Function() settings = () async => CharacterSettings.fallback;
+  Future<int?> Function(String studentId) points = (_) async => null;
+
+  /// Pages: records per call are split into [pageSize] chunks (the fake honours `page`), `pages` is derived from the total.
+  int pageSize = 1000;
+
   final calls = <String>[];
   final bodies = <Map<String, Object?>>[];
+  final queries = <Map<String, Object?>>[];
 
   @override
   Future<List<BehaviourRecord>> fetchGradeRecords(String rawGrade) {
@@ -140,10 +151,60 @@ class FakeBehaviourRepository extends BehaviourRepository {
   }
 
   @override
+  Future<BehaviourPage> fetchRecordsPage({
+    String? grade,
+    String? section,
+    String? studentId,
+    RecordFilters filters = RecordFilters.none,
+    bool mine = false,
+    int page = 1,
+    int limit = BehaviourRepository.pageSize,
+  }) async {
+    calls.add(studentId != null ? 'student:$studentId' : 'grade:$grade');
+    queries.add({'grade': grade, 'section': section, 'studentId': studentId, 'mine': mine, 'page': page, 'limit': limit, ...filters.toQuery()});
+    final all = studentId != null ? await studentRecords(studentId) : await gradeRecords(grade ?? '');
+    final pages = all.isEmpty ? 1 : (all.length / pageSize).ceil();
+    final from = (page - 1) * pageSize;
+    final slice = from >= all.length ? <BehaviourRecord>[] : all.sublist(from, (from + pageSize).clamp(0, all.length));
+    return BehaviourPage(slice, all.length, pages);
+  }
+
+  @override
+  Future<BehaviourRecord> fetchRecord(String id) {
+    calls.add('record:$id');
+    return onFetchRecord(id);
+  }
+
+  @override
   Future<BehaviourRecord> create(Map<String, Object?> body) {
     calls.add('create');
     bodies.add(body);
     return onCreate(body);
+  }
+
+  @override
+  Future<BehaviourRecord> update(String id, Map<String, Object?> body) {
+    calls.add('update:$id');
+    bodies.add(body);
+    return onUpdate(id, body);
+  }
+
+  @override
+  Future<BehaviourRecord> resolve(String id, {String note = ''}) {
+    calls.add('resolve:$id');
+    return onResolve(id, note);
+  }
+
+  @override
+  Future<CharacterSettings> fetchCharacterSettings() {
+    calls.add('settings');
+    return settings();
+  }
+
+  @override
+  Future<int?> fetchPointsTotal(String studentId) {
+    calls.add('points:$studentId');
+    return points(studentId);
   }
 
   @override

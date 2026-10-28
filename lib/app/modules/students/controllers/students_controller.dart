@@ -115,7 +115,7 @@ class StudentsController extends GetxController {
           _known = null; // optional: the class's own strings are used
         }
       }
-      final list = await repo.fetchClassRoster(c, known: _known);
+      final list = await repo.fetchClassRoster(c, known: _known, includeUnsectioned: true); // students without a section show in every class of their grade
       if (_tokens[c.key] != token) return;
       rosters[c.key] = list.isEmpty ? const SectionState.empty() : SectionState.data(list);
     } catch (e) {

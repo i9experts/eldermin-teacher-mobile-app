@@ -29,6 +29,19 @@ bool sameGrade(Object? a, Object? b) => normalizeGradeName(a) == normalizeGradeN
 
 bool sameSection(Object? a, Object? b) => normalizeSectionName(a) == normalizeSectionName(b);
 
+/// Is the section missing: null, '' or whitespace only (after the same normalisation as [sameSection])?
+bool isBlankSection(Object? v) => normalizeSectionName(v).isEmpty;
+
+/// THE one rule for "does an item (record / student) with section [itemSection] belong to a class with section [classSection]?"
+/// (class_match + behaviour no-section fallback, B0.1 on the backend: `classIncludes` in behaviour-teacher-scope.ts):
+///  * a class without a section covers every section of its grade;
+///  * an item WITHOUT a section (missing / '' / whitespace) matches by class only, i.e. any class of its grade: the item cannot say
+///    which section it is in, so it is not hidden from the teacher;
+///  * otherwise the sections must be the same (tolerant).
+/// Callers still compare the grade themselves ([sameGrade]).
+bool sectionCovered(Object? classSection, Object? itemSection) =>
+    isBlankSection(classSection) || isBlankSection(itemSection) || sameSection(classSection, itemSection);
+
 final RegExp _doubledGrade = RegExp(r'\b(grade)\s+grade\b', caseSensitive: false);
 
 /// Server text such as "unit test — Grade Grade 5 A" (the calendar's exam-row template prefixes "Grade" to a grade level that already

@@ -25,14 +25,14 @@ class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
       floatingActionButton: Obx(() {
         final s = c.student.value.data;
         return s != null && c.canLog
-            ? FloatingActionButton.extended(
+            ? EmDiamondFab(
                 key: const Key('beh_student_log'),
+                icon: Icons.add_rounded,
+                semanticLabel: 'Log behaviour',
                 onPressed: () async {
                   await Get.toNamed(Routes.behaviourNew, arguments: s);
                   c.load();
                 },
-                icon: const Icon(Icons.add_rounded),
-                label: Text('Log behaviour', style: EmType.label.copyWith(color: EmColors.onPrimary)),
               )
             : const SizedBox.shrink();
       }),
@@ -42,6 +42,10 @@ class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
         final recs = c.records.value;
         final tar = c.tarbiyah.value;
         final pts = c.totalPoints;
+        final more = c.recordsHasMore.value;
+        final moreErr = c.recordsLoadMoreError.value;
+        final loadingMore = c.loadingMoreRecords.value;
+        final cfg = c.settings.value;
         final myId = c.myId, myName = c.myName;
         return ScreenStateView<StudentSummary>(
           state: st,
@@ -65,17 +69,43 @@ class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
                 for (final r in list)
                   () {
                     final mine = r.isMine(userId: myId, userName: myName);
-                    return BehaviourTile(record: r, mine: mine, showStudent: false, onTap: () => showBehaviourDetailSheet(context, r, mine: mine));
+                    return BehaviourTile(
+                      record: r,
+                      mine: mine,
+                      showStudent: false,
+                      onTap: () => showBehaviourDetailSheet(
+                        context,
+                        r,
+                        mine: mine,
+                        actions: BehaviourSheetActions(
+                          onEdit: c.canLog
+                              ? (rec) async {
+                                  await Get.toNamed(Routes.behaviourNew, arguments: rec);
+                                  c.load();
+                                }
+                              : null,
+                          onResolved: c.canLog ? c.replaceRecord : null,
+                        ),
+                      ),
+                    );
                   }(),
+                if (more)
+                  Padding(
+                    padding: const EdgeInsets.only(top: EmSpacing.s8, bottom: EmSpacing.s16),
+                    child: Column(children: [
+                      if (moreErr != null) Padding(padding: const EdgeInsets.only(bottom: EmSpacing.s8), child: Text(moreErr, key: const Key('student_load_more_error'), textAlign: TextAlign.center, style: EmType.body.copyWith(color: EmColors.error))),
+                      EmSecondaryButton(key: const Key('student_load_more'), label: moreErr != null ? 'Try again' : 'Load more records', loading: loadingMore, onPressed: loadingMore ? null : c.loadMoreRecords),
+                    ]),
+                  ),
               ],
             ),
-            const SubHeading('Tarbiyah assessments'),
+            SubHeading('${cfg.programName} assessments'),
             ..._section<List<TarbiyahAssessment>>(
               tar,
               emptyKey: 'student_no_tarbiyah',
               emptyText: 'No Tarbiyah assessment on record. (Assessments are created by the school on the web.)',
               retry: c.load,
-              builder: (list) => [for (final a in list) TarbiyahCard(a: a)],
+              builder: (list) => [for (final a in list) TarbiyahCard(a: a, settings: cfg)],
             ),
           ],
         );

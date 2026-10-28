@@ -22,8 +22,14 @@ class ClassRef {
 
   String get label => section.isEmpty ? grade : '$grade - $section';
 
-  /// Does [s] belong to this class under the backend's tolerant matching?
-  bool contains(StudentSummary s) => sameGrade(s.grade, grade) && (section.isEmpty || sameSection(s.section, section));
+  /// Does [s] belong to this class under the backend's tolerant matching? By default a student WITHOUT a section is NOT in a class that
+  /// has one (attendance, marks and homework rosters stay exact). With [includeUnsectioned] (Behaviour, Students list, Student 360) a
+  /// student without a section matches by class only, via the shared [sectionCovered] rule.
+  bool contains(StudentSummary s, {bool includeUnsectioned = false}) =>
+      sameGrade(s.grade, grade) && (includeUnsectioned ? sectionCovered(section, s.section) : (section.isEmpty || sameSection(s.section, section)));
+
+  /// Same rule for any item that carries its own grade/section strings (a behaviour record).
+  bool coversGradeSection(Object? itemGrade, Object? itemSection) => sameGrade(itemGrade, grade) && sectionCovered(section, itemSection);
 
   ClassRef _withSubject(String? subject, {bool classTeacher = false}) => ClassRef(
         grade: grade,
@@ -58,18 +64,19 @@ List<ClassRef> teacherClassesOf(TeacherProfile? profile) {
 /// Keeps only students of [cls] (tolerant match) and, by default, only active ones.
 /// Sorted by roll number then name. Defence in depth: the server returns every
 /// campus student for a grade filter, never trust it to be class-scoped.
-List<StudentSummary> scopeRoster(Iterable<StudentSummary> all, ClassRef cls, {bool activeOnly = true}) {
+List<StudentSummary> scopeRoster(Iterable<StudentSummary> all, ClassRef cls, {bool activeOnly = true, bool includeUnsectioned = false}) {
   final seen = <String>{};
   final out = [
     for (final s in all)
-      if (s.id.isNotEmpty && cls.contains(s) && (!activeOnly || s.isActive) && seen.add(s.id)) s
+      if (s.id.isNotEmpty && cls.contains(s, includeUnsectioned: includeUnsectioned) && (!activeOnly || s.isActive) && seen.add(s.id)) s
   ]..sort(StudentSummary.compareByRoll);
   return out;
 }
 
 /// Is this student in ANY of [classes]? (Used to refuse opening a Student 360
 /// for someone outside the teacher's classes.)
-bool inAnyClass(StudentSummary s, Iterable<ClassRef> classes) => classes.any((c) => c.contains(s));
+bool inAnyClass(StudentSummary s, Iterable<ClassRef> classes, {bool includeUnsectioned = false}) =>
+    classes.any((c) => c.contains(s, includeUnsectioned: includeUnsectioned));
 
 /// The raw grade/section strings stored on students that normalise to [cls]:
 /// what to put in the `grade=`/`section=` filters, because the server matches

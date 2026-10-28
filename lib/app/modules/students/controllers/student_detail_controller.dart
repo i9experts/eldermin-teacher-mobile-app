@@ -66,7 +66,8 @@ class StudentDetailController extends GetxController {
     try {
       final d = await repo.fetchStudent360(studentId);
       if (token != _token) return;
-      if (!inAnyClass(d.student, teacherClassesOf(auth.staffMe.value?.teacherProfile))) {
+      // a student without a section belongs to the classes of its grade (shared rule, sectionCovered)
+      if (!inAnyClass(d.student, teacherClassesOf(auth.staffMe.value?.teacherProfile), includeUnsectioned: true)) {
         outOfScope.value = true;
         detail.value = const SectionState.empty();
         month.value = const SectionState.empty();

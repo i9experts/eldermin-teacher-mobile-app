@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import '../../../../core/models/classroom/attendance_models.dart';
 import '../../../../core/models/classroom/student_360.dart';
 import '../../../../core/services/permission_service.dart';
+import '../../auth/controllers/auth_controller.dart';
+import '../../behaviour/views/behaviour_detail_sheet.dart';
 import '../../../../core/utils/timetable_week.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/screen_state_view.dart';
@@ -81,7 +83,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
         const SectionRow(title: 'Attendance'),
         _AttendanceCard(d: d.attendance, month: month, monthLabel: _monthLabel(c.monthStart)),
         const SectionRow(title: 'Recent behaviour'),
-        _BehaviourCard(b: d.behaviour, studentId: d.student.id),
+        _BehaviourCard(b: d.behaviour, studentId: d.student.id, studentName: d.student.fullName),
         const SectionRow(title: 'Recent results'),
         _ResultsCard(results: d.results),
         if (d.guardiansKnown) ...[
@@ -282,7 +284,27 @@ class _AttendanceCard extends StatelessWidget {
 class _BehaviourCard extends StatelessWidget {
   final Behaviour360 b;
   final String studentId;
-  const _BehaviourCard({required this.b, required this.studentId});
+  final String studentName;
+  const _BehaviourCard({required this.b, required this.studentId, this.studentName = ''});
+
+  /// Tap a row: the full record (or, for a legacy row, what the 360 has). Edit / resolve only where the Behaviour module allows them.
+  void _open(BuildContext context, BehaviourItem item) {
+    final auth = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+    final perms = Get.isRegistered<PermissionService>() ? Get.find<PermissionService>() : null;
+    final canLog = perms?.canAccess('behaviour:manage') ?? false;
+    showBehaviourItemSheet(
+      context,
+      item,
+      studentId: studentId,
+      studentName: studentName,
+      myId: auth?.user.value?.id ?? '',
+      myName: auth?.user.value?.name ?? '',
+      actions: BehaviourSheetActions(
+        onEdit: canLog ? (rec) => Get.toNamed(Routes.behaviourNew, arguments: rec) : null,
+        onResolved: canLog ? (_) {} : null,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -313,7 +335,10 @@ class _BehaviourCard extends StatelessWidget {
         Text('Behaviour points this year: ${b.totalPoints}', style: EmType.label.copyWith(color: EmColors.ink)),
         const SizedBox(height: EmSpacing.s12),
         for (final i in b.recent)
-          Padding(
+          InkWell(
+            key: ValueKey('b360_${i.id.isEmpty ? i.hashCode : i.id}'),
+            onTap: () => _open(context, i),
+            child: Padding(
             padding: const EdgeInsets.only(bottom: EmSpacing.s12),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               ExcludeSemantics(
@@ -326,12 +351,13 @@ class _BehaviourCard extends StatelessWidget {
               const SizedBox(width: EmSpacing.row),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${i.categoryLabel} · ${_date(i.date)}', style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600)),
+                  Text('${i.title.isEmpty ? i.categoryLabel : i.title} · ${_date(i.date)}', style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w600)),
                   if (i.description.isNotEmpty) Text(i.description, style: EmType.caption.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400)),
                 ]),
               ),
               if (i.type == 'negative' && !i.resolved) ...[const SizedBox(width: EmSpacing.s8), const AppTag('Open', style: EmTone.warning)],
             ]),
+          ),
           ),
         link,
       ]),

@@ -45,13 +45,16 @@ class StudentsRepository {
   /// (students.controller.ts:54-59 -> students.service.ts:515-623; repeated `grade`/`section` params are
   /// exact `$in` filters, :520-521, hence the raw variants from [queryVariants]). The result is then
   /// re-scoped client-side with the backend's tolerant matcher ([scopeRoster]).
-  Future<List<StudentSummary>> fetchClassRoster(ClassRef cls, {GradesSections? known}) => _guard(() async {
+  ///
+  /// [includeUnsectioned]: also keep students that have NO section (they match their grade's classes by class only, [sectionCovered]).
+  /// The server cannot filter "no section", so the `section` filter is then left out and the grade-wide result is re-scoped here.
+  Future<List<StudentSummary>> fetchClassRoster(ClassRef cls, {GradesSections? known, bool includeUnsectioned = false}) => _guard(() async {
         final v = queryVariants(cls, known);
         final all = <StudentSummary>[];
         for (var page = 1; page <= maxRosterPages; page++) {
           final res = await _client.get(ApiConstants.students, queryParameters: {
             'grade': v.grades,
-            if (v.sections.isNotEmpty) 'section': v.sections,
+            if (v.sections.isNotEmpty && !includeUnsectioned) 'section': v.sections,
             'status': 'active',
             'limit': rosterPageSize,
             'page': page,
@@ -61,7 +64,7 @@ class StudentsRepository {
           final pages = readInt(asJsonMap(body['meta'])['pages']) ?? 1;
           if (page >= pages) break;
         }
-        return scopeRoster(all, cls);
+        return scopeRoster(all, cls, includeUnsectioned: includeUnsectioned);
       });
 
   /// `GET /students/:id/360` -> [Student360] (whitelisted; `fees` etc. dropped).

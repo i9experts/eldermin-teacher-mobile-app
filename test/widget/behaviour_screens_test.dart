@@ -171,7 +171,7 @@ void main() {
       expect(find.text('MISCONDUCT'), findsOneWidget);
     });
 
-    testWidgets('tapping a record on the main list still opens the student screen (no sheet)', (t) async {
+    testWidgets('tapping a record on the main list opens its detail sheet (T1); "View student" then opens the student history', (t) async {
       repo.gradeRecords = (g) async => [rec('r1', by: 'Tess Teacher', byId: 'u', title: 'Great teamwork')];
       final h = await signIn(t);
       final c = Get.put(BehaviourController(repository: repo, students: students, auth: h.auth, permissions: h.perms));
@@ -190,9 +190,13 @@ void main() {
       await t.tap(find.text('Great teamwork'));
       await t.pump();
       await t.pump(const Duration(milliseconds: 400));
+      expect(find.byKey(const Key('detail_sheet')), findsOneWidget);
+      expect(find.byKey(const Key('detail_open_student')), findsOneWidget);
+      await t.tap(find.byKey(const Key('detail_open_student')));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
       expect(Get.currentRoute, '/behaviour/student/st1');
       expect(find.text('student screen'), findsOneWidget);
-      expect(find.byKey(const Key('detail_sheet')), findsNothing);
     });
 
     testWidgets('class chips appear with several classes and narrow the list; search narrows by student', (t) async {

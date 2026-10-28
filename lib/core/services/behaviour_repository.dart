@@ -48,6 +48,66 @@ class BehaviourRepository {
         return BehaviourPage.fromJson(body).records.where((r) => r.studentId == studentId).toList();
       });
 
+  /// One page of `GET /behaviour/records` with the server-side filters (backend B1 adds `section` and `mine`; older servers ignore
+  /// them, so callers re-check with [RecordFilters.accepts] / the class matcher). [grade] is matched EXACTLY by the server (raw
+  /// variants), [section] tolerantly (a record WITHOUT a section is not returned for a `section` filter, so the app queries grade-wide
+  /// and re-scopes with the shared section rule). Newest first. `meta.pages` says whether a next page exists.
+  Future<BehaviourPage> fetchRecordsPage({
+    String? grade,
+    String? section,
+    String? studentId,
+    RecordFilters filters = RecordFilters.none,
+    bool mine = false,
+    int page = 1,
+    int limit = pageSize,
+  }) =>
+      _guard(() async {
+        final res = await _client.get(ApiConstants.behaviourRecords, queryParameters: {
+          if (grade != null && grade.isNotEmpty) 'grade': grade,
+          if (section != null && section.isNotEmpty) 'section': section,
+          if (studentId != null && studentId.isNotEmpty) 'studentId': studentId,
+          ...filters.toQuery(),
+          if (mine) 'mine': 'true',
+          'limit': limit,
+          'page': page,
+        });
+        final body = expectMap(res.data, what: 'behaviour records');
+        expectKeyRows(body, 'data', what: 'behaviour records');
+        return BehaviourPage.fromJson(body);
+      });
+
+  /// `GET /behaviour/records/:id`: the whole record (staff see every field). 403 when it is outside my classes (enforce mode).
+  Future<BehaviourRecord> fetchRecord(String id) => _guard(() async {
+        final res = await _client.get(ApiConstants.behaviourRecord(id));
+        return BehaviourRecord.fromJson(expectMap(res.data, what: 'this behaviour record'));
+      });
+
+  /// `PUT /behaviour/records/:id` (behaviour.controller.ts:68-78): a teacher may edit only records they logged (403 otherwise in
+  /// enforce mode); `schoolSlug` / `campusId` / reporter fields are ignored. Returns the updated document.
+  Future<BehaviourRecord> update(String id, Map<String, Object?> body) => _guard(() async {
+        final res = await _client.put(ApiConstants.behaviourRecord(id), data: body);
+        return BehaviourRecord.fromJson(expectMap(res.data, what: 'this behaviour record'));
+      });
+
+  /// `PATCH /behaviour/records/:id/resolve {note}` (behaviour.controller.ts:80-88): any record in my classes. Returns the updated record.
+  Future<BehaviourRecord> resolve(String id, {String note = ''}) => _guard(() async {
+        final res = await _client.patch(ApiConstants.behaviourRecordResolve(id), data: {'note': note.trim()});
+        return BehaviourRecord.fromJson(expectMap(res.data, what: 'this behaviour record'));
+      });
+
+  /// `GET /behaviour/character-settings` (meta read, allowed for teachers): programme name and trait labels.
+  Future<CharacterSettings> fetchCharacterSettings() => _guard(() async {
+        final res = await _client.get(ApiConstants.behaviourCharacterSettings);
+        return CharacterSettings.fromJson(expectMap(res.data, what: 'the character programme'));
+      });
+
+  /// `GET /behaviour/students/:id/profile` -> `pointsTotal` (all records of the student in the year filter, signed: + merit / - demerit).
+  /// Null when the server does not answer with one.
+  Future<int?> fetchPointsTotal(String studentId) => _guard(() async {
+        final res = await _client.get(ApiConstants.behaviourStudentProfile(studentId));
+        return readInt(expectMap(res.data, what: 'the behaviour summary')['pointsTotal']);
+      });
+
   /// `POST /behaviour/records` (behaviour.controller.ts:55-65 -> behaviour.service.ts:159-168). Body is `any` on the server (no DTO): the
   /// payload is exactly [BehaviourDraft.toJson]. A mongoose validation failure is a bare HTTP 500 there (no try/catch), so everything is
   /// validated before sending. Returns the created record (HTTP 201).

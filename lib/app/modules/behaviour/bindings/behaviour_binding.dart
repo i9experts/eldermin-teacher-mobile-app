@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../../../../core/models/behaviour/behaviour_models.dart';
 import '../../../../core/models/classroom/student_models.dart';
 import '../../../../core/services/behaviour_repository.dart';
 import '../../../../core/services/students_repository.dart';
@@ -18,13 +19,14 @@ class BehaviourBinding extends Bindings {
   void dependencies() => _shared();
 }
 
-/// `/behaviour/new` (optionally with a [StudentSummary] in `arguments` to preselect the student).
+/// `/behaviour/new` (optionally with a [StudentSummary] in `arguments` to preselect the student, or a [BehaviourRecord] to EDIT it).
 class BehaviourLogBinding extends Bindings {
   @override
   void dependencies() {
     _shared();
     final arg = Get.arguments;
-    Get.lazyPut<BehaviourLogController>(() => BehaviourLogController(initialStudent: arg is StudentSummary ? arg : null));
+    Get.lazyPut<BehaviourLogController>(
+        () => BehaviourLogController(initialStudent: arg is StudentSummary ? arg : null, editing: arg is BehaviourRecord ? arg : null));
   }
 }
 

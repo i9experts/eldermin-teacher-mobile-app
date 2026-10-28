@@ -36,7 +36,12 @@ class LogIgnored extends LogResult {
   const LogIgnored();
 }
 
-/// Quick log of a merit / demerit / note (`/behaviour/new`).
+/// Quick log of a merit / demerit / note (`/behaviour/new`), and (T1) the EDIT of a record I logged (same screen, [editing] set).
+///
+/// Edit mode: the student is fixed (never changed through an edit), the form opens with the record's values, `Save` sends
+/// `PUT /behaviour/records/:id` ([BehaviourDraft.toUpdateJson]); `parentNotified` is not offered (parents are notified when a
+/// record is CREATED only). The author rule is enforced by the server (403 otherwise) and, before that, by the caller (the Edit
+/// button only shows on records that are mine).
 ///
 /// The student picker only offers students of MY classes (class chips + search, rosters from `GET /students` per class, re-scoped
 /// client-side), never the whole campus. Points: merit +1..10, demerit -1..-10, note 0 (behaviour.schema.ts:67 "+ for positive,
@@ -50,6 +55,9 @@ class BehaviourLogController extends GetxController {
   final Clock clock;
   final StudentSummary? initialStudent;
 
+  /// Set = edit this record instead of creating one.
+  final BehaviourRecord? editing;
+
   BehaviourLogController({
     BehaviourRepository? repository,
     StudentsRepository? students,
@@ -58,6 +66,7 @@ class BehaviourLogController extends GetxController {
     BehaviourController? list,
     Clock? clock,
     this.initialStudent,
+    this.editing,
   })  : _repo = repository,
         _students = students,
         _auth = auth,
@@ -88,6 +97,11 @@ class BehaviourLogController extends GetxController {
   late final Rx<DateTime> day = Rx<DateTime>(_openedOn);
   final titleC = TextEditingController();
   final descriptionC = TextEditingController();
+  final locationC = TextEditingController();
+  /// '' = none (the web sends nothing).
+  final consequence = ''.obs;
+  final parentNotified = false.obs;
+  final followUpRequired = false.obs;
   final saving = false.obs;
   final errors = <String, String>{}.obs;
   final failure = Rxn<ActionFailure>();
@@ -142,18 +156,50 @@ class BehaviourLogController extends GetxController {
         BehaviourKind.note => 0,
       };
 
+  bool get isEditing => editing != null;
+
+  /// The point magnitudes shown: the standard chips, plus the record's own magnitude in edit mode when it is not one of them.
+  List<int> get magnitudeChoices {
+    final m = editing?.points.abs();
+    return [...pointChoices, if (m != null && m > 0 && !pointChoices.contains(m)) m]..sort();
+  }
+
+  String _original = '';
+
   @override
   void onInit() {
     super.onInit();
+    final e = editing;
+    if (e != null) {
+      _prefill(e);
+      _original = _snapshot();
+      return; // edit: no picker, the student is fixed
+    }
     final s = initialStudent;
-    if (s != null && inAnyClass(s, classes)) student.value = s; // a student outside my classes is never preselected
+    if (s != null && inAnyClass(s, classes, includeUnsectioned: true)) student.value = s; // a student outside my classes is never preselected
     loadPickerClass();
+  }
+
+  void _prefill(BehaviourRecord e) {
+    kind.value = e.kind ?? BehaviourKind.note;
+    category.value = e.category.isEmpty ? null : e.category;
+    severity.value = kSeverities.contains(e.severity) ? e.severity : 'medium';
+    magnitude.value = e.points == 0 ? defaultMagnitude : e.points.abs();
+    day.value = e.day == null ? _openedOn : dateOnly(e.day!);
+    titleC.text = e.title;
+    descriptionC.text = e.description;
+    locationC.text = e.location;
+    consequence.value = e.consequence;
+    followUpRequired.value = e.followUpRequired;
+    parentNotified.value = e.parentNotified;
+    student.value = StudentSummary(id: e.studentId, firstName: e.studentName, grade: e.grade, section: e.section);
   }
 
   @override
   void onClose() {
     titleC.dispose();
     descriptionC.dispose();
+    locationC.dispose();
     super.onClose();
   }
 
@@ -166,6 +212,10 @@ class BehaviourLogController extends GetxController {
     _autoTitle = null;
     if (k == BehaviourKind.demerit) severity.value = 'medium';
   }
+
+  void setConsequence(String c) => consequence.value = consequence.value == c ? '' : c; // tap again = none
+  void setParentNotified(bool v) => parentNotified.value = v;
+  void setFollowUp(bool v) => followUpRequired.value = v;
 
   /// Picks a category and (when the title is still empty or the auto-filled one) fills the title with its label.
   void setCategory(String c) {
@@ -215,7 +265,7 @@ class BehaviourLogController extends GetxController {
           _known = null;
         }
       }
-      final list = await students.fetchClassRoster(c, known: _known);
+      final list = await students.fetchClassRoster(c, known: _known, includeUnsectioned: true);
       if (_tokens[c.key] != token) return;
       rosters[c.key] = list.isEmpty ? const SectionState.empty() : SectionState.data(list);
     } catch (e) {
@@ -233,10 +283,10 @@ class BehaviourLogController extends GetxController {
     if (titleC.text.trim().isEmpty) e['title'] = 'Enter a title';
     if (descriptionC.text.trim().isEmpty) e['description'] = 'Describe what happened';
     final s = student.value;
-    if (s != null) {
+    if (s != null && !isEditing) {
       if (s.grade.trim().isEmpty) {
         e['student'] = "This student has no grade on record, so the entry can't be saved";
-      } else if (!inAnyClass(s, classes)) {
+      } else if (!inAnyClass(s, classes, includeUnsectioned: true)) {
         e['student'] = 'This student is not in one of your classes';
       }
     }
@@ -258,6 +308,10 @@ class BehaviourLogController extends GetxController {
       day: day.value,
       reporterName: auth.user.value?.name ?? '',
       reporterId: auth.user.value?.id ?? '',
+      consequence: consequence.value,
+      location: locationC.text,
+      parentNotified: parentNotified.value,
+      followUpRequired: followUpRequired.value,
     );
   }
 
@@ -272,8 +326,14 @@ class BehaviourLogController extends GetxController {
     saving.value = true;
     failure.value = null;
     try {
-      final saved = await repo.create(d.toJson());
-      list?.addRecord(saved);
+      final BehaviourRecord saved;
+      if (isEditing) {
+        saved = await repo.update(editing!.id, d.toUpdateJson());
+        list?.replaceRecord(saved);
+      } else {
+        saved = await repo.create(d.toJson());
+        list?.addRecord(saved);
+      }
       return LogSaved(saved);
     } catch (e) {
       final f = ActionFailure.from(e, what: 'save this entry');
@@ -284,18 +344,32 @@ class BehaviourLogController extends GetxController {
     }
   }
 
+  /// One string of everything the form holds, to compare against the pristine / opened state.
+  String _snapshot() => [
+        kind.value.wire, student.value?.id ?? '', category.value ?? '', severity.value, magnitude.value, day.value.toIso8601String(),
+        titleC.text, descriptionC.text, locationC.text, consequence.value, parentNotified.value, followUpRequired.value,
+      ].join('\u0001');
+
   /// Unsaved-changes rule: the form is dirty as soon as ANY field differs from its pristine state. Pristine = kind merit, student = the
-  /// preselected one (or none), no category, severity medium, points magnitude 5 (the defaults), day = today (as opened), title and
-  /// description EMPTY. So title only, description only, a picked student (other than the preselected one), a picked category, another
-  /// kind / severity / points value or another day all count; typed text counts even when it is only spaces (the teacher did type);
-  /// the picker's class chip and search box do not (they are navigation, not entry data). Back then shows 'Discard this entry?'.
-  bool get isDirty =>
-      titleC.text.isNotEmpty ||
-      descriptionC.text.isNotEmpty ||
-      category.value != null ||
-      student.value?.id != initialStudent?.id ||
-      kind.value != BehaviourKind.merit ||
-      severity.value != 'medium' ||
-      magnitude.value != defaultMagnitude ||
-      day.value != _openedOn;
+  /// preselected one (or none), no category, severity medium, points magnitude 5 (the defaults), day = today (as opened), title,
+  /// description and location EMPTY, no consequence, parents not notified, no follow-up. So title only, description only, a picked student
+  /// (other than the preselected one), a picked category, another kind / severity / points value, another day, a consequence, a
+  /// location or a switch all count; typed text counts even when it is only spaces (the teacher did type); the picker's class chip
+  /// and search box do not (they are navigation, not entry data). Back then shows 'Discard this entry?'. In edit mode the pristine state
+  /// is the record as opened.
+  bool get isDirty {
+    if (isEditing) return _snapshot() != _original;
+    return titleC.text.isNotEmpty ||
+        descriptionC.text.isNotEmpty ||
+        locationC.text.isNotEmpty ||
+        category.value != null ||
+        student.value?.id != initialStudent?.id ||
+        kind.value != BehaviourKind.merit ||
+        severity.value != 'medium' ||
+        magnitude.value != defaultMagnitude ||
+        day.value != _openedOn ||
+        consequence.value.isNotEmpty ||
+        parentNotified.value ||
+        followUpRequired.value;
+  }
 }

@@ -116,6 +116,8 @@ class ApiConstants {
   static String behaviourRecord(String id) => '$apiPrefix/behaviour/records/$id';
   static const String behaviourTarbiyah = '$apiPrefix/behaviour/tarbiyah';
   static String behaviourStudentProfile(String studentId) => '$apiPrefix/behaviour/students/$studentId/profile';
+  static String behaviourRecordResolve(String id) => '$apiPrefix/behaviour/records/$id/resolve';
+  static const String behaviourCharacterSettings = '$apiPrefix/behaviour/character-settings';
 
   // ── Students ─────────────────────────────────────────────────
   static const String students = '$apiPrefix/students';
