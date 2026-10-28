@@ -69,7 +69,7 @@ class TimetableController extends GetxController with WidgetsBindingObserver {
   /// Touching `auth.staffMe` makes Obx re-evaluate when permissions are rebuilt.
   bool get canView {
     auth.staffMe.value;
-    return perms.canAccess('teaching:view');
+    return perms.canAccess('teaching:view', subModuleKey: 'timetable');
   }
 
   List<TodayPeriod> dayPeriods(DateTime date) {

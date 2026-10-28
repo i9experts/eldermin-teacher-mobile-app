@@ -6,8 +6,8 @@ import '../modules/auth/controllers/auth_controller.dart';
 import 'app_routes.dart';
 
 /// Why a location may or may not be opened. ONE rule set, shared with the Classes / More entries: the module's [ModuleEntry.isVisibleTo]
-/// (permission + class-teacher + enabled-in-v1). `institution.activeModules` is deliberately not consulted (owner decision A, see
-/// PermissionService). Locations that belong to no module (messages, notifications, profile, help, about, delete account) only need a signed-in,
+/// (permission + class-teacher + enabled-in-v1). The web gates menu/routes on institution.activeModules (Sidebar.tsx moduleId via hasModule; ProtectedRoute `module`); the app
+/// intentionally does not in v1 - visibility is by permissions only - pending an owner decision (see PermissionService). Locations that belong to no module (messages, notifications, profile, help, about, delete account) only need a signed-in,
 /// supported teacher with a resolved profile.
 class RouteGuardRules {
   RouteGuardRules._();

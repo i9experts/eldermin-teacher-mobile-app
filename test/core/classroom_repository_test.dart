@@ -194,6 +194,11 @@ void main() {
       for (final code in [401, 403, 500]) {
         await expectLater(mode(code), throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', code)));
       }
+      // 403 (custom role without the attendance-settings grant) is the ONE distinct typed outcome; 401 / 500 stay plain errors (never a guess)
+      await expectLater(mode(403), throwsA(isA<AttendanceModeForbidden>()));
+      for (final code in [401, 500, 502]) {
+        await expectLater(mode(code), throwsA(isNot(isA<AttendanceModeForbidden>())));
+      }
       await expectLater(mode('not json'), throwsA(isA<ApiException>()));
       final c = _Client((m, p, q, b) => {'mode': 'daily'});
       await AttendanceRepository(c).fetchMode();

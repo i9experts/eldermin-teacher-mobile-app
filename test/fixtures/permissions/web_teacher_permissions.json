@@ -1,0 +1,22 @@
+{
+  "source": "Eldermin-Frontend src/types/roles.ts:188-205 @ origin/main 27eec855a49c54ad2661ecea394cdf27c6fc865a",
+  "note": "ROLE_PERMISSIONS[UserRole.Teacher], copied verbatim (order kept). Refresh this file when the web matrix changes; do not edit it to make the test pass.",
+  "role": "teacher",
+  "permissions": [
+    "dashboard:view",
+    "teaching:view",
+    "students:view",
+    "academics:view",
+    "assessments:view",
+    "assessments:manage",
+    "behaviour:view",
+    "behaviour:manage",
+    "early-years:view",
+    "early-years:manage",
+    "apps:view",
+    "school-calendar:view",
+    "events:view",
+    "leave:self",
+    "attendance:self"
+  ]
+}

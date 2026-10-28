@@ -69,6 +69,13 @@ class SchoolDayStatus {
   }
 }
 
+/// `GET /teaching/attendance-settings` answered 403: the caller's custom role has no `attendance-settings` grant (the backend requires
+/// `@RequireModuleAccess('teaching', 'attendance-settings', 'view')`), so the school's mode could NOT be read. Still an [ApiException] (status 403).
+/// The controller continues in daily mode with a visible warning and a subject-evidence guard instead of guessing silently.
+class AttendanceModeForbidden extends ApiException {
+  AttendanceModeForbidden(super.message) : super(statusCode: 403);
+}
+
 /// Student attendance calls (class teachers).
 class AttendanceRepository {
   final BaseClient _client;
@@ -154,13 +161,15 @@ class AttendanceRepository {
 
   /// `GET /teaching/attendance-settings` -> `{ mode }`. A 404/501 (a server that does not have the feature yet) means
   /// `daily`; every other failure is rethrown so the screen never GUESSES the mode (a wrong guess would save a
-  /// whole-day mark in a subject-wise school).
+  /// whole-day mark in a subject-wise school). A 403 (custom role without the `attendance-settings` grant) is the one distinct,
+  /// typed outcome: [AttendanceModeForbidden].
   Future<AttendanceMode> fetchMode() async {
     try {
       final res = await _guard(() => _client.get(ApiConstants.attendanceSettings));
       return AttendanceMode.fromWire(expectMap(res.data, what: 'the attendance mode')['mode']);
     } on ApiException catch (e) {
       if (e.statusCode == 404 || e.statusCode == 501) return AttendanceMode.daily;
+      if (e.statusCode == 403) throw AttendanceModeForbidden(e.message);
       rethrow;
     }
   }

@@ -87,7 +87,7 @@ class SyllabusController extends GetxController {
 
   bool get canView {
     auth.staffMe.value;
-    return perms.canAccess('teaching:view');
+    return perms.canAccess('teaching:view', subModuleKey: 'syllabus');
   }
 
   String get myName => auth.staffMe.value?.user.name ?? '';

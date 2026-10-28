@@ -33,9 +33,19 @@ void main() {
       expect(labels(shellQuickActions(permissions: c.perms, isClassTeacher: true)), contains('Mark Attendance'));
     });
 
-    test('a class teacher without students:view does not get Mark Attendance', () async {
+    // CHANGED (fix/custom-role-permissions): the Attendance gate is now `teaching:view` + sub-module `attendance` (web Teaching > Attendance), no
+    // longer `students:view`. A module-wide `teaching:view` therefore grants Mark Attendance; `students:view` alone does not (it is not the gate).
+    test('a class teacher with teaching:view (no students:view) gets Mark Attendance; students:view alone does not', () async {
       final h = await signedIn(classTeacher: true, permissions: ['teaching:view', 'leave:self']);
-      expect(labels(shellQuickActions(permissions: h.perms, isClassTeacher: true)), ['Add Homework', 'Apply Leave', 'Timetable']);
+      expect(labels(shellQuickActions(permissions: h.perms, isClassTeacher: true)), ['Mark Attendance', 'Add Homework', 'Apply Leave', 'Timetable']);
+      Get.reset();
+      final s = await signedIn(classTeacher: true, permissions: ['students:view', 'leave:self']);
+      expect(labels(shellQuickActions(permissions: s.perms, isClassTeacher: true)), ['Apply Leave']);
+    });
+
+    test('a sub-module custom role: only the actions whose sub-module it holds (attendance + homework, not timetable)', () async {
+      final h = await signedIn(classTeacher: true, permissions: ['teaching:attendance:manage', 'teaching:homework:view']);
+      expect(labels(shellQuickActions(permissions: h.perms, isClassTeacher: true)), ['Mark Attendance', 'Add Homework']);
     });
 
     test('no permissions at all: nothing (the FAB is hidden)', () async {
