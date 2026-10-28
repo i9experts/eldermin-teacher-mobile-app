@@ -294,6 +294,25 @@ void main() {
       });
     }
 
+    test('canRetry: false only for a (non-stale) 403; every other failure kind keeps Retry', () {
+      final f403 = SubmitFailure.from(ApiException('Forbidden resource', statusCode: 403));
+      expect(f403.kind, SubmitFailureKind.forbidden);
+      expect(f403.message, "You can't mark attendance for this class. Forbidden resource");
+      expect(f403.canRetry, isFalse);
+      for (final e in <ApiException>[
+        ApiException('x'),
+        ApiException('Locked', statusCode: 409),
+        ApiException('bad', statusCode: 400),
+        ApiException('bad', statusCode: 422),
+        ApiException('boom', statusCode: 500),
+        ApiException('teapot', statusCode: 418),
+        ApiException('$kNotSchoolDayPrefix Sunday', statusCode: 400),
+        ApiException('Access denied. You are the class teacher of your own assigned class only.', statusCode: 403),
+      ]) {
+        expect(SubmitFailure.from(e).canRetry, isTrue, reason: '${e.statusCode} ${e.message}');
+      }
+    });
+
     test('403 "class teacher of your own assigned class only" maps to the staleClass kind and blocks that class until re-login', () async {
       final c = await ready();
       attendance.onSubmit = (_, __) async => throw ApiException('Access denied. You are the class teacher of your own assigned class only.', statusCode: 403);
