@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../app/components/external_link.dart';
 import '../../app/components/rich_text_view.dart';
 import '../design/design.dart';
+import 'image_viewer.dart';
 
 /// One label / value row. A null or blank [value] hides the row.
 class DetailField {
@@ -22,9 +23,15 @@ class DetailSection {
 }
 
 class DetailAttachment {
-  const DetailAttachment(this.name, this.url);
+  const DetailAttachment(this.name, this.url, {this.isImage = false, this.refreshUrl});
   final String name;
   final String url;
+
+  /// An image opens in the in-app [ImageViewer] (never the browser); every other attachment keeps the confirm-before-open link helper.
+  final bool isImage;
+
+  /// Image only: returns a fresh link (e.g. a new signed URL) for "Try again" in the viewer.
+  final Future<String?> Function()? refreshUrl;
 }
 
 enum DetailSheetState { ready, loading, error }
@@ -196,14 +203,16 @@ class DetailBottomSheet extends StatelessWidget {
           for (final a in d.attachments)
             InkWell(
               key: ValueKey('detail_attachment_${a.url}'),
-              onTap: () => (onOpenAttachment ?? ExternalLinks.openWithConfirm)(a.url),
+              onTap: () => a.isImage
+                  ? ImageViewer.open(context, url: a.url, title: a.name, refreshUrl: a.refreshUrl)
+                  : (onOpenAttachment ?? ExternalLinks.openWithConfirm)(a.url),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minHeight: EmSpacing.minTouch),
                 child: Row(children: [
                   const Icon(Icons.attach_file_rounded, size: EmSpacing.s20, color: EmColors.primary),
                   const SizedBox(width: EmSpacing.s8),
                   Expanded(child: Text(a.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: EmType.body.copyWith(color: EmColors.primary))),
-                  const Icon(Icons.open_in_new_rounded, size: EmSpacing.s16, color: EmColors.primary),
+                  Icon(a.isImage ? Icons.image_outlined : Icons.open_in_new_rounded, size: EmSpacing.s16, color: EmColors.primary),
                 ]),
               ),
             ),
