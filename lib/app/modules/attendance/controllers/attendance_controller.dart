@@ -52,6 +52,10 @@ class SubmitFailure {
   final String message;
   const SubmitFailure(this.kind, this.message);
 
+  /// A 403 is the server's verdict on this teacher/class, not a transient fault: resending the same marks cannot succeed, so the screen offers no
+  /// "Retry saving" (the marks stay in memory and the normal submit button stays available once something changes). Everything else keeps Retry.
+  bool get canRetry => kind != SubmitFailureKind.forbidden;
+
   /// Maps the real error shapes: `{statusCode, message, timestamp, path}` (sentry.filter.ts:43-48) -> a
   /// teacher-readable message. A null status code means no response at all (offline / timeout).
   factory SubmitFailure.from(Object e) {

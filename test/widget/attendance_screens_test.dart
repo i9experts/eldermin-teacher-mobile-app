@@ -148,9 +148,35 @@ void main() {
       await t.tap(find.byKey(const Key('attendance_confirm_submit')));
       await t.pump();
       await t.pump();
-      expect(find.textContaining("You can't mark attendance for this class"), findsOneWidget);
+      expect(find.text("You can't mark attendance for this class. Forbidden resource"), findsOneWidget);
+      expect(find.byKey(const Key('submit_retry')), findsNothing, reason: 'a 403 will not succeed on resend');
+      expect(find.byKey(const Key('stale_class_banner')), findsNothing);
+      expect(find.byKey(const Key('submit_button')), findsOneWidget);
       expect(c.marks, hasLength(5));
     });
+
+    for (final tc in <(String, ApiException, String?)>[
+      ('500', ApiException('Internal server error', statusCode: 500), 'The server had a problem'),
+      ('network', ApiException("Couldn't reach Eldermin. Check your internet connection."), 'marks are kept'),
+      ('409', ApiException('Locked', statusCode: 409), 'This day was changed or is locked'),
+      ('400', ApiException('records.0.status must be valid', statusCode: 400), 'The server rejected the attendance'),
+    ]) {
+      testWidgets('${tc.$1} failure still offers Retry saving (unchanged)', (t) async {
+        attendance.onSubmit = (_, __) async => throw tc.$2;
+        await boot(t, const AttendanceMarkScreen());
+        await t.tap(find.byKey(const Key('mark_remaining_present')));
+        await t.pump();
+        await t.tap(find.byKey(const Key('submit_button')));
+        await t.pump();
+        await t.tap(find.byKey(const Key('attendance_confirm_submit')));
+        await t.pump();
+        await t.pump();
+        expect(find.byKey(const Key('submit_error_banner')), findsOneWidget);
+        expect(find.textContaining(tc.$3!), findsOneWidget);
+        expect(find.byKey(const Key('submit_retry')), findsOneWidget);
+        expect(c.marks, hasLength(5));
+      });
+    }
 
     testWidgets('existing records are pre-filled and editing enables submit only after a change', (t) async {
       attendance.range = (_, __, ___, ____) async => [for (final s in roster) record(s, DateTime.utc(2026, 10, 5), 'present')];

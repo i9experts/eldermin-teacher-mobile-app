@@ -169,6 +169,27 @@ void main() {
       expect(hr.created.single.input.attachmentKeys, isEmpty);
     });
 
+    test('homework: a 403 upload is refused with "You can\'t upload ..." and is never resent (forbidden, not unavailable)', () async {
+      final hr = FakeHomeworkRepository();
+      final h = await signedIn();
+      h.api.assignments = const [maths5a];
+      await h.auth.refreshProfile(force: true);
+      students.roster = (_) async => [student(1)];
+      hr.onUpload = (p, n, pr) async => throw serverError(403, 'Forbidden resource');
+      final c = HomeworkFormController(repository: hr, students: students, auth: h.auth, picker: FakePicker(), list: HomeworkController(repository: hr, auth: h.auth, permissions: h.perms), clock: () => DateTime(2026, 10, 8, 9));
+      c.onInit();
+      addTearDown(c.onClose);
+      await Future<void>.delayed(Duration.zero);
+      await c.addPicked([const PickedAttachment(name: 'a.pdf', path: '/tmp/a.pdf', size: 1000)]);
+      final it = c.attachments.single;
+      expect(it.status.value, UploadStatus.failed);
+      expect(it.forbidden.value, isTrue);
+      expect(it.unavailable.value, isFalse);
+      expect(it.error.value, "You can't upload a.pdf. Forbidden resource");
+      await c.retryUpload(it.id);
+      expect(hr.calls.where((x) => x.startsWith('upload:')), hasLength(1));
+    });
+
     test('homework: a plain 500 stays a retryable failure (not unavailable)', () async {
       final hr = FakeHomeworkRepository();
       final h = await signedIn();

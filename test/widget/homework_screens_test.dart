@@ -429,6 +429,37 @@ void main() {
       expect(find.text('sheet.pdf'), findsNothing);
     });
 
+    testWidgets('upload 403: "You can\'t upload ..." + server text, NO Retry, Remove still works, the form content is kept', (t) async {
+      repo.onUpload = (p, n, pr) async => throw ApiException('Forbidden resource', statusCode: 403);
+      final picker = FakePicker()..docs = [const PickedAttachment(name: 'sheet.pdf', path: '/tmp/sheet.pdf', size: 2048)];
+      final c = await boot(t, picker: picker);
+      c.titleC.text = 'Keep this title';
+      unawaited(c.pickDocuments());
+      await settle(t);
+      final id = c.attachments.single.id;
+      expect(find.text("You can't upload sheet.pdf. Forbidden resource"), findsOneWidget);
+      expect(find.byKey(ValueKey('att_err_$id')), findsOneWidget);
+      expect(find.byKey(ValueKey('retry_$id')), findsNothing);
+      expect(find.text('Upload unavailable'), findsNothing);
+      expect(find.byKey(ValueKey('remove_$id')), findsOneWidget);
+      expect(c.titleC.text, 'Keep this title');
+      await c.retryUpload(id);
+      expect(repo.calls.where((x) => x.startsWith('upload:')), hasLength(1), reason: 'no resend of a refused file');
+      await t.tap(find.byKey(ValueKey('remove_$id')));
+      await settle(t);
+      expect(c.attachments, isEmpty);
+    });
+
+    testWidgets('upload network failure keeps Retry (unchanged)', (t) async {
+      repo.onUpload = (p, n, pr) async => throw ApiException("Couldn't reach Eldermin. Check your internet connection.");
+      final picker = FakePicker()..docs = [const PickedAttachment(name: 'sheet.pdf', path: '/tmp/sheet.pdf', size: 2048)];
+      final c = await boot(t, picker: picker);
+      unawaited(c.pickDocuments());
+      await settle(t);
+      final id = c.attachments.single.id;
+      expect(find.byKey(ValueKey('retry_$id')), findsOneWidget);
+    });
+
     testWidgets('upload 503 (storage not configured): "Upload unavailable" + server text, NO Retry, "Continue without attachment" removes the file', (t) async {
       const text = 'File uploads are not available on this server (storage is not configured).';
       repo.onUpload = (p, n, pr) async => throw ApiException(text, statusCode: 503);

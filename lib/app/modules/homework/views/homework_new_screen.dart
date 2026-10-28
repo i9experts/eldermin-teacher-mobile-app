@@ -256,6 +256,7 @@ class _AttachmentRow extends StatelessWidget {
       final p = item.progress.value;
       final err = item.error.value;
       final unavailable = item.unavailable.value;
+      final forbidden = item.forbidden.value;
       final failed = st == UploadStatus.failed;
       final errStyle = EmType.caption.copyWith(color: EmColors.onErrorContainer);
       return Padding(
@@ -281,7 +282,7 @@ class _AttachmentRow extends StatelessWidget {
                   if (item.size > 0) Text(sizeText(item.size), style: EmType.caption.copyWith(color: EmColors.textSecondary)),
                 ]),
               ),
-              if (failed && !unavailable) TextButton(key: ValueKey('retry_${item.id}'), onPressed: onRetry, child: Text('Retry', style: EmType.label.copyWith(color: EmColors.primary))),
+              if (failed && !unavailable && !forbidden) TextButton(key: ValueKey('retry_${item.id}'), onPressed: onRetry, child: Text('Retry', style: EmType.label.copyWith(color: EmColors.primary))),
               IconButton(key: ValueKey('remove_${item.id}'), tooltip: 'Remove', onPressed: onRemove, icon: const Icon(Icons.close_rounded, size: 20, color: EmColors.textSecondary)),
             ]),
             if (st == UploadStatus.uploading)

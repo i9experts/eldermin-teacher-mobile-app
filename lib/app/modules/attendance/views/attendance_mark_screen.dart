@@ -392,7 +392,7 @@ class _BottomBar extends StatelessWidget {
       if (!c.roster.value.hasData) return const SizedBox.shrink();
       final missing = c.unmarked.length;
       final total = c.students_.length;
-      final failed = c.submitFailure.value != null && !c.classStale;
+      final failed = c.submitFailure.value != null && c.submitFailure.value!.canRetry && !c.classStale;
       final saving = c.submitting.value;
       final saved = !c.dirty && c.hasServerRecords && missing == 0;
       return DecoratedBox(

@@ -29,6 +29,9 @@ class AttachmentItem {
 
   /// The server said uploads are not available at all (503, storage not configured): no Retry, only "Continue without attachment".
   final unavailable = false.obs;
+
+  /// The server refused this file for this teacher (403): resending cannot succeed, so no Retry (only Remove).
+  final forbidden = false.obs;
   String? key;
 
   AttachmentItem({required this.id, required this.name, this.path, this.size = 0, this.key}) {
@@ -307,6 +310,7 @@ class HomeworkFormController extends GetxController {
     it.progress.value = 0;
     it.error.value = null;
     it.unavailable.value = false;
+    it.forbidden.value = false;
     try {
       final up = await repo.upload(
         path: path,
@@ -321,13 +325,14 @@ class HomeworkFormController extends GetxController {
       final f = ActionFailure.from(e, what: 'upload ${it.name}', keep: 'The file is kept.', upload: true);
       it.error.value = f.message;
       it.unavailable.value = f.kind == ActionFailureKind.uploadUnavailable;
+      it.forbidden.value = f.isForbidden;
       it.status.value = UploadStatus.failed;
     }
   }
 
   Future<void> retryUpload(String id) async {
     final it = attachments.firstWhereOrNull((a) => a.id == id);
-    if (it == null || it.status.value != UploadStatus.failed || it.unavailable.value) return; // uploads are unavailable: retrying would only hammer the server
+    if (it == null || it.status.value != UploadStatus.failed || it.unavailable.value || it.forbidden.value) return; // uploads unavailable (503) or refused (403): retrying would only hammer the server
     await _upload(it);
   }
 
