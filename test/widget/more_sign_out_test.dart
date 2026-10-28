@@ -77,6 +77,9 @@ void main() {
   }
 
   Future<void> openDialog(WidgetTester tester) async {
+    // the More list is long enough (Early Years is one more tile) that Sign out can sit below the first screenful
+    await tester.ensureVisible(find.byKey(const Key('more_sign_out')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('more_sign_out')));
     await tester.pumpAndSettle();
     expect(find.text('Sign out of Eldermin Teacher?'), findsOneWidget);

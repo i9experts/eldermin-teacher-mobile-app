@@ -54,7 +54,7 @@ const _adminPerms = {'hr:view', 'hr:manage', 'finance:view', 'finance:manage', '
 final personas = <Persona>[
   const Persona('plain teacher',
       classes: ['students', 'homework', 'lesson_plans', 'syllabus', 'assessments', 'behaviour'],
-      more: ['timetable', 'ptm', 'fixtures', 'leave', 'my_attendance', 'calendar', 'events', 'curriculum', 'library', 'safeguarding'],
+      more: ['timetable', 'ptm', 'fixtures', 'leave', 'my_attendance', 'calendar', 'events', 'curriculum', 'library', 'early_years', 'safeguarding'],
       quick: ['Homework', 'Lesson plans', 'Assessments & marks', 'Behaviour & Tarbiyah', 'My leave', 'Parent meetings'],
       perms: _teacherPerms,
       noPerms: _adminPerms,
@@ -63,7 +63,7 @@ final personas = <Persona>[
   Persona('class teacher',
       classTeacher: true,
       classes: ['students', 'attendance', 'homework', 'lesson_plans', 'syllabus', 'assessments', 'behaviour'],
-      more: ['timetable', 'student_leaves', 'ptm', 'fixtures', 'leave', 'my_attendance', 'calendar', 'events', 'curriculum', 'library', 'safeguarding'],
+      more: ['timetable', 'student_leaves', 'ptm', 'fixtures', 'leave', 'my_attendance', 'calendar', 'events', 'curriculum', 'library', 'early_years', 'safeguarding'],
       quick: ['Attendance', 'Homework', 'Lesson plans', 'Assessments & marks', 'Behaviour & Tarbiyah', 'My leave', 'Parent meetings'],
       perms: _teacherPerms,
       noPerms: _adminPerms,
@@ -269,7 +269,7 @@ void main() {
         for (final fixed in ['Notifications', 'Profile', 'Help', 'About', 'Request account deletion', 'Sign out']) {
           expect(find.text(fixed), findsOneWidget, reason: fixed);
         }
-        for (final admin in ['Payroll', 'Finance', 'Fees', 'Roles', 'Users', 'Settings', 'Admin', 'Recruitment', 'Early Years']) {
+        for (final admin in ['Payroll', 'Finance', 'Fees', 'Roles', 'Users', 'Settings', 'Admin', 'Recruitment']) {
           expect(find.textContaining(admin), findsNothing, reason: admin);
         }
       });

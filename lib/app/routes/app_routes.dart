@@ -74,6 +74,10 @@ abstract class Routes {
   static const curriculumDetail = '/curriculum/:id';
   static const library = '/library';
   static const earlyYears = '/early-years';
+  static const earlyYearsChild = '/early-years/child/:id';
+  static const earlyYearsQuick = '/early-years/child/:id/quick';
+  static const earlyYearsObserve = '/early-years/child/:id/observe';
+  static const earlyYearsPortfolioNew = '/early-years/child/:id/portfolio/new';
   static const safeguarding = '/safeguarding';
   static const profile = '/profile';
   static const help = '/help';
@@ -102,6 +106,10 @@ abstract class Routes {
   static String assessmentReportRemarksOf(String assessmentId) => '/assessments/report-remarks?assessmentId=$assessmentId';
   static String curriculumDetailOf(String id) => '/curriculum/$id';
   static String behaviourStudentOf(String id) => '/behaviour/student/$id';
+  static String earlyYearsChildOf(String id) => '/early-years/child/$id';
+  static String earlyYearsQuickOf(String id) => '/early-years/child/$id/quick';
+  static String earlyYearsObserveOf(String id) => '/early-years/child/$id/observe';
+  static String earlyYearsPortfolioNewOf(String id) => '/early-years/child/$id/portfolio/new';
   static String ptmDetailOf(String id) => '/ptm/$id';
   static String fixtureDetailOf(String id) => '/fixtures/$id';
   static String studentLeaveDetailOf(String id) => '/student-leaves/$id';
@@ -161,6 +169,10 @@ abstract class Routes {
     curriculumDetail,
     library,
     earlyYears,
+    earlyYearsChild,
+    earlyYearsQuick,
+    earlyYearsObserve,
+    earlyYearsPortfolioNew,
     safeguarding,
     profile,
     help,

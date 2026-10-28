@@ -39,7 +39,7 @@ void main() {
       '/ptm', '/ptm/new', '/ptm/:id', '/fixtures', '/fixtures/:id', '/leave', '/leave/apply', '/my-attendance', '/my-attendance/correct',
       '/student-leaves', '/student-leaves/:id', '/messages', '/messages/new', '/messages/:threadId',
       '/calendar', '/events', '/events/:id', '/curriculum', '/library',
-      '/early-years', '/safeguarding',
+      '/early-years', '/early-years/child/:id', '/early-years/child/:id/quick', '/early-years/child/:id/observe', '/early-years/child/:id/portfolio/new', '/safeguarding',
       '/profile', '/help', '/help/:module/:tabKey', '/about', '/delete-account',
       '/home', '/home/classes', '/home/attendance', '/home/messages', '/home/more',
       '/splash', '/login', '/unsupported-role',
@@ -63,6 +63,10 @@ void main() {
   test('parameter helpers build concrete locations', () {
     expect(Routes.homeworkGradeOf('h1', 's2'), '/homework/h1/submissions/s2/grade');
     expect(Routes.studentDetailOf('42'), '/students/42');
+    expect(Routes.earlyYearsChildOf('c1'), '/early-years/child/c1');
+    expect(Routes.earlyYearsQuickOf('c1'), '/early-years/child/c1/quick');
+    expect(Routes.earlyYearsObserveOf('c1'), '/early-years/child/c1/observe');
+    expect(Routes.earlyYearsPortfolioNewOf('c1'), '/early-years/child/c1/portfolio/new');
   });
 
   group('module catalog visibility', () {
@@ -72,9 +76,12 @@ void main() {
     List<String> ids(ModulePlacement p, PermissionService s, {required bool classTeacher}) =>
         ModuleCatalog.visible(p, s, isClassTeacher: classTeacher).map((e) => e.id).toList();
 
-    test('Early Years slot exists but is hidden in v1', () {
+    test('Early Years is in More for a teacher with early-years:view, and hidden without it', () {
       expect(ModuleCatalog.all.any((e) => e.id == 'early_years'), isTrue);
-      expect(ids(ModulePlacement.more, teacher, classTeacher: true), isNot(contains('early_years')));
+      expect(ids(ModulePlacement.more, teacher, classTeacher: true), contains('early_years'));
+      expect(ids(ModulePlacement.more, teacher, classTeacher: false), contains('early_years'));
+      final custom = PermissionService(role: 'teacher', customPermissions: const ['teaching:view']);
+      expect(ids(ModulePlacement.more, custom, classTeacher: false), isNot(contains('early_years')));
     });
 
     test('class-teacher-only entries need the class-teacher flag', () {

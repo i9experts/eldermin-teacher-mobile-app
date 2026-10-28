@@ -179,7 +179,7 @@ void main() {
     test('class teacher: everything the base matrix gives, incl. attendance (via teaching:view), my attendance and Mark complete', () async {
       final h = await _boot(classTeacher: true);
       expect(_classes(h), ['students', 'attendance', 'homework', 'lesson_plans', 'syllabus', 'assessments', 'behaviour']);
-      expect(_more(h), ['timetable', 'student_leaves', 'ptm', 'fixtures', 'leave', 'my_attendance', 'calendar', 'events', 'curriculum', 'library', 'safeguarding']);
+      expect(_more(h), ['timetable', 'student_leaves', 'ptm', 'fixtures', 'leave', 'my_attendance', 'calendar', 'events', 'curriculum', 'library', 'early_years', 'safeguarding']);
       final repo = FakeFixturesRepository()..list = (s, f) async => [fixture('c1')];
       final c = FixturesController(repository: repo, auth: h.auth, permissions: h.perms, clock: () => DateTime(2026, 10, 8, 13));
       await c.reload();
