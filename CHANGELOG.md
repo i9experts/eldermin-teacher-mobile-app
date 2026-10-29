@@ -1,14 +1,15 @@
 # Changelog
 
-Eldermin Teacher (`version: 0.1.0+1`, nothing released yet). One branch per phase; reports in `../eldermin-teacher-app-docs/phase*/`.
+Eldermin Teacher (`version: 1.0.0+1`, first store release). One branch per phase; reports in `../eldermin-teacher-app-docs/phase*/`.
 
-## Release A1 (branch `release/teacher-v1` = design/auth-motion + feat/behaviour-tarbiyah)
+## 1.0.0+1 (first store release; branch `release/teacher-v1` = design/auth-motion + feat/behaviour-tarbiyah)
 - Android release signing never falls back to the debug key: the build fails with a clear message without `android/key.properties`. Unused Firebase (plugin, `firebase_core`, `firebase.json`, iOS plist references) removed; there is no push in v1.
 - Student 360 "Recent results" reads the marks collection (`GET /assessments/marks/list?studentId=`) instead of the legacy results the 360 returns.
 - Create / edit / approve controls are hidden from view-only custom roles (homework, lesson plans, PTM, syllabus ticks, marks, remarks, quiz grading, student-leave decisions, attendance marking, quick actions) and their screens are refused by the route guard. My leave and My attendance are always visible.
 - Suspended school (403 SCHOOL_SUSPENDED): the server message on a full-screen state with Log out. Deactivated staff (401 "no longer active"): signed out with "Your account is no longer active. Please contact your school."
 - The in-app account-deletion request is removed (as in the parent app); Help: "To have your data deleted, please contact your school."
 - Release hygiene: one logger behind `kDebugMode`, privacy manifest declares Name, no TODO / local URL / test credential in `lib/` (enforced by `test/core/release_hygiene_test.dart`).
+- Write actions that the server refuses (403) say "You can't <action>." and never show the server's raw or role-key text. Behaviour: both tab counts show with the screen ("50+" while more pages exist). SCHOOL_SUSPENDED is recognised by the error code first (wording only as a fallback).
 - Tarbiyah: create and edit an assessment for a student of my own classes (traits and scale from the school's programme; author edits only; no share switch yet). "My entries" is asked of the server (`mine=true`).
 
 ## Hotfix: subject-wise attendance (branch `hotfix/attendance-subject`)
