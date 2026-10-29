@@ -18,7 +18,7 @@ Phase 8 verified locally only (unit / widget tests, local stub, local database `
 
 ## 2. Google Play (closed testing)
 - [ ] Create the upload key once (see `android/key.properties.example`), store the keystore and passwords OUTSIDE the repo, copy the example to `android/key.properties`.
-- [ ] `flutter build appbundle --release --dart-define=...`; confirm Gradle did NOT print the "signed with the DEBUG key" warning.
+- [ ] `flutter build appbundle --release --dart-define=...`; the build fails if `android/key.properties` is missing or incomplete (it never falls back to the debug key).
 - [ ] Play Console: app `com.eldermin.eldermin_teacher_app`, enrol in Play App Signing, upload the bundle to a CLOSED testing track, add tester emails.
 - [ ] Data safety form: account info (name, email, user id), user content (messages, homework, safeguarding text, profile photo), data in transit encrypted, deletion by request to the school; no ads, no location, no contacts, no analytics SDK. Declared permissions: INTERNET only (+ ACCESS_NETWORK_STATE from a plugin): `../eldermin-teacher-app-docs/phase8/PERMISSIONS_AUDIT.md`.
 - [ ] Provide a demo teacher account for reviewers (see the App Store notes; never commit credentials).

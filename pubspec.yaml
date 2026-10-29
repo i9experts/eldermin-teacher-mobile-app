@@ -41,7 +41,6 @@ dependencies:
   package_info_plus: ^8.0.0
   # Deep links (reset-password / token+slug auto-login) - wired in Phase 3.
   app_links: ^6.3.2
-  firebase_core: ^4.15.0
 
 dev_dependencies:
   flutter_test:

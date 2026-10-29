@@ -2,17 +2,13 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
-    id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 // Release signing comes from android/key.properties (git-ignored; copy key.properties.example and fill it in).
-// Without it the release build falls back to the DEBUG key so `flutter run --release` / CI smoke builds still work,
-// and a loud warning is printed: such a build must NEVER be uploaded to Google Play.
+// A release build NEVER falls back to the debug key: without key.properties (or with an incomplete one) the build fails.
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 val hasReleaseKey = keystorePropertiesFile.exists()
@@ -58,10 +54,29 @@ android {
         release {
             if (hasReleaseKey) {
                 signingConfig = signingConfigs.getByName("release")
-            } else {
-                logger.warn("WARNING: android/key.properties not found: the RELEASE build is signed with the DEBUG key. Do NOT upload it to Google Play (see RELEASE_CHECKLIST.md).")
-                signingConfig = signingConfigs.getByName("debug")
             }
+        }
+    }
+}
+
+// Fail fast, before any release task runs, instead of silently producing a debug-signed release.
+gradle.taskGraph.whenReady {
+    val buildsRelease = allTasks.any { it.name.contains("Release", ignoreCase = true) && it.project == project }
+    if (buildsRelease) {
+        if (!hasReleaseKey) {
+            throw GradleException(
+                "Release signing is not configured: android/key.properties is missing. " +
+                    "Copy android/key.properties.example to android/key.properties and fill in the upload keystore details. " +
+                    "A release build is never signed with the debug key."
+            )
+        }
+        val missing = listOf("keyAlias", "keyPassword", "storeFile", "storePassword")
+            .filter { keystoreProperties.getProperty(it).isNullOrBlank() }
+        if (missing.isNotEmpty()) {
+            throw GradleException("android/key.properties is incomplete, missing: ${missing.joinToString()}.")
+        }
+        if (!file(keystoreProperties.getProperty("storeFile")).exists()) {
+            throw GradleException("android/key.properties storeFile does not exist: ${keystoreProperties.getProperty("storeFile")}.")
         }
     }
 }

@@ -46,8 +46,8 @@ flutter build apk --debug
 flutter build ios --no-codesign --debug
 flutter build appbundle --release      # needs android/key.properties, see RELEASE_CHECKLIST.md
 ```
-Android release signing reads `android/key.properties` (copy `android/key.properties.example`; git-ignored). Without it the release build is signed
-with the DEBUG key and Gradle prints a warning: never upload that build. iOS signing: set the team in Xcode (Signing & Capabilities); `DEVELOPMENT_TEAM`
+Android release signing reads `android/key.properties` (copy `android/key.properties.example`; git-ignored). Without it the release build FAILS with a clear message
+(it is never signed with the debug key). iOS signing: set the team in Xcode (Signing & Capabilities); `DEVELOPMENT_TEAM`
 is intentionally unset. Bundle ids: Android `com.eldermin.eldermin_teacher_app`, iOS `com.eldermin.elderminTeacherApp`.
 
 ## Firebase / push
