@@ -97,6 +97,15 @@ void main() {
       expect(repo.calls.where((x) => x.startsWith('complete')), ['complete:c1']);
     });
 
+    test('Mark complete: a 403 is a friendly message, never a crash, and the row stays assigned', () async {
+      final c = await make();
+      repo.complete0 = (id) async => fail7b(403, 'Forbidden resource');
+      final r = await c.complete('c1');
+      expect(r, isA<CompleteFailed>());
+      expect((r as CompleteFailed).text, startsWith("You can't"));
+      expect(c.find('c1')!.status, isNot('completed'));
+    });
+
     test('Mark complete: one at a time, and a second tap on the same row sends nothing', () async {
       final c = await make();
       final gate = Completer<Substitution>();

@@ -9,6 +9,7 @@ import '../../homework/views/widgets/homework_widgets.dart';
 import '../controllers/student_leaves_controller.dart';
 import 'student_leaves_screen.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// One leave request (`/student-leaves/:id`): details + approve / reject (confirm sheet with optional remarks).
 /// There is no "get one" endpoint, so the request is found in the lists the controller loads.
@@ -78,7 +79,7 @@ class _State extends State<StudentLeaveDetailScreen> {
                 if (l.approverNote.isNotEmpty) Padding(padding: const EdgeInsets.only(top: EmSpacing.s8), child: Text('Remarks: ${l.approverNote}', style: EmType.body.copyWith(color: EmColors.textSecondary, fontWeight: FontWeight.w400))),
               ]),
             ),
-          if (l.isPending) ...[
+          if (l.isPending && canApproveStudentLeaves) ...[
             const SizedBox(height: EmSpacing.s4),
             Row(children: [
               Expanded(child: EmSecondaryButton(key: const Key('leave_reject'), expand: true, destructive: true, label: 'Reject', onPressed: () => _review(l, LeaveStatus.rejected))),

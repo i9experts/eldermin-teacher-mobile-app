@@ -105,10 +105,12 @@ void main() {
     testWidgets('custom role without a permission is blocked from that module (and its detail routes) only', (t) async {
       await _boot(t, custom: ['teaching:view', 'students:view', 'leave:self']);
       await _app(t);
-      for (final r in [Routes.assessments, Routes.assessmentDetailOf(_id), Routes.assessmentMarksOf(_id), Routes.behaviour, Routes.behaviourStudentOf(_id), Routes.events, Routes.eventDetailOf(_id), Routes.calendar, Routes.curriculum, Routes.library, Routes.myAttendance, Routes.myAttendanceCorrect]) {
+      for (final r in [Routes.assessments, Routes.assessmentDetailOf(_id), Routes.assessmentMarksOf(_id), Routes.behaviour, Routes.behaviourStudentOf(_id), Routes.events, Routes.eventDetailOf(_id), Routes.calendar, Routes.curriculum, Routes.library]) {
         expect(await _opens(t, r), isFalse, reason: r);
       }
-      for (final r in [Routes.homework, Routes.timetable, Routes.ptmDetailOf(_id), Routes.students, Routes.leaveApply, Routes.safeguarding]) {
+      for (final r in [Routes.homework, Routes.timetable, Routes.ptmDetailOf(_id), Routes.students, Routes.leaveApply, Routes.safeguarding,
+        // self-service: a custom role never removes it, with or without a leave:self / attendance:self key
+        Routes.myAttendance, Routes.myAttendanceCorrect]) {
         expect(await _opens(t, r), isTrue, reason: r);
       }
     });

@@ -12,6 +12,7 @@ import '../controllers/syllabus_controller.dart';
 import '../controllers/syllabus_detail_controller.dart';
 import 'widgets/syllabus_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// One syllabus (`/syllabus/:id`): overall and per-unit / per-topic progress, tickable topics and sub-topics (optimistic, rolled back on
 /// failure), and each topic's lessons (read-only). Approve / publish / delete / design edits are coordinator actions and are not offered.
@@ -107,7 +108,7 @@ class SyllabusDetailScreen extends GetView<SyllabusDetailController> {
           else
             KeyedSubtree(
               key: ValueKey('tick_topic_${u.no}_${t.no}'),
-              child: CoverageBox(covered: covered, busy: topicBusy, onTap: () => _tick(context, list.markTopic(s.id, u.no, t.no, !covered))),
+              child: CoverageBox(enabled: canWriteSyllabus, covered: covered, busy: topicBusy, onTap: () => _tick(context, list.markTopic(s.id, u.no, t.no, !covered))),
             ),
           Expanded(
             child: InkWell(
@@ -131,7 +132,7 @@ class SyllabusDetailScreen extends GetView<SyllabusDetailController> {
               const SizedBox(width: EmSpacing.s16),
               KeyedSubtree(
                 key: ValueKey('tick_sub_${u.no}_${t.no}_${sub.no}'),
-                child: CoverageBox(covered: sub.isCovered, busy: pending.contains('s:${s.id}:${u.no}:${t.no}:${sub.no}'), onTap: () => _tick(context, list.markSubTopic(s.id, u.no, t.no, sub.no, !sub.isCovered))),
+                child: CoverageBox(enabled: canWriteSyllabus, covered: sub.isCovered, busy: pending.contains('s:${s.id}:${u.no}:${t.no}:${sub.no}'), onTap: () => _tick(context, list.markSubTopic(s.id, u.no, t.no, sub.no, !sub.isCovered))),
               ),
               Expanded(child: Text(sub.name, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400))),
               if (sub.plannedWeek != null) ...[const SizedBox(width: EmSpacing.s8), AppTag('WEEK ${sub.plannedWeek}', style: EmTone.neutral)],

@@ -12,6 +12,7 @@ import '../controllers/ptm_detail_controller.dart';
 import 'ptm_action_sheets.dart';
 import 'widgets/ptm_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// One meeting (`/ptm/:id`). The controller is created here, tagged by id (a controller registered beforehand is reused, tests).
 class PtmDetailScreen extends StatefulWidget {
@@ -134,7 +135,7 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
       ],
       if (m.actionItems.isNotEmpty) ...[
         const SubHeading('Action items'),
-        for (final a in m.actionItems) _actionItem(m, a, enabled: allowed.contains(PtmAction.toggleActionItems)),
+        for (final a in m.actionItems) _actionItem(m, a, enabled: allowed.contains(PtmAction.toggleActionItems) && canWritePtm),
       ],
       const SizedBox(height: EmSpacing.s4),
       ..._buttons(m, allowed, busy),
@@ -188,6 +189,8 @@ class _PtmDetailScreenState extends State<PtmDetailScreen> {
   List<Widget> _buttons(ParentMeeting m, Set<PtmAction> allowed, PtmAction? busy) {
     Widget btn(PtmAction a, String key, String label, IconData icon, VoidCallback onTap, {bool primary = false, bool danger = false}) {
       if (!allowed.contains(a)) return const SizedBox.shrink();
+      // writes need ptm:manage; messaging the guardian is not a meeting write
+      if (a != PtmAction.messageGuardian && !canWritePtm) return const SizedBox.shrink();
       final working = busy == a;
       final off = busy != null;
       return Padding(

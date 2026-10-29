@@ -104,6 +104,28 @@ class ModuleCatalog {
     return null;
   }
 
+  /// Screens that exist only to WRITE (create / edit / approve forms), with the permission that writes there:
+  /// `(module, sub-module)` for [PermissionService.canManage]. A view-only custom role is not offered them in the UI and the route guard
+  /// refuses them (a notification target or a deep link must not open a form the role may not use). The marks grid is not listed: it opens read-only.
+  static const List<({String pattern, String module, String? sub})> _writeLocations = [
+    (pattern: r'^/homework/new$', module: 'teaching', sub: 'homework'),
+    (pattern: r'^/homework/[^/]+/submissions/[^/]+/grade$', module: 'teaching', sub: 'homework'),
+    (pattern: r'^/lesson-plans/(new|upload)$', module: 'teaching', sub: 'lesson-plans'),
+    (pattern: r'^/ptm/new$', module: 'teaching', sub: 'ptm'),
+    (pattern: r'^/attendance/mark$', module: 'teaching', sub: 'attendance'),
+    (pattern: r'^/assessments/report-remarks$', module: 'assessments', sub: null),
+    (pattern: r'^/behaviour/new$', module: 'behaviour', sub: null),
+  ];
+
+  /// May [location] be opened given what the user may WRITE? True for every read screen.
+  static bool writeAllowed(String location, PermissionService permissions) {
+    final path = Uri.tryParse(location)?.path ?? location;
+    for (final w in _writeLocations) {
+      if (RegExp(w.pattern).hasMatch(path)) return permissions.canManage(w.module, subModuleKey: w.sub);
+    }
+    return true;
+  }
+
   static ModuleEntry? byId(String id) {
     for (final e in all) {
       if (e.id == id) return e;

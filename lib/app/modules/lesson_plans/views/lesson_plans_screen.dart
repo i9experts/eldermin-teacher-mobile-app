@@ -9,6 +9,7 @@ import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
 import '../controllers/lesson_plans_controller.dart';
 import 'widgets/lesson_plan_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// My lesson plans (`/lesson-plans`): status chips (with counts), rejection reasons on rejected plans, create and "Upload & parse".
 class LessonPlansScreen extends GetView<LessonPlansController> {
@@ -20,7 +21,7 @@ class LessonPlansScreen extends GetView<LessonPlansController> {
       appBar: EmAppBar(
         title: 'Lesson plans',
         actions: [
-          Obx(() => controller.canView && controller.state.value.status != SectionStatus.forbidden
+          Obx(() => controller.canView && canWriteLessonPlans && controller.state.value.status != SectionStatus.forbidden
               ? EmIconCircleButton(
                   key: const Key('lp_upload_action'),
                   icon: Icons.upload_file_rounded,
@@ -31,7 +32,7 @@ class LessonPlansScreen extends GetView<LessonPlansController> {
               : const SizedBox.shrink()),
         ],
       ),
-      floatingActionButton: Obx(() => controller.canView && controller.state.value.status != SectionStatus.forbidden
+      floatingActionButton: Obx(() => controller.canView && canWriteLessonPlans && controller.state.value.status != SectionStatus.forbidden
           ? FloatingActionButton.extended(
               key: const Key('lp_new_fab'),
               onPressed: () => Get.toNamed(Routes.lessonPlanNew),

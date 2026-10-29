@@ -12,6 +12,7 @@ import '../controllers/lesson_plan_detail_controller.dart';
 import '../controllers/lesson_plan_form_controller.dart';
 import 'widgets/lesson_plan_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// One plan (`/lesson-plans/:id`): all fields, status, the rejection reason (ONLY when rejected) or approver notes (ONLY when approved),
 /// and the actions the status allows: submit, edit, edit and resubmit. Approving / rejecting is a coordinator action and is not offered.
@@ -97,11 +98,11 @@ class LessonPlanDetailScreen extends GetView<LessonPlanDetailController> {
       _section('Assessment', p.assessment),
       _section('Homework', p.homework),
       const SizedBox(height: EmSpacing.block),
-      if (p.canSubmit) ...[
+      if (p.canSubmit && canWriteLessonPlans) ...[
         EmPrimaryButton(key: const Key('lp_submit'), icon: Icons.send_rounded, loading: busy, label: 'Submit for approval', onPressed: busy ? null : () => _submit(context, p)),
         const SizedBox(height: EmSpacing.s8),
       ],
-      if (p.canEdit)
+      if (p.canEdit && canWriteLessonPlans)
         p.status == LessonPlanStatus.rejected
             ? EmPrimaryButton(key: const Key('lp_edit'), icon: Icons.edit_outlined, label: 'Edit and resubmit', onPressed: busy ? null : () => _edit(p))
             : EmSecondaryButton(key: const Key('lp_edit'), expand: true, icon: Icons.edit_outlined, label: 'Edit', onPressed: busy ? null : () => _edit(p)),

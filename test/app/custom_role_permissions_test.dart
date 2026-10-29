@@ -95,26 +95,30 @@ void main() {
   tearDown(Get.reset);
 
   group('persona A: real custom role (teaching:<sub>:* keys, no students:*), class teacher', () {
-    test('Classes + More: Teaching sub-modules, assessments, calendar, events, curriculum, library, safeguarding; NOT students / behaviour / leave / my attendance / early years', () async {
+    test('Classes + More: Teaching sub-modules, assessments, calendar, events, curriculum, library, safeguarding; NOT students / behaviour / early years; My leave and My attendance always', () async {
       final h = await _boot(classTeacher: true, custom: personaA);
       expect(_classes(h), ['attendance', 'homework', 'lesson_plans', 'syllabus', 'assessments']);
-      expect(_more(h), ['timetable', 'student_leaves', 'ptm', 'fixtures', 'calendar', 'events', 'curriculum', 'library', 'safeguarding']);
+      // My leave and My attendance are self-service: a custom role never removes them
+      expect(_more(h), ['timetable', 'student_leaves', 'ptm', 'fixtures', 'leave', 'my_attendance', 'calendar', 'events', 'curriculum', 'library', 'safeguarding']);
       final v = _visible(h);
-      // my_attendance needs `attendance:self`, which this role does not grant; students needs students:view; behaviour needs behaviour:view
-      for (final hidden in ['students', 'behaviour', 'leave', 'my_attendance', 'early_years']) {
+      // students needs students:view; behaviour needs behaviour:view
+      for (final hidden in ['students', 'behaviour', 'early_years']) {
         expect(v, isNot(contains(hidden)), reason: hidden);
       }
     });
 
-    test('every Teaching route (list, forms, detail, sub-routes, /home/attendance) is allowed by the route guard; students / behaviour / leave routes are not', () async {
+    test('every Teaching route (list, forms, detail, sub-routes, /home/attendance) is allowed by the route guard; students / behaviour routes are not, My leave / My attendance are', () async {
       final h = await _boot(classTeacher: true, custom: personaA);
       for (final e in _routesOf.entries) {
         for (final r in e.value) {
           expect(_allows(h, r), isTrue, reason: '${e.key} $r');
         }
       }
-      for (final r in [Routes.students, Routes.studentDetailOf(_id), Routes.behaviour, Routes.leave, Routes.myAttendance, Routes.earlyYears]) {
+      for (final r in [Routes.students, Routes.studentDetailOf(_id), Routes.behaviour, Routes.earlyYears]) {
         expect(_allows(h, r), isFalse, reason: r);
+      }
+      for (final r in [Routes.leave, Routes.leaveApply, Routes.myAttendance, Routes.myAttendanceCorrect]) {
+        expect(_allows(h, r), isTrue, reason: 'self-service $r');
       }
     });
 
@@ -131,12 +135,12 @@ void main() {
       final c = _home(h, repo);
       expect(c.showClassCard, isTrue);
       expect([c.showTimetable, c.showHomework, c.showLessonPlans, c.showPtms, c.showSubstitutions], everyElement(isTrue));
-      expect(c.quickActions.map((a) => a.label).toList(), ['Attendance', 'Homework', 'Lesson plans', 'Assessments & marks', 'Parent meetings']);
+      expect(c.quickActions.map((a) => a.label).toList(), ['Attendance', 'Homework', 'Lesson plans', 'Assessments & marks', 'My leave', 'Parent meetings']);
       await c.loadAll();
       expect(repo.calls.where((x) => x.startsWith('timetable') || x == 'myTimetable'), isNotEmpty);
       expect(repo.calls.where((x) => x.startsWith('fixtures')), isNotEmpty);
       expect(repo.calls.where((x) => x.startsWith('roster')), isNotEmpty, reason: 'class card');
-      expect(shellQuickActions(permissions: h.perms, isClassTeacher: true).map((a) => a.label), ['Mark Attendance', 'Add Homework', 'Timetable']);
+      expect(shellQuickActions(permissions: h.perms, isClassTeacher: true).map((a) => a.label), ['Mark Attendance', 'Add Homework', 'Apply Leave', 'Timetable']);
     });
 
     test('controller gates: homework / lesson plans / syllabus / timetable all allowed', () async {
@@ -202,16 +206,16 @@ void main() {
   });
 
   group('persona C: minimal custom roles', () {
-    test('[] -> nothing but the ungated safeguarding report; every Teaching route blocked; Home makes no request', () async {
+    test('[] -> only self-service (My leave, My attendance) and the ungated safeguarding report; every Teaching route blocked; Home makes no request', () async {
       final h = await _boot(classTeacher: true, custom: const []);
-      expect(_visible(h), ['safeguarding']);
+      expect(_visible(h), ['leave', 'my_attendance', 'safeguarding']);
       for (final r in _routesOf.values.expand((x) => x)) {
         expect(_allows(h, r), isFalse, reason: r);
       }
       final repo = FakeHomeRepository();
       final c = _home(h, repo);
       expect(c.showClassCard, isFalse);
-      expect(c.quickActions, isEmpty);
+      expect(c.quickActions.map((a) => a.label), ['My leave']);
       await c.loadAll();
       expect(repo.calls.where((x) => !x.startsWith('threads') && !x.startsWith('unread')), isEmpty);
     });
@@ -219,7 +223,7 @@ void main() {
     test("['teaching:view'] (module-wide) -> every Teaching entry incl. attendance (class teacher); students hidden; Mark complete hidden", () async {
       final h = await _boot(classTeacher: true, custom: const ['teaching:view']);
       expect(_classes(h), ['attendance', 'homework', 'lesson_plans', 'syllabus']);
-      expect(_more(h), ['timetable', 'student_leaves', 'ptm', 'fixtures', 'safeguarding']);
+      expect(_more(h), ['timetable', 'student_leaves', 'ptm', 'fixtures', 'leave', 'my_attendance', 'safeguarding']);
       expect(_visible(h), isNot(contains('students')));
       final repo = FakeFixturesRepository()..list = (s, f) async => [fixture('c1')];
       final c = FixturesController(repository: repo, auth: h.auth, permissions: h.perms, clock: () => DateTime(2026, 10, 8, 13));
@@ -234,16 +238,18 @@ void main() {
       // DECISION NOTE: student_leaves stays `teaching:view` + class teacher WITHOUT a sub-module (backend /staff-portal is not custom-role gated),
       // so under the web's any-sub-grant rule a class teacher holding any teaching:*:view key still sees it.
       expect(v.contains('student_leaves'), isTrue);
+      // view-only: the read screens of homework open, its write screens (new / edit, grading) do not
+      final homeworkWrites = {Routes.homeworkNew, Routes.homeworkGradeOf(_id, _id)};
       for (final e in _routesOf.entries) {
         for (final r in e.value) {
-          expect(_allows(h, r), e.key == 'homework', reason: '${e.key} $r');
+          expect(_allows(h, r), e.key == 'homework' && !homeworkWrites.contains(r), reason: '${e.key} $r');
         }
       }
       final repo = FakeHomeRepository();
       final c = _home(h, repo);
       expect([c.showTimetable, c.showSubstitutions, c.showLessonPlans, c.showPtms, c.showClassCard], everyElement(isFalse));
       expect(c.showHomework, isTrue);
-      expect(c.quickActions.map((a) => a.label), ['Homework']);
+      expect(c.quickActions.map((a) => a.label), ['Homework', 'My leave']);
       await c.loadAll();
       expect(repo.calls.where((x) => x.startsWith('timetable') || x == 'myTimetable' || x.startsWith('fixtures') || x.startsWith('lessonPlans') || x.startsWith('ptm') || x.startsWith('roster') || x.startsWith('attendance')), isEmpty);
       expect(repo.calls.where((x) => x.startsWith('assignments') || x == 'pendingGrading'), isNotEmpty);
@@ -256,12 +262,12 @@ void main() {
 
     test("['teaching:homework:view'], not a class teacher: only homework in the whole app", () async {
       final h = await _boot(custom: const ['teaching:homework:view']);
-      expect(_visible(h), ['homework', 'safeguarding']);
+      expect(_visible(h), ['homework', 'leave', 'my_attendance', 'safeguarding']);
     });
 
     test("['teaching:homework:manage'] -> homework visible (manage implies view)", () async {
       final h = await _boot(custom: const ['teaching:homework:manage']);
-      expect(_visible(h), ['homework', 'safeguarding']);
+      expect(_visible(h), ['homework', 'leave', 'my_attendance', 'safeguarding']);
     });
 
     test("['teaching:fixtures:manage'] -> Substitutions visible AND Mark complete offered; ['teaching:manage'] (module-wide) too; fixtures:view not", () async {
@@ -274,7 +280,7 @@ void main() {
       }
 
       final h = await _boot(custom: const ['teaching:fixtures:manage']);
-      expect(_visible(h), ['fixtures', 'safeguarding']);
+      expect(_visible(h), ['fixtures', 'leave', 'my_attendance', 'safeguarding']);
       expect(await manage(const ['teaching:fixtures:manage']), isTrue);
       expect(await manage(const ['teaching:manage']), isTrue);
       expect(await manage(const ['teaching:fixtures:view']), isFalse);
@@ -285,7 +291,7 @@ void main() {
       final h = await _boot(custom: personaA);
       expect(_visible(h), isNot(contains('attendance')));
       expect(_visible(h), isNot(contains('student_leaves')));
-      expect(shellQuickActions(permissions: h.perms, isClassTeacher: false).map((a) => a.label), ['Add Homework', 'Timetable']);
+      expect(shellQuickActions(permissions: h.perms, isClassTeacher: false).map((a) => a.label), ['Add Homework', 'Apply Leave', 'Timetable']);
       for (final r in _routesOf['attendance']!) {
         expect(_allows(h, r), isFalse, reason: r);
       }
@@ -301,7 +307,11 @@ void main() {
         await h.auth.refreshProfile(force: true);
       });
       await _app(t);
-      expect(await _opens(t, Routes.homeworkGradeOf(_id, _id)), isTrue);
+      expect(await _opens(t, Routes.homeworkDetailOf(_id)), isTrue);
+      expect(await _opens(t, Routes.homeworkSubmissionsOf(_id)), isTrue);
+      // view-only: the grading form and the new / edit form are refused
+      expect(await _opens(t, Routes.homeworkGradeOf(_id, _id)), isFalse);
+      expect(await _opens(t, Routes.homeworkNew), isFalse);
       for (final e in _routesOf.entries.where((e) => e.key != 'homework')) {
         for (final r in e.value) {
           expect(await _opens(t, r), isFalse, reason: r);

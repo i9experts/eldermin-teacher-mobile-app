@@ -7,6 +7,7 @@ import '../../../routes/app_routes.dart';
 import '../controllers/submissions_controller.dart';
 import 'widgets/homework_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// Submissions of one assignment (`/homework/:id/submissions`): the whole class roster with who handed in, who is late, who still has
 /// to be graded and who has not handed in at all.
@@ -65,7 +66,11 @@ class HomeworkSubmissionsScreen extends GetView<SubmissionsController> {
               SubmissionTile(
                 submission: s,
                 onTap: () {
-                  if (c.canGrade(s)) {
+                  if (c.canGrade(s) && !canWriteHomework) {
+                    ScaffoldMessenger.of(Get.context!)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(const SnackBar(content: Text("You have view-only access to homework, so you can't grade.")));
+                  } else if (c.canGrade(s)) {
                     Get.toNamed(Routes.homeworkGradeOf(c.assignmentId, s.id));
                   } else {
                     ScaffoldMessenger.of(Get.context!)

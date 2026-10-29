@@ -44,6 +44,12 @@ class PermissionService {
   bool canAccess(String permission, {String? subModuleKey}) =>
       _set.has(permission, subModuleKey: subModuleKey);
 
+  /// May this user CREATE / EDIT / APPROVE in [module] (optionally one [subModuleKey])? Same permission source as module visibility ([canSee]):
+  /// `user.permissions` from `GET /staff-portal/me`. A school-defined custom role must hold `module[:sub]:manage` (a view-only role is read-only).
+  /// The built-in teacher (no custom role) keeps its writes: the base matrix has no `teaching:manage`, and the server lets the teacher role
+  /// through those routes (`STAFF_WRITE_ROLES`, auth/role-sets.ts).
+  bool canManage(String module, {String? subModuleKey}) => !isCustomRole || canAccess('$module:manage', subModuleKey: subModuleKey);
+
   /// Permission-only visibility, the rule used for every module entry
   /// (tabs, Classes grid, More list). No permission = always visible
   /// (e.g. safeguarding).

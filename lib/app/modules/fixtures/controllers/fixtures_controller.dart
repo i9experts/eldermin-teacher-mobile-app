@@ -57,7 +57,7 @@ class FixturesController extends GetxController {
   bool get canManageFixtures {
     auth.staffMe.value;
     final p = perms;
-    return !p.isCustomRole || p.canAccess('teaching:manage', subModuleKey: 'fixtures');
+    return p.canManage('teaching', subModuleKey: 'fixtures');
   }
   String? get myStaffId => auth.staffId;
 
@@ -133,7 +133,7 @@ class FixturesController extends GetxController {
       return CompleteDone(find(id) ?? s);
     } catch (e) {
       final f = ActionFailure.from(e, what: 'mark this as complete', keep: '');
-      final text = f.serverMessage.isNotEmpty ? f.serverMessage : (f.kind == ActionFailureKind.notFound && e is ApiException && e.message.trim().isNotEmpty ? e.message.trim() : f.message);
+      final text = f.isForbidden ? f.message : f.serverMessage.isNotEmpty ? f.serverMessage : (f.kind == ActionFailureKind.notFound && e is ApiException && e.message.trim().isNotEmpty ? e.message.trim() : f.message);
       if (f.kind == ActionFailureKind.notFound || f.kind == ActionFailureKind.conflict) await reload(userInitiated: true);
       return CompleteFailed(text);
     } finally {

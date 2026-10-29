@@ -6,6 +6,7 @@ import '../../../../core/utils/roster_scope.dart';
 import '../../../common/action_failure.dart';
 import '../../home/models/section_state.dart';
 import 'assessments_controller.dart';
+import '../../../common/write_access.dart';
 
 sealed class RemarksResult {
   const RemarksResult();
@@ -141,7 +142,7 @@ class ReportRemarksController extends GetxController {
 
   Future<void> reload() => load(force: true);
 
-  bool canEdit(ReportCard c) => !c.published && isClassTeacher;
+  bool canEdit(ReportCard c) => !c.published && isClassTeacher && canWriteAssessments;
 
   /// Saves [text] as the class-teacher remarks of [card]. Blank text is allowed (clears the remarks). One request per card at a time.
   Future<RemarksResult> saveRemarks(ReportCard card, String text) async {

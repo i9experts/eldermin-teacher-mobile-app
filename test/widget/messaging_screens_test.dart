@@ -57,9 +57,9 @@ void main() {
   tearDown(Get.reset);
   tearDown(ProbeEnv.reset);
 
-  Future<dynamic> auth(WidgetTester t, {bool classTeacher = false}) async {
+  Future<dynamic> auth(WidgetTester t, {bool classTeacher = false, List<String>? permissions}) async {
     final h = (await t.runAsync(() async {
-      final h = await signedIn(classTeacher: classTeacher);
+      final h = await signedIn(classTeacher: classTeacher, permissions: permissions);
       h.api.assignments = const [cls5a];
       await h.auth.refreshProfile(force: true);
       return h;
@@ -684,8 +684,8 @@ void main() {
   });
 
   group('Student leave requests', () {
-    Future<StudentLeavesController> boot(WidgetTester t, {bool classTeacher = true, Widget screen = const StudentLeavesScreen(), Map<LeaveStatus, List<StudentLeaveRequest>>? data, Object? error}) async {
-      final h = await auth(t, classTeacher: classTeacher);
+    Future<StudentLeavesController> boot(WidgetTester t, {List<String>? permissions, bool classTeacher = true, Widget screen = const StudentLeavesScreen(), Map<LeaveStatus, List<StudentLeaveRequest>>? data, Object? error}) async {
+      final h = await auth(t, classTeacher: classTeacher, permissions: permissions);
       repo.leaves = (s, l) async => error != null ? throw error : (data?[s] ?? []);
       final c = Get.put(StudentLeavesController(repository: repo, auth: h.auth));
       await show(t, screen);
@@ -699,6 +699,19 @@ void main() {
       LeaveStatus.approved: [leaveReq('a1', status: 'approved', by: 'Clara Classteacher', note: 'Get well soon', decided: DateTime.utc(2026, 10, 7, 7))],
       LeaveStatus.rejected: <StudentLeaveRequest>[],
     };
+
+    testWidgets('view-only custom role (teaching:view): the request can be read, with no Approve / Reject', (t) async {
+      await boot(t, data: all, permissions: ['teaching:view', 'students:view'], screen: const StudentLeaveDetailScreen(leaveId: 'p1'));
+      expect(find.byKey(const Key('leave_detail')), findsOneWidget);
+      expect(find.byKey(const Key('leave_approve')), findsNothing);
+      expect(find.byKey(const Key('leave_reject')), findsNothing);
+    });
+
+    testWidgets('custom role with a teaching :manage grant keeps Approve / Reject', (t) async {
+      await boot(t, data: all, permissions: ['teaching:view', 'teaching:attendance:manage'], screen: const StudentLeaveDetailScreen(leaveId: 'p1'));
+      expect(find.byKey(const Key('leave_approve')), findsOneWidget);
+      expect(find.byKey(const Key('leave_reject')), findsOneWidget);
+    });
 
     testWidgets('non class teachers see an explanation and nothing is requested', (t) async {
       await boot(t, classTeacher: false);

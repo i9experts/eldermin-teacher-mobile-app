@@ -39,7 +39,8 @@ class RouteGuardRules {
     if (isPublic(location)) return true;
     if (!signedIn || !roleSupported || !profileLoaded) return false;
     final entry = ModuleCatalog.entryForRoute(location);
-    return entry == null || entry.isVisibleTo(permissions, isClassTeacher: isClassTeacher);
+    if (entry != null && !entry.isVisibleTo(permissions, isClassTeacher: isClassTeacher)) return false;
+    return ModuleCatalog.writeAllowed(location, permissions);
   }
 
   /// [allows] for the live session (AuthController + PermissionService registered in GetX). Anything missing means "not allowed".

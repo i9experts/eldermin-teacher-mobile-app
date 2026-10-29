@@ -185,6 +185,44 @@ void main() {
     });
   });
 
+  group('Lesson plans: view-only custom role', () {
+    testWidgets('list: no "New plan" and no Upload & parse with teaching:lesson-plans:view; both with :manage', (t) async {
+      final h = await signIn(t, permissions: ['teaching:lesson-plans:view']);
+      lp.mine = (_) async => [plan('p1', topic: 'Fractions')];
+      final c = lpList(h);
+      await open(t, const LessonPlansScreen());
+      await c.load();
+      await settle(t);
+      expect(find.text('Fractions'), findsOneWidget);
+      expect(find.byKey(const Key('lp_new_fab')), findsNothing);
+      expect(find.byKey(const Key('lp_upload_action')), findsNothing);
+    });
+
+    testWidgets('list: a role with teaching:lesson-plans:manage keeps both', (t) async {
+      final h = await signIn(t, permissions: ['teaching:lesson-plans:manage']);
+      lp.mine = (_) async => [plan('p1', topic: 'Fractions')];
+      final c = lpList(h);
+      await open(t, const LessonPlansScreen());
+      await c.load();
+      await settle(t);
+      expect(find.byKey(const Key('lp_new_fab')), findsOneWidget);
+      expect(find.byKey(const Key('lp_upload_action')), findsOneWidget);
+    });
+
+    testWidgets('detail: a draft shows neither "Submit for approval" nor "Edit" to a view-only role', (t) async {
+      final h = await signIn(t, permissions: ['teaching:lesson-plans:view']);
+      lp.mine = (_) async => [plan('p1', status: 'draft', topic: 'Geometry')];
+      final l = lpList(h);
+      final c = Get.put(LessonPlanDetailController(id: 'p1', repository: lp, list: l));
+      await open(t, const LessonPlanDetailScreen());
+      await c.load();
+      await settle(t);
+      expect(find.text('Geometry'), findsWidgets);
+      expect(find.byKey(const Key('lp_submit')), findsNothing);
+      expect(find.byKey(const Key('lp_edit')), findsNothing);
+    });
+  });
+
   group('Lesson plan detail', () {
     Future<LessonPlanDetailController> boot(WidgetTester t, LessonPlanRecord p) async {
       final h = await signIn(t);
@@ -537,6 +575,27 @@ void main() {
       await settle(t);
       expect(find.byKey(const ValueKey('sub_1_1_3')), findsOneWidget);
       expect(find.text('Mixed numbers'), findsOneWidget);
+    });
+
+    testWidgets('a view-only role (teaching:syllabus:view) sees the progress but the ticks do nothing (no request)', (t) async {
+      final c = await sylList(t, permissions: ['teaching:syllabus:view']);
+      await c.load();
+      final id = c.items.firstWhere((s) => s.subjectName == 'Mathematics' && s.sectionName == 'A').id;
+      Get.put(SyllabusDetailController(id: id, list: c, repository: sy));
+      await open(t, const SyllabusDetailScreen());
+      await Get.find<SyllabusDetailController>().load();
+      await settle(t);
+      var marked = 0;
+      sy.onMark = (i, u, tp, s, cov) async {
+        marked++;
+        return c.byId(id)!;
+      };
+      await t.tap(find.text('1. Adding fractions'));
+      await settle(t);
+      await t.tap(find.byKey(const ValueKey('tick_sub_1_1_3')));
+      await settle(t);
+      expect(marked, 0);
+      expect(find.text('3 of 9 covered'), findsOneWidget);
     });
 
     testWidgets('ticking a sub-topic is optimistic: the tick and the totals change BEFORE the server answers', (t) async {

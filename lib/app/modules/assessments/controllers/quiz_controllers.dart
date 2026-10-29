@@ -8,6 +8,7 @@ import '../../../../core/utils/roster_scope.dart';
 import '../../../common/action_failure.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../home/models/section_state.dart';
+import '../../../common/write_access.dart';
 
 /// Online-quiz attempts waiting for a teacher (`/assessments/quiz-attempts`). The server list may be broader than what a teacher may see, so
 /// the app keeps ONLY the attempts allowed by [isMyAttempt] (class teacher: all subjects of their own class; subject teacher: their subjects
@@ -159,7 +160,7 @@ class QuizAttemptDetailController extends GetxController {
   final lockMessage = RxnString();
 
   QuizAttempt? get attempt => state.value.data;
-  bool get editable => (attempt?.isPending ?? false) && lockMessage.value == null;
+  bool get editable => (attempt?.isPending ?? false) && lockMessage.value == null && canWriteAssessments;
 
   @override
   void onReady() {

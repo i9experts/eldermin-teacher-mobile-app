@@ -38,6 +38,10 @@ class PermissionSet {
     },
   };
 
+  /// Self-service permissions of every staff member: My leave and My attendance act on the user's OWN records. A school-defined custom role can
+  /// not grant or remove them (they are not assignable in the role editor, role.schema.ts:9-29), so a custom role never hides them.
+  static const Set<String> selfService = {'leave:self', 'attendance:self'};
+
   bool roleHas(String permission) {
     final r = role;
     if (r == null || r.isEmpty) return false;
@@ -46,6 +50,7 @@ class PermissionSet {
 
   /// Mirrors web `hasSubModulePermission(permissions, role, permission, subModuleKey)`.
   bool has(String permission, {String? subModuleKey}) {
+    if (selfService.contains(permission) && rolePermissions.containsKey(role)) return true; // a staff role this app signs in; unknown roles get nothing
     final perms = custom;
     if (perms == null) {
       // Standard enum roles have no sub-module concept - module-wide only.

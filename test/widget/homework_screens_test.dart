@@ -167,6 +167,27 @@ void main() {
       expect(repo.calls, isEmpty);
     });
 
+    testWidgets('view-only custom role (teaching:homework:view): the list opens but there is no "New homework"', (t) async {
+      final s = await signIn(t, permissions: ['teaching:homework:view']);
+      repo.mine = (_) async => [asg('a1', title: 'Fractions')];
+      final c = list(s.h);
+      await open(t, const HomeworkScreen());
+      await c.load();
+      await settle(t);
+      expect(find.text('Fractions'), findsOneWidget);
+      expect(find.byKey(const Key('hw_new_fab')), findsNothing);
+    });
+
+    testWidgets('custom role with teaching:homework:manage keeps "New homework"', (t) async {
+      final s = await signIn(t, permissions: ['teaching:homework:manage']);
+      repo.mine = (_) async => [asg('a1', title: 'Fractions')];
+      final c = list(s.h);
+      await open(t, const HomeworkScreen());
+      await c.load();
+      await settle(t);
+      expect(find.byKey(const Key('hw_new_fab')), findsOneWidget);
+    });
+
     testWidgets('pull to refresh reloads from the server', (t) async {
       final s = await signIn(t);
       repo.mine = (_) async => [asg('a1')];
@@ -239,6 +260,33 @@ void main() {
       await settle(t);
       expect(repo.calls, contains('signed:demo/homework-attachments/x.pdf'));
       expect(opened.toString(), contains('files.example.test'));
+    });
+
+    Future<void> bootRole(WidgetTester t, Assignment a, List<String> perms) async {
+      final s = await signIn(t, permissions: perms);
+      final l = list(s.h);
+      l.upsert(a);
+      Get.put(HomeworkDetailController(id: a.id, repository: repo, list: l, clock: () => now));
+      await open(t, const HomeworkDetailScreen());
+    }
+
+    testWidgets('view-only custom role: submissions can be read but there is no Edit / Delete', (t) async {
+      await bootRole(t, asg('a1', title: 'Fractions', count: 3), ['teaching:homework:view']);
+      expect(find.byKey(const Key('hw_view_submissions')), findsOneWidget);
+      expect(find.byKey(const Key('hw_edit')), findsNothing);
+      expect(find.byKey(const Key('hw_delete')), findsNothing);
+    });
+
+    testWidgets('view-only custom role: a draft has no "Assign to class"', (t) async {
+      await bootRole(t, asg('a2', title: 'Draft', status: 'draft'), ['teaching:homework:view']);
+      expect(find.byKey(const Key('hw_assign')), findsNothing);
+      expect(find.byKey(const Key('hw_edit')), findsNothing);
+    });
+
+    testWidgets('custom role with teaching:homework:manage keeps Edit / Delete', (t) async {
+      await bootRole(t, asg('a3', title: 'Fractions', count: 3), ['teaching:homework:manage']);
+      expect(find.byKey(const Key('hw_edit')), findsOneWidget);
+      expect(find.byKey(const Key('hw_delete')), findsOneWidget);
     });
 
     testWidgets('attachment link failure shows a snackbar', (t) async {

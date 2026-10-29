@@ -9,6 +9,7 @@ import '../../homework/views/widgets/homework_widgets.dart' show FilterChipsRow;
 import '../controllers/assessments_controller.dart';
 import 'widgets/assessment_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// My assessments (`/assessments`): assessments of my classes, filtered by what needs me (marks open / upcoming / published). Creating,
 /// editing, starting, cancelling, deleting, verifying and publishing are admin actions and are not offered.
@@ -39,7 +40,7 @@ class AssessmentsScreen extends GetView<AssessmentsController> {
         EmCaptionLine(state.hasData ? '${c.items.length} for your classes' : 'Enter marks, grade quizzes'),
         if (c.canView && state.status != SectionStatus.forbidden) ...[
           _EntryRow(key: const Key('asm_quiz_card'), icon: Icons.quiz_outlined, title: 'Online quiz grading', onTap: () => Get.toNamed(Routes.quizAttempts)),
-          if (c.isClassTeacher) _EntryRow(key: const Key('asm_remarks_card'), icon: Icons.rate_review_outlined, title: 'Report card remarks', onTap: () => Get.toNamed(Routes.assessmentReportRemarks)),
+          if (c.isClassTeacher && canWriteAssessments) _EntryRow(key: const Key('asm_remarks_card'), icon: Icons.rate_review_outlined, title: 'Report card remarks', onTap: () => Get.toNamed(Routes.assessmentReportRemarks)),
         ],
         if (state.hasData) ...[
           FilterChipsRow(chips: [for (final f in AssessmentFilter.values) (f.label, c.countFor(f), f == filter, () => c.setFilter(f), f.name)]),

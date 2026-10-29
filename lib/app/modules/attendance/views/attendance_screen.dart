@@ -9,6 +9,7 @@ import '../../../routes/app_routes.dart';
 import '../controllers/attendance_controller.dart';
 import 'widgets/attendance_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// Attendance hub (`/attendance` and the Attendance tab of class teachers): today's status for MY
 /// class with entry points to mark and to the history. Class teachers only: anyone else gets an
@@ -96,13 +97,15 @@ class AttendanceScreen extends GetView<AttendanceController> {
           ),
           const SizedBox(height: EmSpacing.row),
           if (marked > 0) ...[StatusCountPills(counts: counts), const SizedBox(height: EmSpacing.row)],
-          EmPrimaryButton(
-            key: const Key('hub_mark_button'),
-            icon: Icons.fact_check_outlined,
-            label: marked == 0 ? "Mark today's attendance" : "Edit today's attendance",
-            onPressed: () => Get.toNamed(Routes.attendanceMark),
-          ),
-          const SizedBox(height: EmSpacing.s8),
+          if (canWriteAttendance) ...[
+            EmPrimaryButton(
+              key: const Key('hub_mark_button'),
+              icon: Icons.fact_check_outlined,
+              label: marked == 0 ? "Mark today's attendance" : "Edit today's attendance",
+              onPressed: () => Get.toNamed(Routes.attendanceMark),
+            ),
+            const SizedBox(height: EmSpacing.s8),
+          ],
           EmSecondaryButton(
             key: const Key('hub_history_button'),
             expand: true,

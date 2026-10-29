@@ -9,6 +9,7 @@ import '../../home/models/section_state.dart';
 import '../controllers/assessments_controller.dart';
 import 'widgets/assessment_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// One assessment (`/assessments/:id`): its subjects with total / pass marks, which ones I mark, and the entry points (marks grid, online
 /// quiz review, report-card remarks). No create / edit / status / delete / publish.
@@ -81,7 +82,10 @@ class AssessmentDetailScreen extends GetView<AssessmentDetailController> {
         if (s.examiner.isNotEmpty) Text('Examiner: ${s.examiner}', style: quiet),
         if (mine || sections.any((c) => c.isClassTeacherClass)) ...[
           const SizedBox(height: EmSpacing.s8),
-          if (access.canEdit)
+          if (access.canEdit && !canWriteAssessments)
+            // view-only role: the grid opens read-only
+            _action(Key('asm_view_${s.subject}'), Icons.visibility_outlined, 'View marks', () => Get.toNamed(Routes.assessmentMarksOf(a.id, subject: s.subject)))
+          else if (access.canEdit)
             _action(Key('asm_marks_${s.subject}'), Icons.edit_note_rounded, 'Enter marks', () => Get.toNamed(Routes.assessmentMarksOf(a.id, subject: s.subject)))
           else if (access == MarksAccess.draft)
             Text(access.explanation, key: Key('asm_draft_${s.subject}'), style: quiet.copyWith(height: 1.4))

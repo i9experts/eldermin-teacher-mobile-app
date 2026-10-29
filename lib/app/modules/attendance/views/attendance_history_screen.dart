@@ -12,6 +12,7 @@ import '../controllers/attendance_controller.dart' show kAttendanceEditWindowDay
 import '../controllers/attendance_history_controller.dart';
 import 'widgets/attendance_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// Attendance history (`/attendance/history`): a month calendar with a coloured marker on every day that
 /// has records, the per-day summary counts, and a day detail with an "Edit" shortcut where editing is allowed
@@ -98,7 +99,9 @@ class AttendanceHistoryScreen extends GetView<AttendanceHistoryController> {
         ),
       if (!d.isAfter(c.today)) ...[
         const SizedBox(height: EmSpacing.row),
-        if (editable)
+        if (!canWriteAttendance)
+          const SizedBox.shrink()
+        else if (editable)
           EmPrimaryButton(
             key: const Key('history_edit_button'),
             icon: Icons.edit_calendar_outlined,

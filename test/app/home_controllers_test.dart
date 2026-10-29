@@ -178,7 +178,8 @@ void main() {
     await t.c.loadAll();
     expect(t.c.showTimetable, isFalse);
     expect(repo.calls.where((c) => !c.startsWith('threads') && !c.startsWith('unread')), isEmpty);
-    expect(t.c.quickActions, isEmpty);
+    // only the self-service My leave remains (a custom role can never remove it)
+    expect(t.c.quickActions.map((a) => a.label), ['My leave']);
   });
 
   test('quick actions are permission filtered; Attendance only for class teachers', () async {

@@ -35,8 +35,8 @@ void main() {
   });
   tearDown(Get.reset);
 
-  Future<void> boot(WidgetTester t, Widget screen, {bool classTeacher = true, List<Map<String, Object?>>? assignments, String token = 'tok', bool tall = true, double width = 430, double scale = 1.0, TextDirection dir = TextDirection.ltr}) async {
-    final h = (await t.runAsync(() => signedIn(classTeacher: classTeacher, classTeacherAssignments: assignments, token: token)))!;
+  Future<void> boot(WidgetTester t, Widget screen, {List<String>? permissions, bool classTeacher = true, List<Map<String, Object?>>? assignments, String token = 'tok', bool tall = true, double width = 430, double scale = 1.0, TextDirection dir = TextDirection.ltr}) async {
+    final h = (await t.runAsync(() => signedIn(classTeacher: classTeacher, classTeacherAssignments: assignments, token: token, permissions: permissions)))!;
     c = AttendanceController(students: students, attendance: attendance, auth: h.auth, permissions: h.perms, clock: () => now);
     Get.put(c);
     Get.put(AttendanceHistoryController(attendance: attendance, daily: c, clock: () => now));
@@ -343,6 +343,23 @@ void main() {
       await t.pump();
       expect(find.text('0 / 5'), findsOneWidget);
       expect(find.text("Mark today's attendance"), findsOneWidget);
+    });
+
+    testWidgets('view-only custom role (teaching:attendance:view): status and history, but no mark / edit button', (t) async {
+      attendance.range = (_, __, ___, ____) async => [record(roster[0], DateTime.utc(2026, 10, 5), 'present')];
+      await boot(t, const AttendanceScreen(), permissions: ['teaching:attendance:view']);
+      await c.load();
+      await t.pump();
+      expect(find.text('1 / 5'), findsOneWidget);
+      expect(find.byKey(const Key('hub_mark_button')), findsNothing);
+      expect(find.byKey(const Key('hub_history_button')), findsOneWidget);
+    });
+
+    testWidgets('custom role with teaching:attendance:manage keeps the mark button', (t) async {
+      await boot(t, const AttendanceScreen(), permissions: ['teaching:attendance:manage']);
+      await c.load();
+      await t.pump();
+      expect(find.byKey(const Key('hub_mark_button')), findsOneWidget);
     });
 
     testWidgets('a non-class-teacher sees the not-available page', (t) async {

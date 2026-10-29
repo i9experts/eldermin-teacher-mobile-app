@@ -49,9 +49,9 @@ void main() {
   tearDown(Get.reset);
   tearDown(ProbeEnv.reset);
 
-  Future<void> signIn(WidgetTester t) async {
+  Future<void> signIn(WidgetTester t, {List<String>? permissions}) async {
     final h = (await t.runAsync(() async {
-      final h = await signedIn();
+      final h = await signedIn(permissions: permissions);
       h.api.assignments = const [cls5a];
       await h.auth.refreshProfile(force: true);
       return h;
@@ -81,8 +81,8 @@ void main() {
     final ahead = [meeting('up', status: 'confirmed', day: '2026-10-10', student: 'Ali Raza'), meeting('today1', status: 'requested', day: '2026-10-08', start: '15:00', end: '15:30', student: 'Zara Malik'), meeting('over', status: 'confirmed', day: '2026-10-08', start: '08:00', end: '08:20', student: 'Sana Khan')];
     final past = [meeting('done', status: 'completed', day: '2026-10-01', student: 'Omar Farooq'), meeting('open_past', status: 'requested', day: '2026-10-05', student: 'Hira Noor'), meeting('can', status: 'cancelled', day: '2026-10-03', student: 'Bilal Ahmed')];
 
-    Future<PtmController> boot(WidgetTester t, {Future<List<ParentMeeting>> Function(String, DateTime?, DateTime?)? list}) async {
-      await signIn(t);
+    Future<PtmController> boot(WidgetTester t, {List<String>? permissions, Future<List<ParentMeeting>> Function(String, DateTime?, DateTime?)? list}) async {
+      await signIn(t, permissions: permissions);
       ptm.list = list ?? (s, f, to) async => f != null ? ahead : past;
       final c = Get.put(PtmController(repository: ptm, auth: auth, clock: () => now));
       await show(t, const PtmScreen());
@@ -90,6 +90,17 @@ void main() {
       await settle(t);
       return c;
     }
+
+    testWidgets('view-only custom role (teaching:ptm:view): the list opens, there is no "New meeting"', (t) async {
+      await boot(t, permissions: ['teaching:ptm:view']);
+      expect(find.text('Zara Malik'), findsOneWidget);
+      expect(find.byKey(const Key('ptm_new')), findsNothing);
+    });
+
+    testWidgets('custom role with teaching:ptm:manage keeps "New meeting"', (t) async {
+      await boot(t, permissions: ['teaching:ptm:manage']);
+      expect(find.byKey(const Key('ptm_new')), findsOneWidget);
+    });
 
     testWidgets('opens on Today: remaining first, then "Earlier today"; tabs carry counts', (t) async {
       await boot(t);
@@ -218,8 +229,8 @@ void main() {
 
   // ───────────────────────── PTM detail ─────────────────────────
   group('PTM detail screen', () {
-    Future<PtmDetailController> boot(WidgetTester t, ParentMeeting m, {List<ParentMeeting> history = const []}) async {
-      await signIn(t);
+    Future<PtmDetailController> boot(WidgetTester t, ParentMeeting m, {List<String>? permissions, List<ParentMeeting> history = const []}) async {
+      await signIn(t, permissions: permissions);
       ptm.one = (id) async => m;
       ptm.history = (s) async => history;
       final c = Get.put(PtmDetailController(id: m.id, repository: ptm, auth: auth, clock: () => now), tag: m.id);
@@ -278,6 +289,22 @@ void main() {
         }
       }
     }
+
+    testWidgets('view-only custom role (teaching:ptm:view): the meeting can be read and the guardian messaged, nothing else', (t) async {
+      await boot(t, meeting('a', status: 'requested'), permissions: ['teaching:ptm:view']);
+      expect(find.text('Zara Malik'), findsOneWidget);
+      for (final k in ['ptm_confirm', 'ptm_outcome_btn', 'ptm_reschedule', 'ptm_cancel']) {
+        expect(shown(k), isFalse, reason: k);
+      }
+      expect(shown('ptm_message'), isTrue);
+    });
+
+    testWidgets('custom role with teaching:ptm:manage keeps every meeting action', (t) async {
+      await boot(t, meeting('a', status: 'requested'), permissions: ['teaching:ptm:manage']);
+      for (final k in ['ptm_confirm', 'ptm_outcome_btn', 'ptm_reschedule', 'ptm_message', 'ptm_cancel']) {
+        expect(shown(k), isTrue, reason: k);
+      }
+    });
 
     testWidgets('requested + mine: Confirm, Record outcome, Reschedule, Message guardian, Cancel', (t) async {
       await boot(t, meeting('a', status: 'requested'));

@@ -267,12 +267,25 @@ void main() {
       }
     });
 
-    testWidgets('no permissions: the FAB is hidden and the four tabs share the bar evenly', (t) async {
+    testWidgets('an empty custom role: the FAB stays for the self-service "Apply Leave" only (a custom role never removes My leave)', (t) async {
       await _mount(t, permissions: const []);
-      expect(fab, findsNothing);
-      final xs = [for (final l in ['Home', 'Classes', 'Messages', 'More']) t.getCenter(navItem(l)).dx];
-      expect(xs[1] - xs[0], closeTo(xs[2] - xs[1], 1));
-      expect(xs[2] - xs[1], closeTo(xs[3] - xs[2], 1));
+      expect(fab, findsOneWidget);
+      await openSheet(t);
+      expect(find.byKey(const Key('quick_action_leave')), findsOneWidget);
+      for (final id in ['attendance', 'homework', 'timetable']) {
+        expect(find.byKey(Key('quick_action_$id')), findsNothing, reason: id);
+      }
+    });
+
+    testWidgets('view-only teaching role: no Add Homework / Mark Attendance in the quick actions', (t) async {
+      await _mount(t, classTeacher: true, permissions: const ['teaching:view']);
+      await openSheet(t);
+      for (final id in ['attendance', 'homework']) {
+        expect(find.byKey(Key('quick_action_$id')), findsNothing, reason: id);
+      }
+      for (final id in ['leave', 'timetable']) {
+        expect(find.byKey(Key('quick_action_$id')), findsOneWidget, reason: id);
+      }
     });
 
     for (final (id, route) in [

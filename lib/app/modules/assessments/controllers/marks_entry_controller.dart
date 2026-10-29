@@ -12,6 +12,7 @@ import '../../../common/action_failure.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../home/models/section_state.dart';
 import 'assessments_controller.dart';
+import '../../../common/write_access.dart';
 
 /// One student line of the grid. Immutable: the controller replaces rows on every edit.
 class MarkEntryRow {
@@ -238,7 +239,8 @@ class MarksEntryController extends GetxController {
   /// I teach this subject here (set by [load]); kept to recompute [access] after the assessment is re-read.
   bool _iTeachIt = true;
 
-  bool get editable => access.value.canEdit && serverLock.value == null;
+  /// Entering marks needs `assessments:manage` too: a view-only custom role gets the grid read-only.
+  bool get editable => access.value.canEdit && serverLock.value == null && canWriteAssessments;
 
   /// Why the grid is locked (results published / cancelled, or the server's own 403 text); null while marks can be changed.
   String? get lockMessage {

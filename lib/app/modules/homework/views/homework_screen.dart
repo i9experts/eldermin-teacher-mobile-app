@@ -8,6 +8,7 @@ import '../../home/models/section_state.dart';
 import '../controllers/homework_controller.dart';
 import 'widgets/homework_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// My homework (`/homework`): my assignments with status filters, sort and "show more" (client-side paging).
 class HomeworkScreen extends GetView<HomeworkController> {
@@ -17,7 +18,7 @@ class HomeworkScreen extends GetView<HomeworkController> {
   Widget build(BuildContext context) {
     return EmScaffold(
       appBar: EmAppBar(title: 'Homework'),
-      floatingActionButton: Obx(() => controller.canView && controller.state.value.status != SectionStatus.forbidden
+      floatingActionButton: Obx(() => controller.canView && canWriteHomework && controller.state.value.status != SectionStatus.forbidden
           ? FloatingActionButton.extended(
               key: const Key('hw_new_fab'),
               onPressed: () => Get.toNamed(Routes.homeworkNew),

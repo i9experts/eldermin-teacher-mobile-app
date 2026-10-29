@@ -21,9 +21,9 @@ class ShellQuickAction {
 List<ShellQuickAction> shellQuickActions({required PermissionService permissions, required bool isClassTeacher}) {
   bool allowed(String moduleId) => ModuleCatalog.byId(moduleId)?.isVisibleTo(permissions, isClassTeacher: isClassTeacher) ?? false;
   return [
-    if (allowed('attendance'))
+    if (allowed('attendance') && permissions.canManage('teaching', subModuleKey: 'attendance'))
       const ShellQuickAction('attendance', 'Mark Attendance', "Take today's register", Icons.fact_check_outlined, Routes.attendanceMark),
-    if (allowed('homework'))
+    if (allowed('homework') && permissions.canManage('teaching', subModuleKey: 'homework'))
       const ShellQuickAction('homework', 'Add Homework', 'Assign work to a class', Icons.menu_book_outlined, Routes.homeworkNew),
     if (allowed('leave'))
       const ShellQuickAction('leave', 'Apply Leave', 'Request time off', Icons.beach_access_outlined, Routes.leaveApply),

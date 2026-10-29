@@ -6,6 +6,7 @@ import '../../../../../core/models/home/summaries.dart';
 import '../../../../../core/models/home/teaching.dart';
 import '../../../../../core/utils/home_time.dart';
 import '../../../../../core/utils/ptm_agenda.dart';
+import '../../../../common/write_access.dart';
 
 /// White rounded row card (REFERENCE_SPEC list row): optional leading widget,
 /// two-line text, optional trailing. [highlight] fills it with the primary tint.
@@ -163,13 +164,15 @@ class ClassTeacherCard extends StatelessWidget {
           ]),
         ]),
       ),
-      const SizedBox(height: EmSpacing.s12),
-      EmPrimaryButton(
-        key: buttonKey,
-        label: 'Mark Attendance',
-        icon: Icons.fact_check_outlined,
-        onPressed: onMarkAttendance,
-      ),
+      if (canWriteAttendance) ...[
+        const SizedBox(height: EmSpacing.s12),
+        EmPrimaryButton(
+          key: buttonKey,
+          label: 'Mark Attendance',
+          icon: Icons.fact_check_outlined,
+          onPressed: onMarkAttendance,
+        ),
+      ],
     ]);
   }
 }

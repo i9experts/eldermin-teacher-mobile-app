@@ -240,8 +240,8 @@ void main() {
   });
 
   group('Assessment detail', () {
-    Future<void> boot(WidgetTester t, Assessment a, {bool classTeacher = false, List<Map<String, Object?>> assignments = const [maths5a]}) async {
-      final h = await signIn(t, classTeacher: classTeacher, assignments: assignments);
+    Future<void> boot(WidgetTester t, Assessment a, {bool classTeacher = false, List<String>? permissions, List<Map<String, Object?>> assignments = const [maths5a]}) async {
+      final h = await signIn(t, classTeacher: classTeacher, assignments: assignments, permissions: permissions);
       repo.onList = () async => AllPages([a]);
       final l = putList(h);
       final d = Get.put(AssessmentDetailController(id: a.id, list: l, repository: repo));
@@ -249,6 +249,17 @@ void main() {
       await d.load();
       await settle(t);
     }
+
+    testWidgets('view-only custom role (assessments:marks:view): "View marks" instead of "Enter marks"', (t) async {
+      await boot(t, asm('a1', title: 'Unit Test 1', subjects: const [('Mathematics', 50, 20)]), permissions: ['assessments:marks:view']);
+      expect(find.byKey(const Key('asm_marks_Mathematics')), findsNothing);
+      expect(find.byKey(const Key('asm_view_Mathematics')), findsOneWidget);
+    });
+
+    testWidgets('custom role with assessments:marks:manage keeps "Enter marks"', (t) async {
+      await boot(t, asm('a1', title: 'Unit Test 1', subjects: const [('Mathematics', 50, 20)]), permissions: ['assessments:marks:manage']);
+      expect(find.byKey(const Key('asm_marks_Mathematics')), findsOneWidget);
+    });
 
     testWidgets('my subject: Enter marks; colleague\'s subject: no action; title, class, date, totals', (t) async {
       await boot(t, asm('a1', title: 'Unit Test 1', subjects: const [('Mathematics', 50, 20), ('English', 30, 12)]));

@@ -279,6 +279,15 @@ void main() {
       expect(c.allowed, isEmpty);
     });
 
+    test('403 on a meeting write is a friendly "You can\'t ..." failure, never a crash, and the meeting is unchanged', () async {
+      final c = await make(meeting('a', status: 'requested'));
+      repo.cancel0 = (id, r) async => fail7b(403, 'Forbidden resource');
+      final r = await c.cancel('Travelling') as PtmFailed;
+      expect(r.failure.isForbidden, isTrue);
+      expect(r.failure.message, startsWith("You can't"));
+      expect(c.meeting!.status, PtmStatus.requested);
+    });
+
     test('failures: offline keeps the sheet usable (retry possible), server 500 is generic', () async {
       final c = await make(meeting('a', status: 'requested'));
       repo.cancel0 = (id, r) async => fail7b(null, 'No connection');

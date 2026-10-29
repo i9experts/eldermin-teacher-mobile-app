@@ -7,6 +7,7 @@ import '../controllers/syllabus_controller.dart';
 import '../controllers/weekly_planner_controller.dart';
 import 'widgets/syllabus_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// Weekly planner (`/syllabus/weekly-planner`): the sub-topics planned for a term week, per syllabus / class, tickable. The server answers
 /// the CURRENT week only; the arrows move through the other weeks using the planned weeks stored on each syllabus.
@@ -132,6 +133,7 @@ class _PlannerState extends State<SyllabusWeeklyPlannerScreen> with WidgetsBindi
     final where = [if (r.topic != null && r.topic!.name.isNotEmpty) r.topic!.name, if (r.unit != null && r.unit!.name.isNotEmpty) r.unit!.name].join(' · ');
     return Row(key: key, children: [
       CoverageBox(
+        enabled: canWriteSyllabus,
         covered: r.sub.isCovered,
         busy: pending.contains('s:$sid:$u:$t:${r.sub.no}'),
         onTap: () => _tick(c.syllabi.markSubTopic(sid, u, t, r.sub.no, !r.sub.isCovered)),

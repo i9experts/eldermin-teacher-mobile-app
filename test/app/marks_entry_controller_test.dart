@@ -61,6 +61,22 @@ void main() {
       expect(repo.calls, contains('marks:a1:Mathematics'));
     });
 
+    test('a view-only custom role (assessments:marks:view) gets the grid read-only: rows load, nothing can be entered or saved', () async {
+      repo.onMarks = (_, __) async => AllPages([mark(student(1), 42.5)]);
+      final c = await make(permissions: ['assessments:marks:view', 'teaching:view']);
+      expect(c.state.value.status, SectionStatus.data);
+      expect(row(c, 1).text, '42.5');
+      expect(c.editable, isFalse);
+      expect(c.canEnter, isFalse);
+      c.setMarks(student(2).id, '10'); // ignored
+      expect(row(c, 2).text, '');
+    });
+
+    test('a custom role with assessments:marks:manage can enter marks', () async {
+      final c = await make(permissions: ['assessments:marks:manage', 'teaching:view']);
+      expect(c.editable, isTrue);
+    });
+
     test('marks of students who are not on the roster (other sections of an all-sections assessment) are ignored', () async {
       repo.onMarks = (_, __) async => AllPages([mark(student(99), 40)]);
       final c = await make();

@@ -6,6 +6,7 @@ import '../../../../core/utils/assessment_scope.dart';
 import '../../../../core/utils/roster_scope.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../home/models/section_state.dart';
+import '../../../common/write_access.dart';
 
 enum AssessmentFilter {
   open('Marks open'),
@@ -116,7 +117,7 @@ class AssessmentsController extends GetxController {
   MarksAccess accessFor(Assessment a, AssessmentSubject s) => marksAccessFor(a, s, iTeachIt: teachesSubject(a, s.subject));
 
   /// I am the class teacher of one of the classes of [a]: report-card remarks apply.
-  bool canWriteRemarks(Assessment a) => myClassTeacherClassesFor(a, myClasses).isNotEmpty && a.gradeCardsGenerated;
+  bool canWriteRemarks(Assessment a) => canWriteAssessments && myClassTeacherClassesFor(a, myClasses).isNotEmpty && a.gradeCardsGenerated;
 
   @override
   void onReady() {

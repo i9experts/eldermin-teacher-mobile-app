@@ -7,6 +7,7 @@ import '../../../routes/app_routes.dart';
 import '../controllers/ptm_controller.dart';
 import 'widgets/ptm_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// Parent meetings (`/ptm`): Upcoming / Today / Past / Cancelled tabs of MY meetings.
 class PtmScreen extends GetView<PtmController> {
@@ -20,12 +21,14 @@ class PtmScreen extends GetView<PtmController> {
   Widget build(BuildContext context) {
     return EmScaffold(
       appBar: EmAppBar(title: 'Parent meetings'),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const Key('ptm_new'),
-        onPressed: () => Get.toNamed(Routes.ptmNew),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('New meeting'),
-      ),
+      floatingActionButton: Obx(() => canWritePtm
+          ? FloatingActionButton.extended(
+              key: const Key('ptm_new'),
+              onPressed: () => Get.toNamed(Routes.ptmNew),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('New meeting'),
+            )
+          : const SizedBox.shrink()),
       body: Obx(() {
         final st = c.load.value;
         final tab = c.tab.value;

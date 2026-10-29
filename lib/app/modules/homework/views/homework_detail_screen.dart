@@ -10,6 +10,7 @@ import '../../../utils/toast_util.dart';
 import '../controllers/homework_detail_controller.dart';
 import 'widgets/homework_widgets.dart';
 import '../../../../core/design/design.dart';
+import '../../../common/write_access.dart';
 
 /// One assignment (`/homework/:id`): details, attachments, and the actions that make sense for its state.
 class HomeworkDetailScreen extends GetView<HomeworkDetailController> {
@@ -77,19 +78,19 @@ class HomeworkDetailScreen extends GetView<HomeworkDetailController> {
           ),
       ],
       const SizedBox(height: EmSpacing.block),
-      if (a.isDraft)
+      if (a.isDraft && canWriteHomework)
         EmPrimaryButton(key: const Key('hw_assign'), icon: Icons.send_rounded, label: 'Assign to class', onPressed: busy ? null : () => _assign(context, a))
-      else
+      else if (!a.isDraft)
         EmPrimaryButton(key: const Key('hw_view_submissions'), icon: Icons.inbox_rounded, label: 'Submissions and grading', onPressed: () => Get.toNamed(Routes.homeworkSubmissionsOf(a.id))),
       const SizedBox(height: EmSpacing.s8),
-      EmSecondaryButton(key: const Key('hw_edit'), expand: true, icon: Icons.edit_outlined, label: 'Edit', onPressed: busy ? null : () => Get.toNamed(Routes.homeworkNew, arguments: a)),
+      if (canWriteHomework) EmSecondaryButton(key: const Key('hw_edit'), expand: true, icon: Icons.edit_outlined, label: 'Edit', onPressed: busy ? null : () => Get.toNamed(Routes.homeworkNew, arguments: a)),
       if (!a.isDraft)
         Padding(
           padding: const EdgeInsets.only(top: EmSpacing.s8),
           child: Text("Class, subject and total marks can't be changed after the homework is assigned.", style: EmType.caption.copyWith(color: EmColors.textSecondary)),
         ),
       const SizedBox(height: EmSpacing.s8),
-      Center(child: EmTextAction(key: const Key('hw_delete'), destructive: true, icon: Icons.delete_outline_rounded, label: 'Delete', onPressed: busy ? null : () => _delete(context, a))),
+      if (canWriteHomework) Center(child: EmTextAction(key: const Key('hw_delete'), destructive: true, icon: Icons.delete_outline_rounded, label: 'Delete', onPressed: busy ? null : () => _delete(context, a))),
     ];
   }
 
