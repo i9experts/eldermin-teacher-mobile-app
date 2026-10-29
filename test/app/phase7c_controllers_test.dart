@@ -5,7 +5,6 @@ import 'package:eldermin_teacher_app/app/modules/about/controllers/about_control
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/calendar/controllers/calendar_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/calendar/controllers/circulars_controller.dart';
-import 'package:eldermin_teacher_app/app/modules/delete_account/controllers/delete_account_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/events/controllers/events_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/help/controllers/help_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/home/models/section_state.dart';
@@ -15,7 +14,6 @@ import 'package:eldermin_teacher_app/core/models/calendar/calendar_models.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/student_models.dart';
 import 'package:eldermin_teacher_app/core/models/help/kb_models.dart';
 import 'package:eldermin_teacher_app/core/models/safeguarding/safeguarding_models.dart';
-import 'package:eldermin_teacher_app/core/services/account_repository.dart';
 import 'package:eldermin_teacher_app/core/services/avatar_picker.dart';
 import 'package:eldermin_teacher_app/core/services/circular_local_state.dart';
 import 'package:eldermin_teacher_app/core/services/events_repository.dart';
@@ -757,75 +755,4 @@ void main() {
       expect(AboutController.hostOf('nonsense'), '');
     });
   });
-
-  group('DeleteAccountController', () {
-    late FakeAccountRepository repo;
-    setUp(() => repo = FakeAccountRepository());
-
-    test('type-to-confirm: DELETE (any case, trimmed) enables the button; anything else does not; nothing is sent until then', () async {
-      final c = DeleteAccountController(repository: repo);
-      expect(c.canSubmit, isFalse);
-      for (final v in ['', 'delet', 'DELETE ME', 'yes']) {
-        c.onConfirmChanged(v);
-        expect(c.canSubmit, isFalse, reason: v);
-        expect(await c.submit(), isFalse);
-      }
-      expect(repo.reasons, isEmpty);
-      c.onConfirmChanged(' delete ');
-      expect(c.canSubmit, isTrue);
-    });
-
-    test('sends the reason (or none), shows the status; NEVER signs the user out', () async {
-      final h = await signedIn();
-      final c = DeleteAccountController(repository: repo);
-      c.reasonC.text = ' moving abroad ';
-      c.onConfirmChanged('DELETE');
-      expect(await c.submit(), isTrue);
-      expect(repo.reasons, [' moving abroad ']);
-      expect(c.result.value!.status, 'pending');
-      expect(c.result.value!.alreadyRequested, isFalse);
-      expect(c.canSubmit, isFalse, reason: 'sent: the button is gone');
-      expect(h.auth.status.value, AuthStatus.authenticated);
-      expect(h.auth.user.value, isNotNull);
-    });
-
-    test('already requested is shown as such', () async {
-      repo.request0 = (_) async => const DeletionRequestResult(requestId: 'r1', status: 'pending', alreadyRequested: true);
-      final c = DeleteAccountController(repository: repo);
-      c.onConfirmChanged('DELETE');
-      await c.submit();
-      expect(c.result.value!.alreadyRequested, isTrue);
-    });
-
-    test('403 / 404 / 400 / offline keep the form and allow another try; double submit sends once', () async {
-      final c = DeleteAccountController(repository: repo);
-      c.reasonC.text = 'because';
-      c.onConfirmChanged('DELETE');
-      for (final s in [403, 404, 400, null]) {
-        repo.request0 = (_) async => fail7c(s, 'text');
-        expect(await c.submit(), isFalse);
-        expect(c.result.value, isNull);
-        expect(c.failure.value, isNotNull, reason: '$s');
-        expect(c.reasonC.text, 'because');
-        expect(c.canSubmit, isTrue);
-      }
-      expect(c.failure.value!.kind, ActionFailureKind.offline);
-      final gate = Completer<DeletionRequestResult>();
-      repo.request0 = (_) => gate.future;
-      repo.reasons.clear();
-      final first = c.submit();
-      expect(await c.submit(), isFalse);
-      gate.complete(const DeletionRequestResult(requestId: 'r', status: 'pending', alreadyRequested: false));
-      expect(await first, isTrue);
-      expect(repo.reasons.length, 1);
-    });
-
-    test('a reason longer than the DTO limit blocks the button', () async {
-      final c = DeleteAccountController(repository: repo);
-      c.reasonC.text = 'x' * (kDeleteReasonMax + 1);
-      c.onConfirmChanged('DELETE');
-      expect(c.canSubmit, isFalse);
-    });
-  });
 }
-

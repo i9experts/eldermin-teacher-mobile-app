@@ -60,4 +60,9 @@ const List<TeacherFaq> kTeacherFaqs = [
     'For your account, class or subject assignment, a missing assessment or anything about school rules, contact your school administration. '
         'For anything about a child\'s safety, use "Raise a concern" under More or speak to your safeguarding lead; do not wait for a reply in Help.',
   ),
+  TeacherFaq(
+    'delete_data',
+    'How do I get my data deleted?',
+    'To have your data deleted, please contact your school.',
+  ),
 ];

@@ -158,11 +158,9 @@ void main() {
       expect(find.text('Account'), findsOneWidget);
       final ys = [for (final l in ['Modules', 'Timetable', 'Account', 'Notifications', 'Help', 'About']) t.getTopLeft(find.text(l).first).dy];
       expect(ys, [...ys]..sort(), reason: 'Modules, its rows, Account, then the account rows (top to bottom)');
-      await t.scrollUntilVisible(find.byKey(const Key('more_delete_account')), 200, scrollable: find.byType(Scrollable).first);
+      await t.scrollUntilVisible(find.byKey(const Key('more_sign_out')), 200, scrollable: find.byType(Scrollable).first);
       expect(find.byKey(const Key('more_sign_out')), findsOneWidget);
-      await t.tap(find.byKey(const Key('more_delete_account')));
-      await t.pumpAndSettle();
-      expect(Get.currentRoute, Routes.deleteAccount);
+      expect(find.byKey(const Key('more_delete_account')), findsNothing, reason: 'no in-app account-deletion request');
     });
 
     testWidgets('destructive rows are tinted with the error container (icon), titles stay ink', (t) async {

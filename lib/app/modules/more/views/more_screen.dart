@@ -30,13 +30,6 @@ class MoreScreen extends GetView<MoreController> {
           _row(icon: Icons.help_outline_rounded, title: 'Help', subtitle: 'Guides and support', onTap: () => Get.toNamed(Routes.help)),
           _row(icon: Icons.info_outline_rounded, title: 'About', subtitle: 'App version', onTap: () => Get.toNamed(Routes.about)),
           _row(
-              key: const Key('more_delete_account'),
-              icon: Icons.person_remove_outlined,
-              destructive: true,
-              title: 'Request account deletion',
-              subtitle: 'Ask the school to delete your account',
-              onTap: () => Get.toNamed(Routes.deleteAccount)),
-          _row(
               key: const Key('more_sign_out'),
               icon: Icons.logout_rounded,
               destructive: true,

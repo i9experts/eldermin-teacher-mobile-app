@@ -125,7 +125,7 @@ void main() {
       for (final role in ['admin', 'principal', 'parent', 'Teacher', '']) {
         await _boot(t, role: role);
         await _app(t);
-        for (final r in [Routes.homework, Routes.students, Routes.messageThreadOf(_id), Routes.profile, Routes.help, Routes.notifications, Routes.deleteAccount, Routes.safeguarding]) {
+        for (final r in [Routes.homework, Routes.students, Routes.messageThreadOf(_id), Routes.profile, Routes.help, Routes.notifications, Routes.safeguarding]) {
           expect(await _opens(t, r), isFalse, reason: '$role $r');
         }
       }

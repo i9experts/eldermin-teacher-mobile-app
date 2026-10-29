@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:eldermin_teacher_app/core/models/safeguarding/safeguarding_models.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/network/response_shape.dart';
-import 'package:eldermin_teacher_app/core/services/account_repository.dart';
 import 'package:eldermin_teacher_app/core/services/events_repository.dart';
 import 'package:eldermin_teacher_app/core/services/kb_repository.dart';
 import 'package:eldermin_teacher_app/core/services/profile_repository.dart';
@@ -167,30 +166,6 @@ void main() {
       final c = RecordingClient({'module': 'hr', 'tabKey': 'a b', 'title': 'A'});
       await KbRepository(c).article('h r', 'a/b');
       expect(c.calls.single.url, endsWith('/kb/articles/h%20r/a%2Fb'));
-    });
-  });
-
-  group('AccountRepository (delete request)', () {
-    test('body is {confirm:true}; a reason is trimmed and only sent when present', () async {
-      final c = RecordingClient({'requestId': 'r1', 'status': 'pending', 'message': 'Sent'});
-      final repo = AccountRepository(c);
-      final a = await repo.request();
-      expect(c.calls.last.data, {'confirm': true});
-      expect(c.calls.last.url, endsWith('/staff-portal/account/delete-request'));
-      expect((a.requestId, a.alreadyRequested, a.message), ('r1', false, 'Sent'));
-      await repo.request(reason: '  leaving the school  ');
-      expect(c.calls.last.data, {'confirm': true, 'reason': 'leaving the school'});
-      await repo.request(reason: '   ');
-      expect(c.calls.last.data, {'confirm': true});
-    });
-
-    test('already requested, errors and wrong shape', () async {
-      final again = await AccountRepository(RecordingClient({'requestId': 'r1', 'status': 'pending', 'alreadyRequested': true})).request();
-      expect((again.alreadyRequested, again.message), (true, null));
-      for (final s in [400, 403, 404]) {
-        await expectLater(AccountRepository(RecordingClient()..failStatus = s).request(), throwsA(isA<ApiException>().having((e) => e.statusCode, 's', s)));
-      }
-      await expectLater(AccountRepository(RecordingClient([])).request(), throwsA(isA<UnexpectedResponseShape>()));
     });
   });
 }

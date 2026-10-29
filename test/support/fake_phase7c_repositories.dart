@@ -5,7 +5,6 @@ import 'package:eldermin_teacher_app/core/models/help/kb_models.dart';
 import 'package:eldermin_teacher_app/core/models/safeguarding/safeguarding_models.dart';
 import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/network/base_client.dart';
-import 'package:eldermin_teacher_app/core/services/account_repository.dart';
 import 'package:eldermin_teacher_app/core/services/avatar_picker.dart';
 import 'package:eldermin_teacher_app/core/services/circular_local_state.dart';
 import 'package:eldermin_teacher_app/core/services/events_repository.dart';
@@ -190,17 +189,6 @@ class FakeKbRepository extends KbRepository {
   Future<KbArticle> article(String module, String tabKey) {
     calls.add('article:$module/$tabKey');
     return one(module, tabKey);
-  }
-}
-
-class FakeAccountRepository extends AccountRepository {
-  Future<DeletionRequestResult> Function(String? reason) request0 = (_) async => const DeletionRequestResult(requestId: 'r1', status: 'pending', alreadyRequested: false, message: 'Your request was sent to the school administration. Your records are retained until they process it.');
-  final reasons = <String?>[];
-
-  @override
-  Future<DeletionRequestResult> request({String? reason}) {
-    reasons.add(reason);
-    return request0(reason);
   }
 }
 

@@ -5,7 +5,6 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:eldermin_teacher_app/app/common/action_failure.dart';
 import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controller.dart';
-import 'package:eldermin_teacher_app/app/modules/delete_account/controllers/delete_account_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/leave/controllers/leave_apply_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/leave/controllers/leave_controller.dart';
 import 'package:eldermin_teacher_app/core/models/leave/leave_models.dart';
@@ -13,7 +12,6 @@ import 'package:eldermin_teacher_app/core/network/api_exception.dart';
 import 'package:eldermin_teacher_app/core/network/base_client.dart';
 import 'package:eldermin_teacher_app/core/network/dio_exception_handler.dart';
 import 'package:eldermin_teacher_app/core/network/dio_service.dart';
-import 'package:eldermin_teacher_app/core/services/account_repository.dart';
 import 'package:eldermin_teacher_app/core/services/auth_api_service.dart';
 import 'package:eldermin_teacher_app/core/services/homework_repository.dart';
 import 'package:eldermin_teacher_app/core/services/leave_repository.dart';
@@ -140,20 +138,6 @@ void main() {
   });
 
   group('writes through the real repositories on a failing network', () {
-    test('delete-account request: every failure is an ActionFailure, the form can be sent again, nothing is marked sent', () async {
-      for (final m in NetFail.values.where((m) => m != NetFail.http401)) {
-        final c = DeleteAccountController(repository: AccountRepository(FailingClient(m)));
-        c.onConfirmChanged('DELETE');
-        final ok = await c.submit();
-        expect(ok, isFalse, reason: m.name);
-        expect(c.failure.value, isNotNull, reason: m.name);
-        expect(c.result.value, isNull);
-        expect(c.sending.value, isFalse);
-        expect(c.canSubmit, isTrue, reason: 'the user can try again');
-        c.onClose();
-      }
-    });
-
     test('leave application: offline / 500 keep every field and allow a retry; 403 shows the server text', () async {
       final net = FailingClient(NetFail.offline);
       final c = LeaveApplyController(repository: LeaveRepository(net));
@@ -256,7 +240,7 @@ void main() {
       // a WRITE while signed in again
       final h2 = await signedIn();
       DioService.onUnauthorized = h2.auth.handleUnauthorized;
-      await expectLater(AccountRepository(client).request(), throwsA(isA<ApiException>()));
+      await expectLater(HomeworkRepository(client).delete('64a0000000000000000000a1'), throwsA(isA<ApiException>()));
       await pumpEventQueue();
       expect(h2.auth.status.value, AuthStatus.unauthenticated, reason: 'write 401 -> signed out');
 

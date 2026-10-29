@@ -79,7 +79,6 @@ abstract class Routes {
   static const help = '/help';
   static const helpArticle = '/help/:module/:tabKey';
   static const about = '/about';
-  static const deleteAccount = '/delete-account';
 
   /// Debug-only design system catalogue (registered only when kDebugMode).
   static const designGallery = '/design-gallery';
@@ -166,6 +165,5 @@ abstract class Routes {
     help,
     helpArticle,
     about,
-    deleteAccount,
   ];
 }

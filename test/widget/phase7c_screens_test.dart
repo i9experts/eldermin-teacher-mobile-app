@@ -9,8 +9,6 @@ import 'package:eldermin_teacher_app/app/modules/auth/controllers/auth_controlle
 import 'package:eldermin_teacher_app/app/modules/calendar/controllers/calendar_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/calendar/controllers/circulars_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/calendar/views/calendar_screen.dart';
-import 'package:eldermin_teacher_app/app/modules/delete_account/controllers/delete_account_controller.dart';
-import 'package:eldermin_teacher_app/app/modules/delete_account/views/delete_account_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/events/controllers/events_controller.dart';
 import 'package:eldermin_teacher_app/app/modules/events/views/event_detail_screen.dart';
 import 'package:eldermin_teacher_app/app/modules/events/views/events_screen.dart';
@@ -33,7 +31,6 @@ import 'package:eldermin_teacher_app/core/constants/support_config.dart';
 import 'package:eldermin_teacher_app/core/models/help/kb_models.dart';
 import 'package:eldermin_teacher_app/core/models/help/teacher_faqs.dart';
 import 'package:eldermin_teacher_app/core/models/safeguarding/safeguarding_models.dart';
-import 'package:eldermin_teacher_app/core/services/account_repository.dart';
 import 'package:eldermin_teacher_app/core/services/avatar_picker.dart';
 import 'package:eldermin_teacher_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -738,7 +735,7 @@ void main() {
     for (final w in probeWidths) {
       for (final sc in probeScales) {
         for (final d in probeDirs) {
-          testWidgets(probeName('profile: header, photo buttons, details, Help / About / Delete rows', w, sc, d), (t) async {
+          testWidgets(probeName('profile: header, photo buttons, details, Help / About rows', w, sc, d), (t) async {
             ProbeEnv.set(w, sc, d);
             await boot(t);
             expectNoLayoutError(t);
@@ -746,12 +743,13 @@ void main() {
               expectInsideScreen(t, find.byKey(Key(k)), w);
             }
             expect(t.getSize(find.byKey(const Key('avatar_gallery'))).height, greaterThanOrEqualTo(48));
-            for (final k in ['profile_help', 'profile_about', 'profile_delete_account']) {
+            for (final k in ['profile_help', 'profile_about']) {
               await t.ensureVisible(find.byKey(Key(k)));
               expectInsideScreen(t, find.byKey(Key(k)), w);
               expect(t.getSize(find.byKey(Key(k))).height, greaterThanOrEqualTo(44), reason: k);
             }
-            expect(find.text('Request account deletion'), findsOneWidget, reason: 'the destructive entry says what it is in words, not only in the error colour');
+            expect(find.byKey(const Key('profile_delete_account')), findsNothing, reason: 'no in-app deletion request (the parent app does the same): Help says to contact the school');
+            expect(find.textContaining('account deletion'), findsNothing);
           });
         }
       }
@@ -771,7 +769,7 @@ void main() {
       expect(find.byKey(const Key('avatar_camera')), findsOneWidget);
     });
 
-    testWidgets('help / about / delete account entries open their routes', (t) async {
+    testWidgets('help / about entries open their routes', (t) async {
       await boot(t);
       await t.scrollUntilVisible(find.byKey(const Key('profile_help')), 200, scrollable: find.byType(Scrollable).first);
       await t.tap(find.byKey(const Key('profile_help')));
@@ -952,8 +950,14 @@ void main() {
       expect(find.byKey(const Key('help_faqs')), findsOneWidget);
     });
 
-    test('FAQ content: 6-8 entries, unique ids, no invented numbers / deadlines / contact details', () {
-      expect(kTeacherFaqs.length, inInclusiveRange(6, 8));
+    test('FAQ: "How do I get my data deleted?" says to contact the school (no in-app deletion flow, same as the parent app)', () {
+      final f = kTeacherFaqs.singleWhere((f) => f.id == 'delete_data');
+      expect(f.question, 'How do I get my data deleted?');
+      expect(f.answer, 'To have your data deleted, please contact your school.');
+    });
+
+    test('FAQ content: 6-9 entries, unique ids, no invented numbers / deadlines / contact details', () {
+      expect(kTeacherFaqs.length, inInclusiveRange(6, 9));
       expect(kTeacherFaqs.map((f) => f.id).toSet().length, kTeacherFaqs.length);
       final all = kTeacherFaqs.map((f) => '${f.question} ${f.answer}').join(' ');
       expect(RegExp(r'@|https?://|www\.|\+\d|\b\d{5,}\b').hasMatch(all), isFalse, reason: 'no phone numbers, emails or links');
@@ -1168,135 +1172,19 @@ void main() {
     });
   });
 
-  group('Delete account screen', () {
-    late FakeAccountRepository repo;
-    setUp(() => repo = FakeAccountRepository());
-
-    for (final w in probeWidths) {
-      for (final sc in probeScales) {
-        for (final d in probeDirs) {
-          testWidgets(probeName('delete account: explainer, fields, destructive button with its label, done view', w, sc, d), (t) async {
-            ProbeEnv.set(w, sc, d);
-            await signIn(t);
-            final c = Get.put(DeleteAccountController(repository: repo));
-            await open(t, const DeleteAccountScreen());
-            await settle(t);
-            expectNoLayoutError(t);
-            expectInsideScreen(t, find.byKey(const Key('delete_explainer')), w);
-            expectInsideScreen(t, find.byKey(const Key('delete_confirm_field')), w);
-            expectInsideScreen(t, find.byKey(const Key('delete_submit')), w);
-            expect(t.getSize(find.byKey(const Key('delete_submit'))).height, greaterThanOrEqualTo(48));
-            // destructive = the error token AND words ("Request account deletion"), never colour alone
-            expect(find.descendant(of: find.byKey(const Key('delete_submit')), matching: find.text('Request account deletion')), findsOneWidget);
-            expect(find.text('Request account deletion'), findsNWidgets(2), reason: 'screen title + button');
-            expect(t.widget<EmPrimaryButton>(find.byKey(const Key('delete_submit'))).destructive, isTrue);
-            c.confirmC.text = 'DELETE';
-            c.onConfirmChanged('DELETE');
-            await t.pump();
-            await t.tap(find.byKey(const Key('delete_submit')));
-            await t.runAsync(() => pumpEventQueue());
-            await settle(t);
-            expectNoLayoutError(t);
-            expectInsideScreen(t, find.byKey(const Key('delete_done')), w);
-            expectInsideScreen(t, find.byKey(const Key('delete_done_message')), w);
-          });
-        }
-      }
-    }
-
-    testWidgets('keyboard open on a 360x640 phone while typing DELETE: no layout error, the confirm field is kept above the keyboard and the button rides above it', (t) async {
-      ProbeEnv.set(360, 1.0, TextDirection.ltr);
-      await signIn(t);
-      Get.put(DeleteAccountController(repository: repo));
-      await open(t, const DeleteAccountScreen());
-      await settle(t);
-      await t.binding.setSurfaceSize(const Size(360, 640));
-      await t.pump(const Duration(milliseconds: 300));
-      await t.ensureVisible(find.byKey(const Key('delete_confirm_field')));
-      await t.pump(const Duration(milliseconds: 300));
-      await t.enterText(find.byKey(const Key('delete_confirm_field')), 'DEL');
-      await t.pump();
-      t.view.viewInsets = FakeViewPadding(bottom: 300 * t.view.devicePixelRatio);
-      addTearDown(t.view.resetViewInsets);
-      for (var i = 0; i < 8; i++) {
-        await t.pump(const Duration(milliseconds: 100));
-      }
-      expectNoLayoutError(t);
-      expect(find.byKey(const Key('delete_confirm_field')), findsOneWidget);
-      expect(t.getRect(find.byKey(const Key('delete_submit'))).bottom, lessThanOrEqualTo(640 - 300 + 0.5));
-      expect(t.getRect(find.byKey(const Key('delete_confirm_field'))).bottom, lessThanOrEqualTo(640 - 300 + 0.5));
-    });
-
-    testWidgets('explains it is a request; button disabled until DELETE is typed; sends; shows status and keeps the user signed in', (t) async {
-      final auth = await signIn(t);
-      final c = Get.put(DeleteAccountController(repository: repo));
-      await open(t, const DeleteAccountScreen());
-      await settle(t);
-      expect(find.textContaining('request, not an instant deletion'), findsOneWidget);
-      expect(find.textContaining('stays active'), findsOneWidget);
-      expect(t.widget<EmPrimaryButton>(find.byKey(const Key('delete_submit'))).onPressed, isNull);
-      await t.enterText(find.byKey(const Key('delete_reason')), 'Moving abroad (DUMMY)');
-      await t.enterText(find.byKey(const Key('delete_confirm_field')), 'delet');
-      await t.pump();
-      expect(t.widget<EmPrimaryButton>(find.byKey(const Key('delete_submit'))).onPressed, isNull);
-      await t.enterText(find.byKey(const Key('delete_confirm_field')), 'DELETE');
-      await t.pump();
-      await t.tap(find.byKey(const Key('delete_submit')));
-      await t.runAsync(() => pumpEventQueue());
-      await settle(t);
-      expect(repo.reasons, ['Moving abroad (DUMMY)']);
-      expect(find.byKey(const Key('delete_done_title')), findsOneWidget);
-      expect(find.text('Request sent'), findsOneWidget);
-      expect(find.text('Status: Pending'), findsOneWidget);
-      expect(find.textContaining('retained until they process it'), findsOneWidget);
-      expect(auth.status.value, AuthStatus.authenticated);
-      expect(c.result.value, isNotNull);
-    });
-
-    testWidgets('already requested', (t) async {
-      repo.request0 = (_) async => const DeletionRequestResult(requestId: 'r1', status: 'pending', alreadyRequested: true);
-      Get.put(DeleteAccountController(repository: repo));
-      await open(t, const DeleteAccountScreen());
-      await t.enterText(find.byKey(const Key('delete_confirm_field')), 'DELETE');
-      await t.pump();
-      await t.tap(find.byKey(const Key('delete_submit')));
-      await t.runAsync(() => pumpEventQueue());
-      await settle(t);
-      expect(find.text('You already have a pending request'), findsOneWidget);
-      expect(find.text('Request sent'), findsNothing);
-    });
-
-    testWidgets('403 and 404 messages; the form stays', (t) async {
-      final c = Get.put(DeleteAccountController(repository: repo));
-      await open(t, const DeleteAccountScreen());
-      await t.enterText(find.byKey(const Key('delete_confirm_field')), 'DELETE');
-      await t.pump();
-      repo.request0 = (_) async => fail7c(403, 'Forbidden');
-      await t.tap(find.byKey(const Key('delete_submit')));
-      await t.runAsync(() => pumpEventQueue());
-      await settle(t);
-      expect(find.textContaining("You don't have access to request account deletion"), findsOneWidget);
-      repo.request0 = (_) async => fail7c(404, 'Cannot POST');
-      await t.tap(find.byKey(const Key('delete_submit')));
-      await t.runAsync(() => pumpEventQueue());
-      await settle(t);
-      expect(find.textContaining('not available on this server yet'), findsOneWidget);
-      expect(find.byKey(const Key('delete_confirm_field')), findsOneWidget);
-      expect(c.result.value, isNull);
-    });
-  });
-
   // ───────────────────────── More + leave ─────────────────────────
   group('More tab entries', () {
-    testWidgets('calendar, events, safeguarding, profile, help, about and delete account are live; sign out still there', (t) async {
+    testWidgets('calendar, events, safeguarding, profile, help and about are live; there is no delete-account entry; sign out still there', (t) async {
       final h = (await t.runAsync(() => signedIn()))!;
       Get.put(MoreController());
       await open(t, const Scaffold(body: MoreScreen()));
       await settle(t);
-      for (final title in ['School calendar', 'Events', 'Raise a concern', 'Profile', 'Help', 'About', 'Request account deletion', 'Sign out']) {
+      for (final title in ['School calendar', 'Events', 'Raise a concern', 'Profile', 'Help', 'About', 'Sign out']) {
         expect(find.text(title), findsOneWidget, reason: title);
       }
       expect(find.textContaining('Coming soon'), findsNothing);
+      expect(find.textContaining('account deletion'), findsNothing);
+      expect(find.byKey(const Key('more_delete_account')), findsNothing);
       expect(h.auth.status.value, AuthStatus.authenticated);
       await t.tap(find.text('Raise a concern'));
       await settle(t);

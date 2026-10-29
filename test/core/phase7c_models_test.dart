@@ -4,7 +4,6 @@ import 'package:eldermin_teacher_app/core/models/calendar/calendar_models.dart';
 import 'package:eldermin_teacher_app/core/models/classroom/student_models.dart';
 import 'package:eldermin_teacher_app/core/models/help/kb_models.dart';
 import 'package:eldermin_teacher_app/core/models/safeguarding/safeguarding_models.dart';
-import 'package:eldermin_teacher_app/core/services/account_repository.dart';
 import 'package:eldermin_teacher_app/core/utils/avatar_rules.dart';
 import 'package:eldermin_teacher_app/core/utils/safe_text.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -287,13 +286,6 @@ void main() {
       expect(avatarProblem(fileName: 'me.jpg', size: 0), isNotNull);
       expect(avatarProblem(fileName: 'me.jpg', size: kAvatarMaxBytes), isNull);
       expect(avatarProblem(fileName: 'me.jpg', size: kAvatarMaxBytes + 1), contains('10 MB'));
-    });
-
-    test('delete request result: new vs already requested', () {
-      final a = DeletionRequestResult.fromJson({'requestId': 'r', 'status': 'pending', 'message': 'Sent'});
-      expect((a.alreadyRequested, a.message, a.status), (false, 'Sent', 'pending'));
-      final b = DeletionRequestResult.fromJson({'requestId': 'r', 'status': 'pending', 'alreadyRequested': true});
-      expect((b.alreadyRequested, b.message), (true, null));
     });
   });
 

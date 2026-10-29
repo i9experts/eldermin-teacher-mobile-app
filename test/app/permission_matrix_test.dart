@@ -267,9 +267,10 @@ void main() {
         for (final e in all.where((e) => e.placement == ModulePlacement.more)) {
           expect(find.text(e.title), p.more.contains(e.id) ? findsOneWidget : findsNothing, reason: 'More: ${e.id}');
         }
-        for (final fixed in ['Notifications', 'Profile', 'Help', 'About', 'Request account deletion', 'Sign out']) {
+        for (final fixed in ['Notifications', 'Profile', 'Help', 'About', 'Sign out']) {
           expect(find.text(fixed), findsOneWidget, reason: fixed);
         }
+        expect(find.textContaining('account deletion'), findsNothing);
         for (final admin in ['Payroll', 'Finance', 'Fees', 'Roles', 'Users', 'Settings', 'Admin', 'Recruitment', 'Early Years']) {
           expect(find.textContaining(admin), findsNothing, reason: admin);
         }

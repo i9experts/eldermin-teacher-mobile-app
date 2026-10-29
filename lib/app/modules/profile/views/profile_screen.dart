@@ -16,7 +16,7 @@ String roleLabel(String role) {
   return words.map((w) => w[0].toUpperCase() + w.substring(1)).join(' ');
 }
 
-/// Profile (`/profile`): read-only details + the profile photo, then Help / About / Delete account.
+/// Profile (`/profile`): read-only details + the profile photo, then Help / About.
 class ProfileScreen extends GetView<ProfileController> {
   const ProfileScreen({super.key});
   ProfileController get c => controller;
@@ -45,7 +45,6 @@ class ProfileScreen extends GetView<ProfileController> {
               const SubHeadingText('Settings'),
               _nav(Icons.help_outline_rounded, 'Help', 'Guides and support', Routes.help, const Key('profile_help')),
               _nav(Icons.info_outline_rounded, 'About', 'App version', Routes.about, const Key('profile_about')),
-              _nav(Icons.person_remove_outlined, 'Request account deletion', 'Ask the school to delete your account', Routes.deleteAccount, const Key('profile_delete_account'), danger: true),
             ],
           );
         }),

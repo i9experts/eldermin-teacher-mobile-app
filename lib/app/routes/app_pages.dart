@@ -23,8 +23,6 @@ import '../modules/calendar/views/calendar_screen.dart';
 import '../modules/curriculum/bindings/curriculum_binding.dart';
 import '../modules/curriculum/views/curriculum_detail_screen.dart';
 import '../modules/curriculum/views/curriculum_screen.dart';
-import '../modules/delete_account/bindings/delete_account_binding.dart';
-import '../modules/delete_account/views/delete_account_screen.dart';
 import '../modules/early_years/bindings/early_years_binding.dart';
 import '../modules/early_years/views/early_years_screen.dart';
 import '../modules/events/bindings/events_binding.dart';
@@ -349,9 +347,5 @@ class AppPages {
         name: Routes.about,
         page: () => const AboutScreen(),
         binding: AboutBinding()),
-    GetPage(
-        name: Routes.deleteAccount,
-        page: () => const DeleteAccountScreen(),
-        binding: DeleteAccountBinding()),
   ];
 }

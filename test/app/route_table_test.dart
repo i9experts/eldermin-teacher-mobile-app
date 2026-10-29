@@ -7,6 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final names = AppPages.pages.map((p) => p.name).toList();
 
+  test('no in-app account-deletion flow: no /delete-account route (Help says to contact the school)', () {
+    expect(names, isNot(contains('/delete-account')));
+    expect(Routes.all, isNot(contains('/delete-account')));
+    expect(names.where((n) => n.toLowerCase().contains('delete')), isEmpty);
+  });
+
   test('every route name is registered exactly once', () {
     expect(names.toSet().length, names.length, reason: 'duplicate GetPage names');
     for (final r in [
@@ -40,7 +46,7 @@ void main() {
       '/student-leaves', '/student-leaves/:id', '/messages', '/messages/new', '/messages/:threadId',
       '/calendar', '/events', '/events/:id', '/curriculum', '/library',
       '/early-years', '/safeguarding',
-      '/profile', '/help', '/help/:module/:tabKey', '/about', '/delete-account',
+      '/profile', '/help', '/help/:module/:tabKey', '/about',
       '/home', '/home/classes', '/home/attendance', '/home/messages', '/home/more',
       '/splash', '/login', '/unsupported-role',
     ];
