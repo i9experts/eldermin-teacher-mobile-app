@@ -29,7 +29,14 @@ class FakeStudentsRepository extends StudentsRepository {
   Future<GradesSections> Function() grades = () async => const GradesSections();
   Future<Student360> Function(String id) detail = (_) async => throw ApiException('nope', statusCode: 404);
   Future<StatusCounts> Function(String id, int year, int month) summary = (_, __, ___) async => const StatusCounts();
+  Future<List<ResultItem>> Function(String id) results = (_) async => [];
   final calls = <String>[];
+
+  @override
+  Future<List<ResultItem>> fetchStudentResults(String id) {
+    calls.add('results:$id');
+    return results(id);
+  }
 
   @override
   Future<GradesSections> fetchGradesSections() {

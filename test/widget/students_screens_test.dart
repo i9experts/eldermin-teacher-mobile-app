@@ -218,6 +218,22 @@ void main() {
       expect((Get.arguments as StudentSummary).id, isNotEmpty);
     });
 
+    testWidgets('recent results card shows the marks-route rows; a failing results call shows a calm line, the rest stays', (t) async {
+      repo.results = (_) async => const [ResultItem(title: 'Mid-term', type: 'Maths', percentage: 80, overallGrade: 'A')];
+      await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A'}));
+      expect(find.text('Mid-term'), findsOneWidget);
+      expect(find.text('80% · A'), findsOneWidget);
+      expect(find.text('Unit 1 test (DUMMY)'), findsNothing);
+
+      Get.reset();
+      Get.testMode = true;
+      repo = FakeStudentsRepository();
+      repo.results = (_) async => throw ApiException('boom', statusCode: 500);
+      await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A'}));
+      expect(find.byKey(const Key('results_error')), findsOneWidget);
+      expect(find.byKey(const Key('student_profile')), findsOneWidget);
+    });
+
     testWidgets('shows the whitelisted sections and NO fee / contact / income data', (t) async {
       await bootDetail(t, data: fx360({'currentGrade': 'Grade 5', 'currentSection': 'A'}));
       expect(find.byKey(const Key('student_profile')), findsOneWidget);

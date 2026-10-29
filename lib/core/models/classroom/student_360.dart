@@ -121,7 +121,10 @@ class Behaviour360 {
       );
 }
 
-/// `assessments.recent[]` (AssessmentResult schema student-supporting.schema.ts:175-201).
+/// A recent result line. Real schools' results live in the `MarkEntry` collection (`assessment_marks`, assessment.schema.ts:208),
+/// read from `GET /assessments/marks/list?studentId=` ([ResultItem.fromMark]). `assessments.recent[]` of the 360 reads the legacy
+/// `AssessmentResult` collection (students.service.ts:1840), written only by `POST /students/results`; it is kept as a fallback
+/// ([ResultItem.fromJson], student-supporting.schema.ts:191).
 class ResultItem {
   final String title;
   final String type;
@@ -131,6 +134,24 @@ class ResultItem {
   final num? obtained;
   final num? max;
   const ResultItem({this.title = '', this.type = '', this.date, this.percentage, this.overallGrade, this.obtained, this.max});
+
+  /// One `MarkEntry` row. Rows with nothing entered yet (no marks, not absent, not exempt) are not a result: null.
+  static ResultItem? fromMark(Map<String, dynamic> j) {
+    final obtained = readNum(j['obtainedMarks']);
+    final absent = readBool(j['isAbsent']);
+    final exempt = readBool(j['isExempt']);
+    if (obtained == null && !absent && !exempt) return null;
+    final subject = readText(j['subject']);
+    return ResultItem(
+      title: readText(j['assessmentTitle']).isNotEmpty ? readText(j['assessmentTitle']) : subject,
+      type: absent ? 'Absent' : (exempt ? 'Exempt' : subject),
+      date: readDate(j['updatedAt']) ?? readDate(j['createdAt']),
+      percentage: (absent || exempt) ? null : readNum(j['percentage'])?.toDouble(),
+      overallGrade: (absent || exempt) ? null : readString(j['grade_result']),
+      obtained: absent || exempt ? null : obtained,
+      max: readNum(j['totalMarks']),
+    );
+  }
 
   factory ResultItem.fromJson(Map<String, dynamic> j) => ResultItem(
         title: readText(j['assessmentTitle']),

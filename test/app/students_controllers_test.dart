@@ -138,7 +138,42 @@ void main() {
       expect(c.outOfScope.value, isFalse);
       expect(c.detail.value.status, SectionStatus.data);
       expect(c.month.value.data!.present, 3);
-      expect(repo.calls, ['360:sid', 'summary:sid:2026-10']);
+      expect(repo.calls, ['360:sid', 'summary:sid:2026-10', 'results:sid']);
+    });
+
+    test('results: read from the marks route, not the 360 legacy list; 360 legacy only as a fallback when there are no marks', () async {
+      repo.detail = (_) async => fx360({'currentGrade': 'Grade 5', 'currentSection': 'A'});
+      repo.results = (_) async => const [ResultItem(title: 'Mid-term', type: 'Maths', percentage: 80, overallGrade: 'A')];
+      final c = await make();
+      await c.load();
+      expect(repo.calls, containsAll(['360:sid', 'results:sid']));
+      expect(c.results.value.data!.map((r) => r.title), ['Mid-term']);
+
+      repo.results = (_) async => [];
+      await c.load();
+      expect(c.results.value.data!.map((r) => r.title), ['Unit 1 test (DUMMY)', 'Quiz 2 (DUMMY)']); // legacy fallback
+
+      repo.detail = (_) async => Student360.fromJson({'student': {'_id': 'sid', 'currentGrade': 'Grade 5', 'currentSection': 'A'}});
+      await c.load();
+      expect(c.results.value.status, SectionStatus.empty);
+    });
+
+    test('results failing (500 / 403) does not hide the 360 or the month counts; the student out of scope never asks for results', () async {
+      repo.detail = (_) async => fx360({'currentGrade': 'Grade 5', 'currentSection': 'A'});
+      repo.results = (_) async => throw ApiException('boom', statusCode: 500);
+      final c = await make();
+      await c.load();
+      expect(c.detail.value.status, SectionStatus.data);
+      expect(c.month.value.status, SectionStatus.data);
+      expect(c.results.value.status, SectionStatus.error);
+      repo.results = (_) async => throw ApiException('no', statusCode: 403);
+      await c.load();
+      expect(c.results.value.status, SectionStatus.forbidden);
+
+      repo.calls.clear();
+      repo.detail = (_) async => fx360({'currentGrade': 'Grade 5', 'currentSection': 'B'});
+      await c.load();
+      expect(repo.calls, ['360:sid']);
     });
 
     test('tolerant class match: "5"/"a" is still my class', () async {

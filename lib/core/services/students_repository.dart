@@ -4,6 +4,7 @@ import '../models/classroom/attendance_models.dart';
 import '../models/classroom/student_360.dart';
 import '../models/classroom/student_models.dart';
 import '../models/json_helpers.dart';
+import '../models/paginated.dart';
 import '../network/base_client.dart';
 import '../network/response_shape.dart';
 import '../network/dio_exception_handler.dart';
@@ -71,6 +72,19 @@ class StudentsRepository {
   Future<Student360> fetchStudent360(String id) => _guard(() async {
         final res = await _client.get(ApiConstants.student360(id));
         return Student360.fromJson(expectMap(res.data, what: 'this student'));
+      });
+
+  /// Most recent results of one student: `GET /assessments/marks/list?studentId=&limit=200`
+  /// (assessment.controller.ts:82 -> assessment.service.ts:1812-1828, the `MarkEntry` collection `assessment_marks`).
+  /// The 360's own `assessments.recent` reads the legacy `AssessmentResult` collection (students.service.ts:1840) that the
+  /// Assessments module never writes. Newest first, at most [maxResults].
+  static const int maxResults = 5;
+  Future<List<ResultItem>> fetchStudentResults(String id) => _guard(() async {
+        final res = await _client.get(ApiConstants.marksList, queryParameters: {'studentId': id, 'limit': 200, 'page': 1});
+        final page = Paginated<ResultItem?>.parse(res.data, ResultItem.fromMark, what: 'results');
+        final items = [...page.items.whereType<ResultItem>()];
+        items.sort((a, b) => (b.date ?? DateTime.fromMillisecondsSinceEpoch(0)).compareTo(a.date ?? DateTime.fromMillisecondsSinceEpoch(0)));
+        return items.take(maxResults).toList();
       });
 
   /// `GET /students/:id/attendance/summary?month=YYYY-MM` -> counts per status

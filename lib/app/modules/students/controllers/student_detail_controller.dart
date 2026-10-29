@@ -36,6 +36,7 @@ class StudentDetailController extends GetxController {
 
   final detail = Rx<SectionState<Student360>>(const SectionState.loading());
   final month = Rx<SectionState<StatusCounts>>(const SectionState.loading());
+  final results = Rx<SectionState<List<ResultItem>>>(const SectionState.loading());
 
   /// True when the student is not in any of my classes (nothing from the payload is kept).
   final outOfScope = false.obs;
@@ -62,15 +63,18 @@ class StudentDetailController extends GetxController {
     final token = ++_token;
     detail.value = const SectionState.loading();
     month.value = const SectionState.loading();
+    results.value = const SectionState.loading();
     outOfScope.value = false;
+    final Student360 d;
     try {
-      final d = await repo.fetchStudent360(studentId);
+      d = await repo.fetchStudent360(studentId);
       if (token != _token) return;
       // a student without a section belongs to the classes of its grade (shared rule, sectionCovered)
       if (!inAnyClass(d.student, teacherClassesOf(auth.staffMe.value?.teacherProfile), includeUnsectioned: true)) {
         outOfScope.value = true;
         detail.value = const SectionState.empty();
         month.value = const SectionState.empty();
+        results.value = const SectionState.empty();
         return;
       }
       detail.value = SectionState.data(d);
@@ -79,10 +83,25 @@ class StudentDetailController extends GetxController {
       // 404 here is the backend's 'Student not found' (students.service.ts:1484-1485), not "endpoint missing".
       detail.value = (e is ApiException && e.statusCode == 404) ? const SectionState.empty() : SectionState<Student360>.fromError(e);
       month.value = const SectionState.empty();
+      results.value = const SectionState.empty();
       return;
     }
     // Only now (the student is verified to be mine) is anything else requested for them.
-    await _loadMonth(token);
+    await Future.wait([_loadMonth(token), _loadResults(token, d)]);
+  }
+
+  /// Results come from the marks collection (`GET /assessments/marks/list?studentId=`), not from the 360's legacy `assessments.recent`
+  /// (kept only as a fallback when the student has no marks at all).
+  Future<void> _loadResults(int token, Student360 d) async {
+    try {
+      final marks = await repo.fetchStudentResults(studentId);
+      if (token != _token) return;
+      final items = marks.isNotEmpty ? marks : d.results;
+      results.value = items.isEmpty ? const SectionState.empty() : SectionState.data(items);
+    } catch (e) {
+      if (token != _token) return;
+      results.value = SectionState<List<ResultItem>>.fromError(e, previous: results.value);
+    }
   }
 
   Future<void> _loadMonth(int token) async {

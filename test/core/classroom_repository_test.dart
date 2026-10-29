@@ -97,6 +97,42 @@ void main() {
       expect(s.total, greaterThan(0));
     });
 
+    test('results come from the marks collection: marks/list?studentId, newest first, max 5, unentered rows dropped', () async {
+      Map<String, Object?> row(String title, String at, {Object? obtained = 40, bool absent = false}) => {
+            'assessmentTitle': title,
+            'subject': 'Maths',
+            'totalMarks': 50,
+            'obtainedMarks': obtained,
+            'isAbsent': absent,
+            'isExempt': false,
+            'percentage': 80,
+            'grade_result': 'A',
+            'updatedAt': at,
+          };
+      final c = _Client((m, p, q, b) => {
+            'data': [
+              for (var i = 1; i <= 6; i++) row('T$i', '2026-0$i-01T00:00:00.000Z'),
+              row('Not yet entered', '2026-09-01T00:00:00.000Z', obtained: null),
+              row('Away', '2026-08-15T00:00:00.000Z', obtained: null, absent: true),
+            ],
+            'meta': {'total': 8, 'page': 1, 'limit': 200, 'pages': 1},
+          });
+      final r = await StudentsRepository(c).fetchStudentResults('sid1');
+      expect(c.calls.single.path, '/assessments/marks/list');
+      expect(c.calls.single.q, containsPair('studentId', 'sid1'));
+      expect(r.map((e) => e.title), ['Away', 'T6', 'T5', 'T4', 'T3']);
+      expect(r.first.type, 'Absent');
+      expect(r[1].percentage, 80);
+      expect(r[1].overallGrade, 'A');
+      expect(r[1].max, 50);
+    });
+
+    test('results: 403 surfaces as ApiException 403, a non-list body is an unexpected-shape error', () async {
+      await expectLater(StudentsRepository(_Client((m, p, q, b) => 403)).fetchStudentResults('x'),
+          throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 403)));
+      await expectLater(StudentsRepository(_Client((m, p, q, b) => {'oops': true})).fetchStudentResults('x'), throwsA(isA<Object>()));
+    });
+
     test('403 and 404 surface as ApiException with the status code', () async {
       final c = _Client((m, p, q, b) => 403);
       await expectLater(StudentsRepository(c).fetchStudent360('x'),

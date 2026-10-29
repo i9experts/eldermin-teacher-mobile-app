@@ -85,7 +85,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
         const SectionRow(title: 'Recent behaviour'),
         _BehaviourCard(b: d.behaviour, studentId: d.student.id, studentName: d.student.fullName),
         const SectionRow(title: 'Recent results'),
-        _ResultsCard(results: d.results),
+        _ResultsCard(state: c.results.value),
         if (d.guardiansKnown) ...[
           const SectionRow(title: 'Guardians'),
           _GuardiansCard(guardians: d.guardians),
@@ -366,11 +366,26 @@ class _BehaviourCard extends StatelessWidget {
 }
 
 class _ResultsCard extends StatelessWidget {
-  final List<ResultItem> results;
-  const _ResultsCard({required this.results});
+  final SectionState<List<ResultItem>> state;
+  const _ResultsCard({required this.state});
 
   @override
   Widget build(BuildContext context) {
+    switch (state.status) {
+      case SectionStatus.loading:
+        return const _Section(cardKey: Key('student_results'), child: _Quiet('Loading…'));
+      case SectionStatus.forbidden:
+        return const _Section(cardKey: Key('student_results'), child: _Quiet("You don't have access to results."));
+      case SectionStatus.error:
+      case SectionStatus.unavailable:
+        if (state.data == null) {
+          return const _Section(
+              cardKey: Key('student_results'), child: _Quiet("Couldn't load results.", textKey: Key('results_error'), color: EmColors.error));
+        }
+      case SectionStatus.data:
+      case SectionStatus.empty:
+    }
+    final results = state.data ?? const <ResultItem>[];
     if (results.isEmpty) return const _Section(cardKey: Key('student_results'), child: _Quiet('No recent results.'));
     return _Section(
       cardKey: const Key('student_results'),
