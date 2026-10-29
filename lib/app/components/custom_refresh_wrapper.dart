@@ -1,4 +1,3 @@
-
 // import '../config/app_colors.dart';
 import '../config/app_images.dart';
 import 'package:flutter/material.dart';
@@ -198,7 +197,7 @@ class _CustomRefreshWrapperState extends State<CustomRefreshWrapper>
                         ),
                       ],
                     ),
-                    child: Image.asset(AppImages.logoImage, fit: BoxFit.contain),
+                    child: Image.asset(AppImages.fullLogo, fit: BoxFit.contain),
                   ),
                 ],
               ),
