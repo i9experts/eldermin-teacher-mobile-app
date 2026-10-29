@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import '../constants/api_constants.dart';
 import 'dio_service.dart';
+import '../utils/app_log.dart';
 
 /// Thin wrapper over the shared [Dio] instance - every API service call
 /// goes through one of these so timeouts, auth headers, and 401
@@ -16,7 +16,7 @@ class BaseClient {
     bool requiresAuth = true,
     Map<String, String>? headers,
   }) async {
-    if (kDebugMode) debugPrint('GET → $url');
+    AppLog.d('GET → $url');
     return DioService.getDio().get(
       url,
       queryParameters: queryParameters,
@@ -31,7 +31,7 @@ class BaseClient {
     bool requiresAuth = true,
     Map<String, String>? headers,
   }) async {
-    if (kDebugMode) debugPrint('POST → $url');
+    AppLog.d('POST → $url');
     final options = _jsonOptions(requiresAuth);
     if (headers != null) options.headers = {...?options.headers, ...headers};
     return DioService.getDio().post(url, data: data, queryParameters: queryParameters, options: options);
@@ -43,7 +43,7 @@ class BaseClient {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
   }) async {
-    if (kDebugMode) debugPrint('PATCH → $url');
+    AppLog.d('PATCH → $url');
     return DioService.getDio().patch(url,
         data: data, queryParameters: queryParameters, options: _jsonOptions(requiresAuth));
   }
@@ -56,7 +56,7 @@ class BaseClient {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
   }) async {
-    if (kDebugMode) debugPrint('PUT → $url');
+    AppLog.d('PUT → $url');
     return DioService.getDio().put(url,
         data: data, queryParameters: queryParameters, options: _jsonOptions(requiresAuth));
   }
@@ -67,7 +67,7 @@ class BaseClient {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
   }) async {
-    if (kDebugMode) debugPrint('DELETE → $url');
+    AppLog.d('DELETE → $url');
     return DioService.getDio().delete(url,
         data: data, queryParameters: queryParameters, options: _jsonOptions(requiresAuth));
   }
@@ -82,7 +82,7 @@ class BaseClient {
     void Function(int sent, int total)? onSendProgress,
     bool requiresAuth = true,
   }) async {
-    if (kDebugMode) debugPrint('$method (multipart) → $url');
+    AppLog.d('$method (multipart) → $url');
     final form = FormData();
     fields?.forEach((k, v) => form.fields.add(MapEntry(k, v.toString())));
     files.forEach((field, list) {

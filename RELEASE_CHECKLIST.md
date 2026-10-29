@@ -36,7 +36,7 @@ Phase 8 verified locally only (unit / widget tests, local stub, local database `
 1. Staging verification (section 0).
 2. Apple team ID and App Store Connect app record; Play Console app; upload keystore.
 3. Support contact (email / page) and privacy policy URL.
-4. Account deletion: confirm the turnaround the school will honour and whether Apple accepts the request-based flow for school-provisioned accounts (else the backend must deactivate the account in-app).
+4. Account deletion: there is no in-app request (same as the parent app); Help says "To have your data deleted, please contact your school." Confirm the school's process and that Apple accepts it for school-provisioned accounts.
 5. Backend items from earlier reports still open (circular / event audience filtering, fee-data leaks in calendar and event payloads, safeguarding mass assignment, KB without teacher articles, B5 open questions incl. blood group visibility).
 6. Teacher-oriented Help articles (the knowledge base only holds Staff & HR guides; the app hides them).
 7. App Privacy / Data safety answers: draft in `../eldermin-teacher-app-docs/phase8/APP_PRIVACY_ANSWERS.md` (UNCERTAIN: safeguarding free text, profile photo, server-side logs and retention).
@@ -45,7 +45,7 @@ Phase 8 verified locally only (unit / widget tests, local stub, local database `
 
 ### Pending owner decisions (record only, nothing acted on)
 * Blood group and `emergencyAction` visibility for teachers (backend hides blood group; the app shows it if sent; `emergencyAction` is not shown).
-* Account deletion: the 30-day timeframe (not enforced by the backend) and whether to build in-app deletion, Plan B (`../eldermin-teacher-app-docs/phase8/ACCOUNT_DELETION_PLAN_B.md`).
+* Account deletion: handled outside the app (contact the school), as in the parent app; the `POST /staff-portal/account/delete-request` endpoint is no longer called.
 * Push notifications (FCM) for v1: not built; ship without?
 * Support email / page (`SUPPORT_EMAIL`, `SUPPORT_URL`) and the privacy policy URL.
 * Apple team ID (`DEVELOPMENT_TEAM`) and the App Store Connect app record.

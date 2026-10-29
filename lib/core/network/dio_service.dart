@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import '../constants/api_constants.dart';
 import '../services/app_preferences.dart';
 import 'server_states.dart';
+import '../utils/app_log.dart';
 
 /// Marker placed in [DioException.error] when a request is rejected before
 /// leaving the device because there is no network at all.
@@ -97,7 +97,7 @@ class DioService {
           final status = error.response?.statusCode;
           final body = error.response?.data;
           if (shouldLogoutOn(error.requestOptions, status)) {
-            if (kDebugMode) debugPrint('401 on ${error.requestOptions.path} - ending session');
+            AppLog.d('401 on ${error.requestOptions.path} - ending session');
             if (ServerStates.isAccountInactive(status, message: ServerStates.messageOf(body)) && onAccountInactive != null) {
               onAccountInactive!.call();
             } else {

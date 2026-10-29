@@ -59,7 +59,6 @@ class ApiConstants {
   static const String studentLeaves = '$staffPortal/student-leaves'; // ?status&limit
   static String studentLeave(String id) => '$staffPortal/student-leaves/$id'; // PATCH
 
-  static const String deviceToken = '$staffPortal/device-token'; // POST/DELETE (stored only, no push in v1)
 
   // ── Teaching: timetable / dashboard ──────────────────────────
   static const String teachingDashboard = '$apiPrefix/teaching/dashboard';

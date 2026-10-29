@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'api_exception.dart';
 import 'dio_service.dart' show kNoInternetMarker;
+import '../utils/app_log.dart';
 
 /// Maps a [DioException] to the [ApiException] every controller already
 /// expects — same status-code messages the old ApiClient produced.
@@ -9,9 +9,9 @@ class DioExceptionHandler {
   DioExceptionHandler._();
 
   static ApiException handle(DioException e) {
-    if (kDebugMode) debugPrint('Dio error status  --> ${e.response?.statusCode}');
-    if (kDebugMode) debugPrint('Dio error type    --> ${e.type}');
-    if (kDebugMode) debugPrint('Dio error data    --> ${e.response?.data}');
+    AppLog.d('Dio error status  --> ${e.response?.statusCode}');
+    AppLog.d('Dio error type    --> ${e.type}');
+    AppLog.d('Dio error data    --> ${e.response?.data}');
 
     final status = e.response?.statusCode;
 

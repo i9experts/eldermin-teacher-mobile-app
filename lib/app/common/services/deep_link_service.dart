@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../../core/utils/deep_link_parser.dart';
 import '../../modules/auth/controllers/auth_controller.dart';
 import '../../routes/app_routes.dart';
 import '../../components/confirm_dialog.dart';
+import '../../../core/utils/app_log.dart';
 
 /// Receives `eldermin-teacher://` links (cold start via
 /// `getInitialLink`, warm start via `uriLinkStream`), validates them with
@@ -48,11 +48,11 @@ class DeepLinkService extends GetxService {
   void handleUri(Uri uri) {
     final link = DeepLinkParser.parse(uri);
     if (link == null) {
-      debugPrint('Ignored an unsupported incoming link');
+      AppLog.d('Ignored an unsupported incoming link');
       return;
     }
     if (_confirming) {
-      debugPrint('Ignored a link received while a confirmation is open');
+      AppLog.d('Ignored a link received while a confirmation is open');
       return;
     }
     _pending = link;
