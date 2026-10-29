@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _StatusAdapter implements HttpClientAdapter {
   final int status;
+  Map<String, Object?> body = {'message': 'x'};
   int calls = 0;
   String? lastAuthHeader;
   _StatusAdapter(this.status);
@@ -20,7 +21,7 @@ class _StatusAdapter implements HttpClientAdapter {
   Future<ResponseBody> fetch(RequestOptions options, Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
     calls++;
     lastAuthHeader = options.headers['Authorization'] as String?;
-    return ResponseBody.fromString(jsonEncode({'message': 'x'}), status,
+    return ResponseBody.fromString(jsonEncode(body), status,
         headers: {Headers.contentTypeHeader: ['application/json']});
   }
 
@@ -93,6 +94,62 @@ void main() {
       throwsA(isA<DioException>()),
     );
     expect(logouts, 1);
+  });
+
+  group('account states on authenticated calls (A1 item 6)', () {
+    late List<String> suspended;
+    late int inactive;
+    setUp(() {
+      suspended = [];
+      inactive = 0;
+      DioService.onSchoolSuspended = suspended.add;
+      DioService.onAccountInactive = () => inactive++;
+    });
+    tearDown(() {
+      DioService.onSchoolSuspended = null;
+      DioService.onAccountInactive = null;
+    });
+
+    Future<void> call(_StatusAdapter a, {String url = ApiConstants.staffMe, bool auth = true}) async {
+      final dio = DioService.createDio()..httpClientAdapter = a;
+      await expectLater(dio.get(url, options: Options(extra: {'requiresAuth': auth})), throwsA(isA<DioException>()));
+    }
+
+    test('403 with the server\'s suspended wording (the filter drops the code) -> onSchoolSuspended with that message', () async {
+      await call(_StatusAdapter(403)..body = {'statusCode': 403, 'message': "Your school's account is currently suspended. Please contact your school administration."});
+      expect(suspended, ["Your school's account is currently suspended. Please contact your school administration."]);
+      expect(logouts, 0);
+    });
+
+    test('403 carrying code SCHOOL_SUSPENDED is recognised even with other wording', () async {
+      await call(_StatusAdapter(403)..body = {'message': 'Blocked', 'code': 'SCHOOL_SUSPENDED'});
+      expect(suspended, ['Blocked']);
+    });
+
+    test('an ordinary 403 (Forbidden resource) and a suspended-looking 403 on login do not trigger it', () async {
+      await call(_StatusAdapter(403)..body = {'message': 'Forbidden resource'});
+      await call(_StatusAdapter(403)..body = {'message': "This school's account is suspended — please contact your school"}, url: ApiConstants.login, auth: false);
+      await call(_StatusAdapter(403)..body = {'message': "This school's account is suspended — please contact your school"}, url: ApiConstants.login, auth: true);
+      expect(suspended, isEmpty);
+    });
+
+    test('401 "This account is no longer active." -> onAccountInactive, not the generic onUnauthorized', () async {
+      await call(_StatusAdapter(401)..body = {'statusCode': 401, 'message': 'This account is no longer active.'});
+      expect(inactive, 1);
+      expect(logouts, 0);
+    });
+
+    test('any other 401 (session ended, invalid token) still ends the session the generic way', () async {
+      await call(_StatusAdapter(401)..body = {'message': 'Your session has ended. Please sign in again.'});
+      expect(inactive, 0);
+      expect(logouts, 1);
+    });
+
+    test('without an inactive hook the generic 401 handler runs (never a stuck session)', () async {
+      DioService.onAccountInactive = null;
+      await call(_StatusAdapter(401)..body = {'message': 'This account is no longer active.'});
+      expect(logouts, 1);
+    });
   });
 
   test('interceptor adds Bearer token from secure storage', () async {

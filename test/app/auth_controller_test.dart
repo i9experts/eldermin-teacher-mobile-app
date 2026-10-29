@@ -311,6 +311,55 @@ void main() {
     expect(toasts, [kSessionExpiredMessage]);
   });
 
+  group('account states (A1 item 6)', () {
+    test('deactivated staff (401 "no longer active") -> signed out to the login screen with the account-inactive notice (not a toast)', () async {
+      api.me = _staffMe();
+      final c = make(token: 'stored');
+      await c.bootstrap();
+      expect(c.status.value, AuthStatus.authenticated);
+      await c.handleAccountInactive();
+      expect(c.status.value, AuthStatus.unauthenticated);
+      expect(tokens.token, isNull);
+      expect(c.loginNotice.value, 'Your account is no longer active. Please contact your school.');
+      expect(toasts, isEmpty);
+      expect(resets, 1);
+    });
+
+    test('the inactive notice is cleared when the teacher starts a new sign-in attempt', () async {
+      api.me = _staffMe();
+      final c = make(token: 'stored');
+      await c.bootstrap();
+      await c.handleAccountInactive();
+      expect(c.loginNotice.value, isNotNull);
+      api.loginResult = _login();
+      await c.login(email: 'a@s.test', password: 'pw');
+      expect(c.loginNotice.value, isNull);
+    });
+
+    test('suspended school: the server message is kept for the full-screen state; logging out clears it', () async {
+      api.me = _staffMe();
+      final c = make(token: 'stored');
+      await c.bootstrap();
+      c.handleSchoolSuspended("Your school's account is currently suspended. Please contact your school administration.");
+      expect(c.schoolSuspendedMessage.value, "Your school's account is currently suspended. Please contact your school administration.");
+      expect(c.status.value, AuthStatus.authenticated, reason: 'the session is kept; the screen offers Log out');
+      await c.logout();
+      expect(c.schoolSuspendedMessage.value, isNull);
+      expect(c.status.value, AuthStatus.unauthenticated);
+    });
+
+    test('suspended school with no readable text falls back to a clear message; a suspended answer at sign-in (unauthenticated) is not a full-screen state', () async {
+      api.me = _staffMe();
+      final c = make(token: 'stored');
+      await c.bootstrap();
+      c.handleSchoolSuspended('   ');
+      expect(c.schoolSuspendedMessage.value, contains('suspended'));
+      await c.logout();
+      c.handleSchoolSuspended('Suspended');
+      expect(c.schoolSuspendedMessage.value, isNull);
+    });
+  });
+
   group('school code is off (kShowSchoolCode = false)', () {
     tearDown(() => LoginConfig.showSchoolCodeOverride = null);
 

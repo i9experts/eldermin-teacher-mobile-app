@@ -6,6 +6,7 @@ import 'app/common/services/deep_link_service.dart';
 import 'app/modules/auth/controllers/auth_controller.dart';
 import 'app/modules/auth/views/login_screen.dart';
 import 'app/modules/auth/views/profile_load_screen.dart';
+import 'app/modules/auth/views/school_suspended_screen.dart';
 import 'app/modules/auth/views/unsupported_role_screen.dart';
 import 'app/modules/home/views/home_shell.dart';
 import 'app/modules/intro/views/intro_screen.dart';
@@ -111,6 +112,7 @@ class _AuthGateState extends State<AuthGate> {
       case AuthStatus.unauthenticated:
         return auth.introSeen.value ? const LoginScreen() : const IntroScreen();
       case AuthStatus.authenticated:
+        if (auth.schoolSuspendedMessage.value != null) return const SchoolSuspendedScreen();
         if (!auth.roleSupported.value) return const UnsupportedRoleScreen();
         if (auth.staffMe.value == null) return const ProfileLoadScreen();
         return const HomeShell();

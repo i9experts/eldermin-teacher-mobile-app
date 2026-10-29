@@ -20,6 +20,8 @@ class InitialBinding extends Bindings {
       permanent: true,
     );
     DioService.onUnauthorized = auth.handleUnauthorized;
+    DioService.onAccountInactive = auth.handleAccountInactive;
+    DioService.onSchoolSuspended = auth.handleSchoolSuspended;
     Get.put<DeepLinkService>(DeepLinkService(auth: auth), permanent: true);
   }
 }

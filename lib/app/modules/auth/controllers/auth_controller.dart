@@ -17,6 +17,7 @@ import '../../../../core/services/token_store.dart';
 import '../../../../core/utils/jwt_claims.dart';
 import '../../../../core/utils/roster_scope.dart';
 import '../../../utils/toast_util.dart';
+import '../../../../core/network/server_states.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -34,6 +35,9 @@ const Duration kProfileRefreshInterval = Duration(minutes: 10);
 const Duration kProfileRefreshDeadline = Duration(seconds: 20);
 
 const String kSessionExpiredMessage = 'Session expired, please sign in again';
+
+/// The sign-in notice after the server rejected the session because the staff account was deactivated (401 "This account is no longer active.").
+const String kAccountInactiveMessage = 'Your account is no longer active. Please contact your school.';
 
 /// Global session state - the single source of truth for whether the app
 /// shows the intro / login flow or the home shell. Registered once
@@ -415,6 +419,27 @@ class AuthController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  /// A 401 "This account is no longer active." on an authenticated call (deactivated staff): sign out to the login screen with a notice that
+  /// stays there (not a toast that vanishes with the shell).
+  Future<void> handleAccountInactive() async {
+    if (status.value == AuthStatus.unauthenticated) return;
+    await logout();
+    loginNotice.value = kAccountInactiveMessage;
+  }
+
+  /// The server's message when the school is suspended (403 SCHOOL_SUSPENDED on an authenticated call) - the app then shows a clean
+  /// full-screen state with only "Log out". Null while the school is active. A suspended answer at sign-in stays on the login form.
+  final schoolSuspendedMessage = RxnString();
+
+  void handleSchoolSuspended(String message) {
+    if (status.value == AuthStatus.unauthenticated) return;
+    schoolSuspendedMessage.value = message.trim().isEmpty ? ServerStates.suspendedFallback : message.trim();
+    // a screen pushed on top of the shell (a form, a detail) must not stay above the suspended state
+    try {
+      Get.until((r) => r.isFirst);
+    } catch (_) {}
+  }
+
   /// Full sign-out: wipes secure storage + preferences, in-memory
   /// session, permissions and per-route GetX controllers.
   Future<void> logout() async {
@@ -439,6 +464,7 @@ class AuthController extends GetxController with WidgetsBindingObserver {
     profileError.value = null;
     profileLoading.value = false;
     _lastProfileSync = null;
+    schoolSuspendedMessage.value = null;
     _claims = JwtClaims.empty;
     _deniedClassKeys.clear();
     staleClassKeys.clear();

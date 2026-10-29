@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../constants/api_constants.dart';
 import '../services/app_preferences.dart';
+import 'server_states.dart';
 
 /// Marker placed in [DioException.error] when a request is rejected before
 /// leaving the device because there is no network at all.
@@ -22,6 +23,13 @@ class DioService {
   DioService._();
 
   static void Function()? onUnauthorized;
+
+  /// 401 "This account is no longer active." (deactivated staff) on an authenticated call: [InitialBinding] ends the session with that
+  /// reason. When unset, the generic [onUnauthorized] runs.
+  static void Function()? onAccountInactive;
+
+  /// 403 SCHOOL_SUSPENDED on an authenticated call: the argument is the server's own message.
+  static void Function(String message)? onSchoolSuspended;
   static Dio? _dio;
 
   /// Overridable in tests. Returns true when at least one network
@@ -86,9 +94,19 @@ class DioService {
           handler.next(options);
         },
         onError: (error, handler) {
-          if (shouldLogoutOn(error.requestOptions, error.response?.statusCode)) {
-            debugPrint('401 on ${error.requestOptions.path} - ending session');
-            onUnauthorized?.call();
+          final status = error.response?.statusCode;
+          final body = error.response?.data;
+          if (shouldLogoutOn(error.requestOptions, status)) {
+            if (kDebugMode) debugPrint('401 on ${error.requestOptions.path} - ending session');
+            if (ServerStates.isAccountInactive(status, message: ServerStates.messageOf(body)) && onAccountInactive != null) {
+              onAccountInactive!.call();
+            } else {
+              onUnauthorized?.call();
+            }
+          } else if (error.requestOptions.extra['requiresAuth'] == true &&
+              !ApiConstants.isPublicAuthUrl(error.requestOptions.path) &&
+              ServerStates.isSchoolSuspended(status, message: ServerStates.messageOf(body), code: ServerStates.codeOf(body))) {
+            onSchoolSuspended?.call(ServerStates.messageOf(body) ?? ServerStates.suspendedFallback);
           }
           handler.next(error);
         },
