@@ -7,6 +7,7 @@ import '../../../../core/widgets/screen_state_view.dart';
 import '../../../routes/app_routes.dart';
 import '../../home/models/section_state.dart';
 import '../controllers/behaviour_student_controller.dart';
+import '../controllers/tarbiyah_form_controller.dart';
 import 'behaviour_detail_sheet.dart';
 import 'widgets/behaviour_widgets.dart';
 import '../../../../core/design/design.dart';
@@ -100,12 +101,30 @@ class BehaviourStudentScreen extends GetView<BehaviourStudentController> {
               ],
             ),
             SubHeading('${cfg.programName} assessments'),
+            if (c.canLog && tar.status != SectionStatus.loading && tar.status != SectionStatus.forbidden)
+              Padding(
+                padding: const EdgeInsets.only(bottom: EmSpacing.row),
+                child: EmSecondaryButton(
+                  key: const Key('tarbiyah_add'),
+                  expand: true,
+                  icon: Icons.add_rounded,
+                  label: 'New ${cfg.programName} assessment',
+                  onPressed: () => Get.toNamed(Routes.tarbiyahForm, arguments: TarbiyahFormArgs(student: s, settings: cfg, existing: tar.data ?? const [])),
+                ),
+              ),
             ..._section<List<TarbiyahAssessment>>(
               tar,
               emptyKey: 'student_no_tarbiyah',
-              emptyText: 'No Tarbiyah assessment on record. (Assessments are created by the school on the web.)',
+              emptyText: c.canLog ? 'No ${cfg.programName} assessment on record yet.' : 'No ${cfg.programName} assessment on record.',
               retry: c.load,
-              builder: (list) => [for (final a in list) TarbiyahCard(a: a, settings: cfg)],
+              builder: (list) => [
+                for (final a in list)
+                  TarbiyahCard(
+                    a: a,
+                    settings: cfg,
+                    onEdit: c.canEditTarbiyah(a) ? () => Get.toNamed(Routes.tarbiyahForm, arguments: TarbiyahFormArgs(student: s, settings: cfg, existing: list, editing: a)) : null,
+                  ),
+              ],
             ),
           ],
         );

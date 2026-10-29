@@ -15,8 +15,10 @@ enum BehaviourScope { mine, classes }
 /// Source: `GET /behaviour/records?grade=<raw grade>&page=n&limit=50` per distinct raw grade string of my classes (the route filters by
 /// an EXACT grade string; since backend B1 it also pages and filters server-side: type, severity, resolved, from, to, search), then
 /// re-scoped client-side with the shared class matcher ([ClassRef.containsRecord]: a record WITHOUT a section matches by class only) so
-/// records of other classes are NEVER shown. "My entries" = [BehaviourRecord.isMine] (`reportedById` when present, else the
-/// `reportedBy` name). Paging is explicit: [hasMore] / [loadMore], nothing is silently dropped.
+/// records of other classes are NEVER shown. "My entries" is asked of the SERVER (`mine=true`, backend B1: by `reportedById`, else the
+/// `reportedBy` name), so entries older than the first page are not missed; the client keeps [BehaviourRecord.isMine] as a second check
+/// (an older server ignores `mine`). Each scope (My entries / My classes) keeps its own loaded pages, so switching back is instant.
+/// Paging is explicit: [hasMore] / [loadMore], nothing is silently dropped.
 class BehaviourController extends GetxController {
   final BehaviourRepository? _repo;
   final StudentsRepository? _students;
@@ -48,6 +50,9 @@ class BehaviourController extends GetxController {
   /// One page = this many records per raw grade string.
   static const int pageLimit = 50;
   final _nextPage = <String, int>{}; // raw grade -> next page to fetch (absent = no more)
+
+  /// What each scope has loaded (records + the next page per raw grade); filled when the user leaves a scope, dropped on every reload.
+  final _cache = <BehaviourScope, ({List<BehaviourRecord> records, Map<String, int> next})>{};
   final hasMore = false.obs;
   final loadingMore = false.obs;
   final loadMoreError = RxnString();
@@ -103,16 +108,36 @@ class BehaviourController extends GetxController {
 
   int countMine() => all.where((r) => r.isMine(userId: myId, userName: myName)).length;
 
+  /// Records loaded for "My classes", or null until that scope has been opened (the server filtered "My entries" only).
+  int? countClasses() => scope.value == BehaviourScope.classes ? all.length : _cache[BehaviourScope.classes]?.records.length;
+
   @override
   void onReady() {
     super.onReady();
     load();
   }
 
-  void setScope(BehaviourScope s) => scope.value = s;
+  /// Switches between "My entries" and "My classes". The first time a scope is opened it is fetched (My entries with `mine=true`).
+  Future<void> setScope(BehaviourScope s) async {
+    if (scope.value == s) return;
+    if (state.value.hasData) _cache[scope.value] = (records: [...all], next: Map.of(_nextPage));
+    scope.value = s;
+    final cached = _cache[s];
+    if (cached != null) {
+      _nextPage
+        ..clear()
+        ..addAll(cached.next);
+      hasMore.value = _nextPage.isNotEmpty;
+      loadMoreError.value = null;
+      state.value = SectionState.data(cached.records);
+      return;
+    }
+    state.value = const SectionState.loading();
+    await load(force: true, keepOtherScope: true);
+  }
   void setClassFilter(int i) => classFilter.value = i;
 
-  Future<void> load({bool force = false}) async {
+  Future<void> load({bool force = false, bool keepOtherScope = false}) async {
     if (!canView) {
       state.value = const SectionState.forbidden();
       return;
@@ -124,7 +149,9 @@ class BehaviourController extends GetxController {
     }
     if (!force && state.value.hasData) return;
     final token = ++_token;
+    if (!keepOtherScope) _cache.clear();
     if (!state.value.hasData) state.value = const SectionState.loading();
+    final mineOnly = scope.value == BehaviourScope.mine;
     try {
       GradesSections? known;
       try {
@@ -136,7 +163,7 @@ class BehaviourController extends GetxController {
       _nextPage.clear();
       final out = <BehaviourRecord>[];
       for (final g in grades) {
-        final page = await repo.fetchRecordsPage(grade: g, filters: filters.value, page: 1, limit: pageLimit);
+        final page = await repo.fetchRecordsPage(grade: g, filters: filters.value, mine: mineOnly, page: 1, limit: pageLimit);
         if (page.pages > 1) _nextPage[g] = 2;
         _merge(out, page.records, cs);
       }
@@ -164,7 +191,7 @@ class BehaviourController extends GetxController {
       final out = [...all];
       for (final g in _nextPage.keys.toList()) {
         final n = _nextPage[g]!;
-        final page = await repo.fetchRecordsPage(grade: g, filters: filters.value, page: n, limit: pageLimit);
+        final page = await repo.fetchRecordsPage(grade: g, filters: filters.value, mine: scope.value == BehaviourScope.mine, page: n, limit: pageLimit);
         if (token != _token) return;
         if (n >= page.pages) {
           _nextPage.remove(g);
@@ -195,6 +222,10 @@ class BehaviourController extends GetxController {
 
   /// An edited / resolved record replaces its old version in the list.
   void replaceRecord(BehaviourRecord r) {
+    for (final k in _cache.keys.toList()) {
+      final c = _cache[k]!;
+      if (c.records.any((x) => x.id == r.id)) _cache[k] = (records: [for (final x in c.records) x.id == r.id ? r : x], next: c.next);
+    }
     if (!all.any((x) => x.id == r.id)) return;
     state.value = SectionState.data([for (final x in all) x.id == r.id ? r : x]);
   }
@@ -206,6 +237,11 @@ class BehaviourController extends GetxController {
 
   /// A record the user just logged (so the list shows it without a re-fetch).
   void addRecord(BehaviourRecord r) {
+    // a record I just logged belongs to both scopes
+    for (final k in _cache.keys.toList()) {
+      final c = _cache[k]!;
+      _cache[k] = (records: [r, ...c.records.where((x) => x.id != r.id)], next: c.next);
+    }
     final list = [r, ...all.where((x) => x.id != r.id)];
     list.sort((a, b) => (b.day ?? DateTime(0)).compareTo(a.day ?? DateTime(0)));
     state.value = SectionState.data(list);

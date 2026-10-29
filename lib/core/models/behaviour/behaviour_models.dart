@@ -478,6 +478,7 @@ class TraitScore {
 class TarbiyahAssessment {
   final String id;
   final String studentId;
+  final String assessedById;
   final String period;
   final String periodType;
   final DateTime? assessmentDate;
@@ -492,6 +493,7 @@ class TarbiyahAssessment {
   const TarbiyahAssessment({
     required this.id,
     this.studentId = '',
+    this.assessedById = '',
     this.period = '',
     this.periodType = '',
     this.assessmentDate,
@@ -507,6 +509,7 @@ class TarbiyahAssessment {
   factory TarbiyahAssessment.fromJson(Map<String, dynamic> j) => TarbiyahAssessment(
         id: readId(j['_id'] ?? j['id']) ?? '',
         studentId: readId(j['studentId']) ?? '',
+        assessedById: readId(j['assessedById']) ?? '',
         period: readText(j['period']),
         periodType: readText(j['periodType']),
         assessmentDate: readDate(j['assessmentDate']),
@@ -524,6 +527,15 @@ class TarbiyahAssessment {
 
   DateTime? get day => storedCalendarDay(assessmentDate);
 
+  /// Did I record this assessment? `assessedById` is the author the server stamps from the token (behaviour.service.ts createTarbiyahAssessment);
+  /// a legacy assessment without one falls back to the `assessedBy` NAME, exactly like the server's author rule (isOwnByAuthor).
+  /// The server decides on every edit (403 otherwise); this only decides whether the Edit button is offered.
+  bool isMine({required String userId, required String userName}) {
+    if (assessedById.isNotEmpty) return assessedById == userId;
+    final n = userName.trim().toLowerCase();
+    return n.isNotEmpty && assessedBy.trim().toLowerCase() == n;
+  }
+
   String get ratingLabel {
     switch (overallRating) {
       case 'excellent':
@@ -540,3 +552,72 @@ class TarbiyahAssessment {
     return overallRating;
   }
 }
+
+
+/// Tarbiyah period types the server accepts (`periodType` enum, behaviour.schema.ts: monthly | termly | annual).
+const List<String> kTarbiyahPeriodTypes = ['monthly', 'termly', 'annual'];
+
+String tarbiyahPeriodTypeLabel(String t) => switch (t) {
+      'monthly' => 'Monthly',
+      'termly' => 'Termly',
+      'annual' => 'Annual',
+      _ => t,
+    };
+
+/// What the teacher enters for a Tarbiyah assessment (create or edit). The overall score / percentage / rating are computed by the SERVER from
+/// the traits and the school's scale; authorship (`assessedById`, `assessedBy`) and the campus come from the token. `parentShared` is never sent
+/// (the share toggle waits for the backend `visibleToParent`).
+class TarbiyahDraft {
+  final String periodType;
+  final String period;
+  final DateTime day;
+
+  /// trait key -> score, in the school's trait order.
+  final Map<String, int> scores;
+  final String observations;
+  final List<String> strengths;
+  final List<String> improvements;
+
+  const TarbiyahDraft({
+    required this.periodType,
+    required this.period,
+    required this.day,
+    required this.scores,
+    this.observations = '',
+    this.strengths = const [],
+    this.improvements = const [],
+  });
+
+  List<Map<String, Object?>> get _traits => [
+        for (final e in scores.entries) {'traitKey': e.key, 'score': e.value},
+      ];
+
+  /// `POST /behaviour/tarbiyah`: the student fields are copied from the roster row (the server stores them denormalised).
+  Map<String, Object?> toCreateJson({required String studentId, required String studentName, required String grade, required String section}) => {
+        'studentId': studentId,
+        'studentName': studentName,
+        'grade': grade,
+        if (section.isNotEmpty) 'section': section,
+        'period': period.trim(),
+        'periodType': periodType,
+        'assessmentDate': wireDay(day),
+        'traits': _traits,
+        'teacherObservations': observations.trim(),
+        'areasOfStrength': strengths,
+        'areasForImprovement': improvements,
+      };
+
+  /// `PUT /behaviour/tarbiyah/:id`: only the editable fields (the server strips student / author / campus fields for a teacher anyway).
+  Map<String, Object?> toUpdateJson() => {
+        'period': period.trim(),
+        'periodType': periodType,
+        'assessmentDate': wireDay(day),
+        'traits': _traits,
+        'teacherObservations': observations.trim(),
+        'areasOfStrength': strengths,
+        'areasForImprovement': improvements,
+      };
+}
+
+/// A multi-line text box -> one list entry per non-empty line.
+List<String> linesOf(String text) => [for (final l in text.split('\n')) if (l.trim().isNotEmpty) l.trim()];

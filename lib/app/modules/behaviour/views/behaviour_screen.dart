@@ -58,7 +58,7 @@ class _BehaviourScreenState extends State<BehaviourScreen> {
     final visible = c.visible;
     final classes = c.classes;
     final myCount = c.countMine();
-    final total = c.all.length;
+    final total = c.countClasses();
     final q = c.query.value;
     final myId = c.myId, myName = c.myName;
     return ScreenStateView<List<BehaviourRecord>>(
@@ -74,7 +74,7 @@ class _BehaviourScreenState extends State<BehaviourScreen> {
         if (c.canView) const ParentVisibleNote(text: 'Everything recorded here is visible to the student\'s parents in their app.'),
         if (state.hasData) ...[
           EmSegmentedTabs<BehaviourScope>(
-            segments: [EmSegment(BehaviourScope.mine, 'My entries ($myCount)'), EmSegment(BehaviourScope.classes, 'My classes ($total)')],
+            segments: [EmSegment(BehaviourScope.mine, 'My entries ($myCount)'), EmSegment(BehaviourScope.classes, total == null ? 'My classes' : 'My classes ($total)')],
             selected: scope == BehaviourScope.mine ? BehaviourScope.mine : BehaviourScope.classes,
             onChanged: c.setScope,
           ),

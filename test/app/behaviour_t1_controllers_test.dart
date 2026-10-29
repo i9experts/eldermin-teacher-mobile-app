@@ -63,7 +63,7 @@ void main() {
       final c = await makeList();
       await c.load();
       expect(c.visible.map((r) => r.id), ['none']);
-      c.setScope(BehaviourScope.classes);
+      await c.setScope(BehaviourScope.classes);
       expect(c.visible.map((r) => r.id), unorderedEquals(['none', 'theirs']));
     });
   });
@@ -88,7 +88,7 @@ void main() {
       repo.gradeRecords = (g) async => [rec('neg', type: 'negative'), rec('pos', type: 'positive', points: 3, byId: 'u')];
       final c = await makeList();
       await c.load();
-      c.setScope(BehaviourScope.classes);
+      await c.setScope(BehaviourScope.classes);
       await c.setFilters(const RecordFilters(type: 'positive'));
       expect(c.visible.map((r) => r.id), ['pos']);
     });
@@ -97,7 +97,7 @@ void main() {
       repo.gradeRecords = (g) async => g.isEmpty ? [] : [rec('neg')];
       final c = await makeList();
       await c.load();
-      c.setScope(BehaviourScope.classes);
+      await c.setScope(BehaviourScope.classes);
       repo.gradeRecords = (g) async => [];
       await c.setFilters(const RecordFilters(severity: 'critical'));
       expect(c.state.value.status, SectionStatus.data);
@@ -111,7 +111,7 @@ void main() {
       repo.gradeRecords = (g) async => [rec('x'), rec('y')];
       final c = await makeList();
       await c.load();
-      c.setScope(BehaviourScope.classes);
+      await c.setScope(BehaviourScope.classes);
       c.query.value = 'Tx';
       expect(c.visible.map((r) => r.id), ['x']);
       await c.submitSearch('Tx');

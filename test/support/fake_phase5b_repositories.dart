@@ -124,6 +124,10 @@ class FakeBehaviourRepository extends BehaviourRepository {
   Future<BehaviourRecord> Function(Map<String, Object?> body) onCreate =
       (b) async => BehaviourRecord.fromJson({'_id': 'new1', ...b});
   Future<List<TarbiyahAssessment>> Function(String studentId) tarbiyah = (_) async => [];
+  Future<TarbiyahAssessment> Function(Map<String, Object?> body) onCreateTarbiyah =
+      (b) async => TarbiyahAssessment.fromJson({'_id': 'tn1', 'assessedById': 'u', 'assessedBy': 'Tess Teacher', ...b});
+  Future<TarbiyahAssessment> Function(String id, Map<String, Object?> body) onUpdateTarbiyah =
+      (id, b) async => TarbiyahAssessment.fromJson({'_id': id, 'assessedById': 'u', 'assessedBy': 'Tess Teacher', ...b});
   Future<BehaviourRecord> Function(String id, Map<String, Object?> body) onUpdate = (id, b) async => BehaviourRecord.fromJson({'_id': id, ...b});
   Future<BehaviourRecord> Function(String id, String note) onResolve =
       (id, n) async => BehaviourRecord.fromJson({'_id': id, 'resolved': true, 'resolvedNote': n});
@@ -205,6 +209,20 @@ class FakeBehaviourRepository extends BehaviourRepository {
   Future<int?> fetchPointsTotal(String studentId) {
     calls.add('points:$studentId');
     return points(studentId);
+  }
+
+  @override
+  Future<TarbiyahAssessment> createTarbiyah(Map<String, Object?> body) {
+    calls.add('createTarbiyah');
+    bodies.add(body);
+    return onCreateTarbiyah(body);
+  }
+
+  @override
+  Future<TarbiyahAssessment> updateTarbiyah(String id, Map<String, Object?> body) {
+    calls.add('updateTarbiyah:$id');
+    bodies.add(body);
+    return onUpdateTarbiyah(id, body);
   }
 
   @override

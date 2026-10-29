@@ -197,6 +197,18 @@ class BehaviourStudentController extends GetxController {
     records.value = SectionState.data([for (final x in cur) x.id == r.id ? r : x]);
   }
 
+  /// A Tarbiyah assessment just created / edited from the form replaces (or joins) the list, newest first.
+  void upsertTarbiyah(TarbiyahAssessment a) {
+    final cur = tarbiyah.value.data ?? const <TarbiyahAssessment>[];
+    final list = [a, ...cur.where((x) => x.id != a.id)];
+    list.sort((x, y) => (y.day ?? DateTime(0)).compareTo(x.day ?? DateTime(0)));
+    tarbiyah.value = SectionState.data(list);
+  }
+
+  /// Creating an assessment needs `behaviour:manage`; editing one also needs me to be its author (the server's rule; a coordinator or admin may
+  /// edit any, but they do not use this app).
+  bool canEditTarbiyah(TarbiyahAssessment a) => canLog && a.isMine(userId: myId, userName: myName);
+
   Future<void> reload() => load();
 
   /// Adds a record logged from this screen.

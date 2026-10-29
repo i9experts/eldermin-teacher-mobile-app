@@ -302,7 +302,7 @@ void main() {
       await open(t, const BehaviourScreen());
       await t.runAsync(c.load);
       await settle(t);
-      c.setScope(BehaviourScope.classes);
+      await t.runAsync(() => c.setScope(BehaviourScope.classes));
       await settle(t);
       return c;
     }

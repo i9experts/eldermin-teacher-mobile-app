@@ -6,6 +6,7 @@ import '../../../../core/services/students_repository.dart';
 import '../controllers/behaviour_controller.dart';
 import '../controllers/behaviour_log_controller.dart';
 import '../controllers/behaviour_student_controller.dart';
+import '../controllers/tarbiyah_form_controller.dart';
 
 void _shared() {
   if (!Get.isRegistered<BehaviourRepository>()) Get.lazyPut<BehaviourRepository>(() => BehaviourRepository(), fenix: true);
@@ -27,6 +28,18 @@ class BehaviourLogBinding extends Bindings {
     final arg = Get.arguments;
     Get.lazyPut<BehaviourLogController>(
         () => BehaviourLogController(initialStudent: arg is StudentSummary ? arg : null, editing: arg is BehaviourRecord ? arg : null));
+  }
+}
+
+/// `/behaviour/tarbiyah/form` (a [TarbiyahFormArgs] in `arguments`; without them nothing is registered and the screen says to open a student first).
+class TarbiyahFormBinding extends Bindings {
+  @override
+  void dependencies() {
+    if (!Get.isRegistered<BehaviourRepository>()) Get.lazyPut<BehaviourRepository>(() => BehaviourRepository(), fenix: true);
+    final arg = Get.arguments;
+    if (arg is TarbiyahFormArgs) {
+      Get.lazyPut<TarbiyahFormController>(() => TarbiyahFormController(args: arg, studentList: Get.isRegistered<BehaviourStudentController>() ? Get.find<BehaviourStudentController>() : null));
+    }
   }
 }
 

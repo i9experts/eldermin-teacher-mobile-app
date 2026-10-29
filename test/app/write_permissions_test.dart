@@ -19,6 +19,7 @@ const _writeRoutes = [
   '/attendance/mark',
   '/attendance/mark?date=2026-10-05',
   '/behaviour/new',
+  '/behaviour/tarbiyah/form',
   '/assessments/report-remarks?assessmentId=64a0000000000000000000c1',
 ];
 const _readRoutes = [
@@ -33,6 +34,7 @@ const _readRoutes = [
   '/attendance/history',
   '/assessments/64a0000000000000000000c1/marks', // opens read-only for a view-only role
   '/behaviour',
+  '/behaviour/student/64a0000000000000000000c1',
 ];
 
 bool _allows(String loc, PermissionService p, {bool classTeacher = true}) =>

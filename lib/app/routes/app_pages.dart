@@ -16,6 +16,7 @@ import '../modules/attendance/views/attendance_mark_screen.dart';
 import '../modules/attendance/views/attendance_screen.dart';
 import '../modules/behaviour/bindings/behaviour_binding.dart';
 import '../modules/behaviour/views/behaviour_new_screen.dart';
+import '../modules/behaviour/views/tarbiyah_form_screen.dart';
 import '../modules/behaviour/views/behaviour_screen.dart';
 import '../modules/behaviour/views/behaviour_student_screen.dart';
 import '../modules/calendar/bindings/calendar_binding.dart';
@@ -251,6 +252,10 @@ class AppPages {
         name: Routes.behaviourNew,
         page: () => const BehaviourNewScreen(),
         binding: BehaviourLogBinding()),
+    GetPage(
+        name: Routes.tarbiyahForm,
+        page: () => const TarbiyahFormScreen(),
+        binding: TarbiyahFormBinding()),
     GetPage(
         name: Routes.behaviourStudent,
         page: () => const BehaviourStudentScreen(),

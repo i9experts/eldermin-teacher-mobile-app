@@ -89,7 +89,7 @@ void main() {
       await c.load();
       expect(c.visible.map((r) => r.id), unorderedEquals(['byid', 'byname']));
       expect(c.countMine(), 2);
-      c.setScope(BehaviourScope.classes);
+      await c.setScope(BehaviourScope.classes);
       expect(c.visible, hasLength(4));
     });
 
@@ -99,7 +99,7 @@ void main() {
           : [rec('a1', student: 'Zara', day: '2026-10-02'), rec('a2', student: 'Omar', day: '2026-10-03', title: 'Late')];
       final c = await makeList(assignments: [cls5a, cls6b]);
       await c.load();
-      c.setScope(BehaviourScope.classes);
+      await c.setScope(BehaviourScope.classes);
       expect(c.visible.map((r) => r.id), ['b6', 'a2', 'a1']);
       c.setClassFilter(1);
       expect(c.visible.map((r) => r.id), ['b6']);

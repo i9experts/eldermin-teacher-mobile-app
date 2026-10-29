@@ -89,7 +89,10 @@ class TarbiyahCard extends StatelessWidget {
 
   /// The school's programme: trait labels come from it (built-in Tarbiyah names, then the raw key, as the fallback).
   final CharacterSettings settings;
-  const TarbiyahCard({super.key, required this.a, this.settings = CharacterSettings.fallback});
+
+  /// Set only for an assessment I recorded and may edit (the server enforces the author rule too).
+  final VoidCallback? onEdit;
+  const TarbiyahCard({super.key, required this.a, this.settings = CharacterSettings.fallback, this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +125,13 @@ class TarbiyahCard extends StatelessWidget {
         if (a.teacherObservations.isNotEmpty) ...[
           const SizedBox(height: EmSpacing.s8),
           Text(a.teacherObservations, style: EmType.body.copyWith(color: EmColors.ink, fontWeight: FontWeight.w400, height: 1.4)),
+        ],
+        if (onEdit != null) ...[
+          const SizedBox(height: EmSpacing.s8),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: EmTextAction(key: ValueKey('tarbiyah_edit_${a.id}'), icon: Icons.edit_outlined, label: 'Edit', onPressed: onEdit),
+          ),
         ],
       ]),
     );

@@ -152,9 +152,11 @@ void main() {
       expect(find.text('Colleague entry'), findsNothing); // not mine
       expect(find.text('Other class entry'), findsNothing);
       expect(find.text('My entries (1)'), findsOneWidget);
-      expect(find.text('My classes (2)'), findsOneWidget);
-      await t.tap(find.text('My classes (2)'));
+      expect(find.text('My classes'), findsOneWidget, reason: 'its count is unknown until that scope is opened (My entries is filtered by the server)');
+      await t.tap(find.text('My classes'));
+      await t.runAsync(() => pumpEventQueue());
       await settle(t);
+      expect(find.text('My classes (2)'), findsOneWidget);
       expect(find.text('Colleague entry'), findsOneWidget);
       expect(find.text('Other class entry'), findsNothing); // never, in any segment
       expect(find.text('You'), findsNothing);

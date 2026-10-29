@@ -55,6 +55,7 @@ abstract class Routes {
   static const assessmentDetail = '/assessments/:id';
   static const behaviour = '/behaviour';
   static const behaviourNew = '/behaviour/new';
+  static const tarbiyahForm = '/behaviour/tarbiyah/form';
   static const behaviourStudent = '/behaviour/student/:id';
   static const ptm = '/ptm';
   static const ptmNew = '/ptm/new';
@@ -141,6 +142,7 @@ abstract class Routes {
     assessmentDetail,
     behaviour,
     behaviourNew,
+    tarbiyahForm,
     behaviourStudent,
     ptm,
     ptmNew,

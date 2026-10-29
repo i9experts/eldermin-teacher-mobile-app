@@ -115,6 +115,7 @@ class ModuleCatalog {
     (pattern: r'^/attendance/mark$', module: 'teaching', sub: 'attendance'),
     (pattern: r'^/assessments/report-remarks$', module: 'assessments', sub: null),
     (pattern: r'^/behaviour/new$', module: 'behaviour', sub: null),
+    (pattern: r'^/behaviour/tarbiyah/form$', module: 'behaviour', sub: null),
   ];
 
   /// May [location] be opened given what the user may WRITE? True for every read screen.

@@ -116,6 +116,20 @@ class BehaviourRepository {
         return BehaviourRecord.fromJson(asJsonMap(res.data));
       });
 
+  /// `POST /behaviour/tarbiyah` (behaviour.controller.ts createTarbiyah): a teacher may assess only students of their own classes (403 otherwise,
+  /// checkTeacherStudent); one assessment per student and period (a duplicate is a server error). Returns the created assessment (201).
+  Future<TarbiyahAssessment> createTarbiyah(Map<String, Object?> body) => _guard(() async {
+        final res = await _client.post(ApiConstants.behaviourTarbiyah, data: body);
+        return TarbiyahAssessment.fromJson(expectMap(res.data, what: 'this assessment'));
+      });
+
+  /// `PUT /behaviour/tarbiyah/:id` (updateTarbiyahAssessment): author, academic coordinator or admin only; a teacher who is not the author gets 403
+  /// ("You can only edit Tarbiyah assessments you recorded yourself"). Returns the updated assessment.
+  Future<TarbiyahAssessment> updateTarbiyah(String id, Map<String, Object?> body) => _guard(() async {
+        final res = await _client.put('${ApiConstants.behaviourTarbiyah}/$id', data: body);
+        return TarbiyahAssessment.fromJson(expectMap(res.data, what: 'this assessment'));
+      });
+
   /// `GET /behaviour/tarbiyah?studentId=&limit=20` (behaviour.controller.ts:95-99 -> :319-334), read-only.
   Future<List<TarbiyahAssessment>> fetchTarbiyah(String studentId) => _guard(() async {
         final res = await _client.get(ApiConstants.behaviourTarbiyah, queryParameters: {'studentId': studentId, 'limit': 20, 'page': 1});
