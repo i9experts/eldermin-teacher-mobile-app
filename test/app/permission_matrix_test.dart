@@ -5,7 +5,7 @@
 //
 // Facts this test pins (see eldermin-teacher-app-docs/phase8/ERROR_HANDLING_AUDIT.md for the server-side caveat):
 //  * UI gating only; the server stays the authority.
-//  * `institution.activeModules` never hides anything (owner decision A, web does not gate on it either).
+//  * `institution.activeModules` never hides anything in the app (the web gates on it; the app intentionally does not in v1 - pending an owner decision).
 //  * Route level: every GetPage carries RouteGuard (lib/app/routes/route_guard.dart), which applies the SAME ModuleEntry.isVisibleTo rule as the
 //    entry lists, so a hidden entry is also unreachable by notification target / deep link (test/app/route_guard_test.dart). Controller gates are
 //    the second line.
@@ -47,14 +47,14 @@ class Persona {
   const Persona(this.name, {this.classTeacher = false, this.custom, required this.classes, required this.more, required this.quick, this.perms = const {}, this.noPerms = const {}, required this.showTeachingSections, required this.canLogBehaviour});
 }
 
-const _teacherPerms = {'dashboard:view', 'teaching:view', 'students:view', 'academics:view', 'assessments:view', 'assessments:manage', 'behaviour:view', 'behaviour:manage', 'school-calendar:view', 'events:view', 'leave:self'};
+const _teacherPerms = {'dashboard:view', 'teaching:view', 'students:view', 'academics:view', 'assessments:view', 'assessments:manage', 'behaviour:view', 'behaviour:manage', 'school-calendar:view', 'events:view', 'leave:self', 'attendance:self'};
 // every admin-ish permission the web has; NO persona of this app may hold or be granted effect by any of them
 const _adminPerms = {'hr:view', 'hr:manage', 'finance:view', 'finance:manage', 'institution:manage', 'roles:manage', 'users:manage', 'teaching:manage', 'students:manage', 'academics:manage', 'school-calendar:manage', 'events:manage', 'settings:manage', 'payroll:manage', 'fees:manage'};
 
 final personas = <Persona>[
   const Persona('plain teacher',
       classes: ['students', 'homework', 'lesson_plans', 'syllabus', 'assessments', 'behaviour'],
-      more: ['timetable', 'ptm', 'fixtures', 'leave', 'calendar', 'events', 'curriculum', 'library', 'safeguarding'],
+      more: ['timetable', 'ptm', 'fixtures', 'leave', 'my_attendance', 'calendar', 'events', 'curriculum', 'library', 'safeguarding'],
       quick: ['Homework', 'Lesson plans', 'Assessments & marks', 'Behaviour & Tarbiyah', 'My leave', 'Parent meetings'],
       perms: _teacherPerms,
       noPerms: _adminPerms,
@@ -63,7 +63,7 @@ final personas = <Persona>[
   Persona('class teacher',
       classTeacher: true,
       classes: ['students', 'attendance', 'homework', 'lesson_plans', 'syllabus', 'assessments', 'behaviour'],
-      more: ['timetable', 'student_leaves', 'ptm', 'fixtures', 'leave', 'calendar', 'events', 'curriculum', 'library', 'safeguarding'],
+      more: ['timetable', 'student_leaves', 'ptm', 'fixtures', 'leave', 'my_attendance', 'calendar', 'events', 'curriculum', 'library', 'safeguarding'],
       quick: ['Attendance', 'Homework', 'Lesson plans', 'Assessments & marks', 'Behaviour & Tarbiyah', 'My leave', 'Parent meetings'],
       perms: _teacherPerms,
       noPerms: _adminPerms,
@@ -75,7 +75,7 @@ final personas = <Persona>[
       more: ['timetable', 'ptm', 'fixtures', 'leave', 'safeguarding'],
       quick: ['Homework', 'Lesson plans', 'My leave', 'Parent meetings'],
       perms: {'teaching:view', 'students:view', 'leave:self'},
-      noPerms: {..._adminPerms, 'assessments:view', 'behaviour:view', 'behaviour:manage', 'academics:view', 'events:view', 'school-calendar:view', 'dashboard:view'},
+      noPerms: {..._adminPerms, 'attendance:self', 'assessments:view', 'behaviour:view', 'behaviour:manage', 'academics:view', 'events:view', 'school-calendar:view', 'dashboard:view'},
       showTeachingSections: true,
       canLogBehaviour: false),
   Persona('custom role + class teacher flag',
@@ -85,7 +85,7 @@ final personas = <Persona>[
       more: ['timetable', 'student_leaves', 'ptm', 'fixtures', 'safeguarding'],
       quick: ['Attendance', 'Homework', 'Lesson plans', 'Parent meetings'],
       perms: {'teaching:view', 'students:view'},
-      noPerms: {..._adminPerms, 'leave:self', 'assessments:view'},
+      noPerms: {..._adminPerms, 'leave:self', 'attendance:self', 'assessments:view'},
       showTeachingSections: true,
       canLogBehaviour: false),
   Persona('custom role with sub-module grants (3-part keys, web semantics)',
@@ -103,7 +103,7 @@ final personas = <Persona>[
       more: ['timetable', 'ptm', 'fixtures', 'safeguarding'],
       quick: ['Homework', 'Lesson plans', 'Parent meetings'],
       perms: {..._adminPerms, 'teaching:view'},
-      noPerms: {'students:view', 'assessments:view', 'leave:self'},
+      noPerms: {'students:view', 'assessments:view', 'leave:self', 'attendance:self'},
       showTeachingSections: true,
       canLogBehaviour: false),
   Persona('custom role with an EMPTY permission list (nothing allowed)',
@@ -142,7 +142,7 @@ void main() {
     });
 
     test('no module entry (title / route / permission) is admin-flavoured; every gate is a VIEW / self permission of a teacher module', () {
-      const teacherModules = {'teaching', 'students', 'academics', 'assessments', 'behaviour', 'early-years', 'school-calendar', 'events', 'leave'};
+      const teacherModules = {'teaching', 'students', 'academics', 'assessments', 'behaviour', 'early-years', 'school-calendar', 'events', 'leave', 'attendance'};
       for (final e in ModuleCatalog.all) {
         expect(_adminPath.hasMatch(e.route), isFalse, reason: '${e.id} ${e.route}');
         final perm = e.permission;

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/utils/home_time.dart';
+import '../../../../core/utils/roster_scope.dart';
+import '../../../../core/models/home/class_snapshot.dart';
+import '../../auth/controllers/auth_controller.dart';
+import '../../attendance/controllers/attendance_controller.dart' show staleClassText;
 import '../../../components/custom_refresh_wrapper.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/home_dashboard_controller.dart';
@@ -27,12 +31,14 @@ class HomeDashboardScreen extends GetView<HomeDashboardController> {
           _TodayHeading(c),
           Obx(() => c.showClassCard
               ? SectionView(
-                  title: 'My class',
+                  title: (c.classCard.value.data?.length ?? 1) > 1 ? 'My classes' : 'My class',
                   state: c.classCard.value,
                   onRetry: c.loadClassCard,
                   emptyTitle: 'No class data',
                   skeletonRows: 1,
-                  builder: (s) => ClassTeacherCard(snap: s, onMarkAttendance: () => Get.toNamed(Routes.attendanceMark)),
+                  builder: (snaps) => Column(children: [
+                    for (final s in snaps) _ClassCardEntry(snap: s, multi: snaps.length > 1),
+                  ]),
                 )
               : const SizedBox.shrink()),
           Obx(() => c.showTimetable
@@ -141,5 +147,41 @@ class _TodayHeading extends StatelessWidget {
           child: Text(longDateOf(c.now.value),
               key: const Key('greeting_date'), style: EmType.body.copyWith(color: EmColors.textSecondary)),
         ));
+  }
+}
+
+/// One class card of the Home dashboard. A class the sign-in token does not cover shows the sign-out prompt above it; "Mark Attendance"
+/// opens the mark screen on THIS class.
+class _ClassCardEntry extends StatelessWidget {
+  final ClassAttendanceSnapshot snap;
+  final bool multi;
+  const _ClassCardEntry({required this.snap, required this.multi});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Get.find<AuthController>();
+    final cls = ClassRef(grade: snap.grade, section: snap.section);
+    return Padding(
+      padding: EdgeInsets.only(bottom: multi ? EmSpacing.row : 0),
+      child: Column(children: [
+        Obx(() => auth.isClassStale(cls)
+            ? EmInfoBanner(
+                key: ValueKey('home_stale_banner_${cls.key}'),
+                tone: EmTone.warning,
+                text: staleClassText(snap.label),
+                actionLabel: 'Sign out',
+                onAction: auth.logout,
+              )
+            : const SizedBox.shrink()),
+        ClassTeacherCard(
+          snap: snap,
+          buttonKey: multi ? ValueKey('mark_attendance_${cls.key}') : const Key('mark_attendance_button'),
+          onMarkAttendance: () {
+            auth.attendanceClassKey.value = cls.key;
+            Get.toNamed(Routes.attendanceMark);
+          },
+        ),
+      ]),
+    );
   }
 }

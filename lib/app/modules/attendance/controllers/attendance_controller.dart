@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../../../core/models/classroom/attendance_models.dart';
@@ -21,12 +22,39 @@ import '../../home/models/section_state.dart';
 /// silent rewrites of the register. Set to 0 to make it "today only".
 const int kAttendanceEditWindowDays = 7;
 
-enum SubmitFailureKind { offline, forbidden, conflict, validation, server, other }
+enum SubmitFailureKind { offline, forbidden, staleClass, notSchoolDay, conflict, validation, server, other }
+
+/// The server's 400 prefix when the date is not a school day (students.service.ts: 'Cannot mark attendance: <reason>').
+const String kNotSchoolDayPrefix = 'Cannot mark attendance:';
+
+/// Banner text for a non-school day: the server reason verbatim.
+String notSchoolDayText(String? reason) => 'No attendance today: ${reason == null || reason.isEmpty ? 'this is not a school day.' : reason}';
+
+enum DayCheckKind { loading, valid, invalid, unknown }
+
+/// Result of the school-day check for the (day, grade) on screen. Only [invalid] blocks marking.
+class DayCheck {
+  final DayCheckKind kind;
+  final String? reason;
+  const DayCheck._(this.kind, [this.reason]);
+  static const loading = DayCheck._(DayCheckKind.loading);
+  static const valid = DayCheck._(DayCheckKind.valid);
+  static const unknown = DayCheck._(DayCheckKind.unknown);
+  const DayCheck.invalid(String? reason) : this._(DayCheckKind.invalid, reason);
+  bool get isInvalid => kind == DayCheckKind.invalid;
+}
+
+/// The backend's 403 when the token's class claims do not include the requested class (auth/scope.util.ts resolveClassSectionScope).
+bool isClassScopeDenied(String message) => message.toLowerCase().contains('class teacher of your own assigned class');
 
 class SubmitFailure {
   final SubmitFailureKind kind;
   final String message;
   const SubmitFailure(this.kind, this.message);
+
+  /// A 403 is the server's verdict on this teacher/class, not a transient fault: resending the same marks cannot succeed, so the screen offers no
+  /// "Retry saving" (the marks stay in memory and the normal submit button stays available once something changes). Everything else keeps Retry.
+  bool get canRetry => kind != SubmitFailureKind.forbidden;
 
   /// Maps the real error shapes: `{statusCode, message, timestamp, path}` (sentry.filter.ts:43-48) -> a
   /// teacher-readable message. A null status code means no response at all (offline / timeout).
@@ -37,10 +65,13 @@ class SubmitFailure {
       case null:
         return SubmitFailure(SubmitFailureKind.offline, '${e.message} Your marks are kept: reconnect and tap Retry.');
       case 403:
+        if (isClassScopeDenied(e.message)) return SubmitFailure(SubmitFailureKind.staleClass, kStaleClassMessage);
         return SubmitFailure(SubmitFailureKind.forbidden, "You can't mark attendance for this class. ${e.message}");
       case 409:
         return SubmitFailure(SubmitFailureKind.conflict, 'This day was changed or is locked on the server. ${e.message}');
       case 400:
+        if (e.message.startsWith(kNotSchoolDayPrefix)) return SubmitFailure(SubmitFailureKind.notSchoolDay, e.message);
+        return SubmitFailure(SubmitFailureKind.validation, 'The server rejected the attendance: ${e.message}');
       case 422:
         return SubmitFailure(SubmitFailureKind.validation, 'The server rejected the attendance: ${e.message}');
       default:
@@ -51,6 +82,12 @@ class SubmitFailure {
     }
   }
 }
+
+/// What the stale-sign-in banner says for [label] (a class assigned after the teacher signed in).
+String staleClassText(String label) => 'Your sign-in predates your new class. Sign out and back in to mark $label.';
+
+/// Generic form of [staleClassText] for the failure message (the screen shows the class-specific text).
+const String kStaleClassMessage = 'Your sign-in predates your new class. Sign out and back in to mark it.';
 
 /// Outcome of [AttendanceController.submit].
 sealed class SubmitResult {
@@ -124,6 +161,13 @@ class AttendanceController extends GetxController {
   /// The school-wide mode (daily by default; read from `GET /teaching/attendance-settings` on every [load]).
   final mode = Rx<AttendanceMode>(AttendanceMode.daily);
 
+  /// True when the last mode read answered 403 (custom role without `attendance-settings`): the app works in daily mode but does not KNOW it.
+  final modeUnreadable = false.obs;
+
+  /// While [modeUnreadable]: some record already loaded for the day/class carries a subject, i.e. the school marks by subject. Saving a
+  /// whole-day mark would then be wrong, so the save is blocked (marks stay in memory). Computed from data already loaded: no extra call.
+  final subjectEvidence = false.obs;
+
   /// Subject names of the school (subject-wise mode only; the same list the web's subject picker shows).
   final subjects = <String>[].obs;
 
@@ -137,17 +181,52 @@ class AttendanceController extends GetxController {
   /// True after the user tried to submit with students unmarked (rows highlight).
   final showUnmarked = false.obs;
 
+  /// School-day check of the (day, selected class grade) on screen. Only `invalid` blocks marking; `unknown` (check failed) never does.
+  final dayStatus = Rx<DayCheck>(DayCheck.loading);
+  final _dayCache = <String, DayCheck>{};
+
   int _token = 0;
   ClassRef? _cls;
 
   // ── access (UI gating only; the backend is the security layer) ─
-  /// The class-teacher class from `/staff-portal/me` (null when not a class teacher or the class is missing).
-  ClassRef? get myClass {
+  /// Every class-teacher class from `/staff-portal/me` (first assignment first). Empty when not a class teacher.
+  List<ClassRef> get classes {
     auth.staffMe.value; // dependency for Obx
-    for (final c in teacherClassesOf(auth.staffMe.value?.teacherProfile)) {
-      if (c.isClassTeacherClass) return c;
-    }
-    return null;
+    return classTeacherClasses(auth.staffMe.value?.teacherProfile);
+  }
+
+  /// The class being marked: the session's last choice ([AuthController.attendanceClassKey]) when it is still one of [classes],
+  /// else the first. Updated by [selectClass]. Null when there is no class.
+  final selectedClass = Rxn<ClassRef>();
+
+  ClassRef? _resolveSelected() {
+    final all = classes;
+    if (all.isEmpty) return selectedClass.value = null;
+    final key = auth.attendanceClassKey.value ?? selectedClass.value?.key;
+    final pick = all.firstWhere((c) => c.key == key, orElse: () => all.first);
+    // assign only on a real change: listeners (the history screen) reload on every assignment
+    if (selectedClass.value?.key != pick.key) selectedClass.value = pick;
+    return pick;
+  }
+
+  /// The class being marked (kept under its old name for the views): [selectedClass], resolved against the current profile.
+  ClassRef? get myClass {
+    classes; // dependency for Obx
+    selectedClass.value;
+    auth.attendanceClassKey.value;
+    final all = classes;
+    if (all.isEmpty) return null;
+    final key = auth.attendanceClassKey.value ?? selectedClass.value?.key;
+    return all.firstWhere((c) => c.key == key, orElse: () => all.first);
+  }
+
+  /// The picker shows only for a teacher with more than one class.
+  bool get hasPicker => classes.length > 1;
+
+  /// The token behind this session does not cover the selected class: marking it would 403 until the teacher signs in again.
+  bool get classStale {
+    final c = myClass;
+    return c != null && auth.isClassStale(c);
   }
 
   bool get isClassTeacher {
@@ -155,8 +234,9 @@ class AttendanceController extends GetxController {
     return auth.isClassTeacher;
   }
 
-  /// Class teachers only. Needs `students:view` like the Home class card (no attendance permission exists).
-  bool get allowed => isClassTeacher && myClass != null && perms.canAccess('students:view');
+  /// Class teachers only. Same rule as the Attendance module entry (permission `teaching:view` for the `attendance` sub-module; the web's
+  /// Teaching > Attendance tab). NOT `students:view`: a custom role can grant `teaching:attendance:*` without any `students:*` key.
+  bool get allowed => isClassTeacher && myClass != null && perms.canAccess('teaching:view', subModuleKey: 'attendance');
 
   // ── derived ──────────────────────────────────────────────────
   DateTime get today => dateOnly(clock());
@@ -184,7 +264,15 @@ class AttendanceController extends GetxController {
   /// Subject-wise school with no subject chosen (none exist yet): nothing can be saved, as on the web.
   bool get needsSubject => isSubjectWise && selectedSubject.value == null;
 
-  bool get canSubmit => editable && !submitting.value && roster.value.hasData && allMarked && dirty && !needsSubject;
+  bool get dayInvalid => dayStatus.value.isInvalid;
+
+  /// Marks can be set: an editable day that the school calendar has not closed.
+  bool get markable => editable && !dayInvalid;
+
+  /// Whole-day save refused because the mode is unreadable AND the day already holds subject records.
+  bool get modeBlocked => modeUnreadable.value && subjectEvidence.value;
+
+  bool get canSubmit => editable && !classStale && !dayInvalid && !modeBlocked && !submitting.value && roster.value.hasData && allMarked && dirty && !needsSubject;
 
   String? get academicYear => academicYearOf(students_);
 
@@ -198,14 +286,15 @@ class AttendanceController extends GetxController {
   /// Loads the roster and the day's existing records.
   Future<void> load({bool refreshProfile = false}) async {
     if (refreshProfile) await auth.refreshProfile(force: true);
-    final cls = myClass;
+    final cls = _resolveSelected();
     if (!allowed || cls == null) return;
     _cls = cls;
     final token = ++_token;
     roster.value = const SectionState.loading();
+    unawaited(_runDayCheck());
     try {
       // The mode decides what is sent and read: a failure here is an error state with Retry (never a guess).
-      final m = await attendance.fetchMode();
+      final m = await _readMode();
       if (token != _token) return;
       await _applyMode(m);
       if (token != _token) return;
@@ -227,11 +316,103 @@ class AttendanceController extends GetxController {
     }
   }
 
-  Future<void> retry() => load();
+  Future<void> retry() {
+    _dayCache.clear();
+    return load();
+  }
+
+  /// Switches to [c] (one of [classes]) and reloads its roster and day. Returns false (and does nothing) when there are unsaved marks and
+  /// [discard] is false: the view asks the teacher first (same contract as [openDay]).
+  Future<bool> selectClass(ClassRef c, {bool discard = false}) async {
+    final target = classes.where((x) => x.key == c.key).firstOrNull;
+    if (target == null) return false;
+    if (target.key == myClass?.key && !discard) return true;
+    if (dirty && !discard) return false;
+    auth.attendanceClassKey.value = target.key;
+    selectedClass.value = target;
+    await load();
+    return true;
+  }
 
   /// Pull-to-refresh: re-reads the profile (class-teacher changes), the roster and the day. The view
   /// asks the teacher first when there are unsaved marks, because this replaces them.
-  Future<void> reload() => load(refreshProfile: true);
+  Future<void> reload() {
+    _dayCache.clear();
+    return load(refreshProfile: true);
+  }
+
+  String? get _checkGrade => (_cls ?? myClass)?.grade;
+  String _checkKey(DateTime d, String? grade) => '${ymdOf(d)}|${grade ?? ''}';
+
+  /// Asks the server whether [day] is a school day for the selected class's grade. Read-only days are not checked.
+  /// A response for a (day, grade) that is no longer on screen is dropped. [force] bypasses the cache and keeps the
+  /// current status on screen until the answer arrives (the "Check again" action).
+  Future<void> _runDayCheck({bool force = false}) async {
+    final grade = _checkGrade;
+    final d = day.value;
+    if (grade == null || !canEditDay(d)) {
+      dayStatus.value = DayCheck.unknown;
+      return;
+    }
+    final key = _checkKey(d, grade);
+    if (force) _dayCache.remove(key);
+    final cached = _dayCache[key];
+    if (cached != null) {
+      dayStatus.value = cached;
+      return;
+    }
+    if (!force) dayStatus.value = DayCheck.loading;
+    DayCheck result;
+    try {
+      final s = await attendance.checkDay(day: d, grade: grade);
+      result = s.unknown ? DayCheck.unknown : (s.valid ? DayCheck.valid : DayCheck.invalid(s.reason));
+    } catch (_) {
+      result = DayCheck.unknown;
+    }
+    if (_checkKey(day.value, _checkGrade) != key) return; // the day or class changed meanwhile
+    if (result.kind != DayCheckKind.unknown) _dayCache[key] = result;
+    dayStatus.value = result;
+  }
+
+  /// "Check again": re-runs the school-day check for the current day and class (the admin may have fixed the calendar).
+  Future<void> recheckDay() => _runDayCheck(force: true);
+
+  /// Reads the mode. 403 -> daily + [modeUnreadable] (any other failure propagates: strict error + Retry, never a guess).
+  Future<AttendanceMode> _readMode() async {
+    try {
+      final m = await attendance.fetchMode();
+      modeUnreadable.value = false;
+      return m;
+    } on AttendanceModeForbidden {
+      modeUnreadable.value = true;
+      return AttendanceMode.daily;
+    }
+  }
+
+  /// "Check again" on the mode banners: re-reads the mode. Success clears the banner (and reloads into subject mode when the school is
+  /// subject-wise); another 403 keeps the warning; any other failure keeps the current state and reports false.
+  final rechecking = false.obs;
+  Future<bool> recheckMode() async {
+    if (rechecking.value) return false;
+    rechecking.value = true;
+    try {
+      final m = await attendance.fetchMode();
+      modeUnreadable.value = false;
+      subjectEvidence.value = false;
+      if (m == AttendanceMode.subjectWise) {
+        await load();
+      } else {
+        mode.value = m;
+      }
+      return true;
+    } on AttendanceModeForbidden {
+      return false;
+    } catch (_) {
+      return false;
+    } finally {
+      rechecking.value = false;
+    }
+  }
 
   /// Stores the mode; in subject-wise mode loads the subject list and keeps (or defaults to the first) subject.
   Future<void> _applyMode(AttendanceMode m) async {
@@ -259,9 +440,14 @@ class AttendanceController extends GetxController {
     final ids = {for (final s in list) s.id};
     final key = ymdOf(d);
     final out = <String, AttendanceRecord>{};
+    var subjectRecords = false;
     for (final r in records) {
-      if (r.dayKey == key && ids.contains(r.studentId)) out[r.studentId] = r;
+      if (r.dayKey == key && ids.contains(r.studentId)) {
+        out[r.studentId] = r;
+        if ((r.subject ?? '').trim().isNotEmpty) subjectRecords = true;
+      }
     }
+    subjectEvidence.value = subjectRecords;
     return out;
   }
 
@@ -295,6 +481,7 @@ class AttendanceController extends GetxController {
       await load();
       return true;
     }
+    unawaited(_runDayCheck());
     final token = ++_token;
     final list = students_;
     // keep the roster on screen; swap only the statuses
@@ -339,14 +526,14 @@ class AttendanceController extends GetxController {
 
   // ── marking ──────────────────────────────────────────────────
   void setStatus(String studentId, AttendanceStatus status) {
-    if (!editable || submitting.value) return;
+    if (!markable || submitting.value) return;
     marks[studentId] = status;
     submitFailure.value = null;
   }
 
   /// Sets Present for every student that has NO status yet (never overwrites a choice).
   void markRemainingPresent() {
-    if (!editable || submitting.value) return;
+    if (!markable || submitting.value) return;
     for (final s in unmarked) {
       marks[s.id] = AttendanceStatus.present;
     }
@@ -378,7 +565,8 @@ class AttendanceController extends GetxController {
   /// Submits the whole day. Guarded against double taps; refuses while any student is unmarked.
   Future<SubmitResult> submit() async {
     if (submitting.value) return const SubmitIgnored();
-    if (!editable || !roster.value.hasData || needsSubject) return const SubmitIgnored();
+    if (!editable || !roster.value.hasData || needsSubject || classStale || dayInvalid) return const SubmitIgnored();
+    if (modeBlocked) return const SubmitBlocked(0); // subject records exist but the mode is unreadable: no whole-day save
     final missing = unmarked.length;
     if (missing > 0) {
       showUnmarked.value = true;
@@ -398,7 +586,16 @@ class AttendanceController extends GetxController {
       return SubmitSaved(StatusCounts.fromStatuses(snapshot.values));
     } catch (e) {
       final f = SubmitFailure.from(e);
-      submitFailure.value = f; // marks are NOT touched
+      if (f.kind == SubmitFailureKind.staleClass && _cls != null) auth.markClassDenied(_cls!);
+      if (f.kind == SubmitFailureKind.notSchoolDay && _cls != null) {
+        // the calendar closed this (day, grade): remember it and let the school-day banner (with "Check again") explain
+        final reason = f.message.substring(kNotSchoolDayPrefix.length).trim();
+        final closed = DayCheck.invalid(reason.isEmpty ? null : reason);
+        _dayCache[_checkKey(day.value, _cls!.grade)] = closed;
+        dayStatus.value = closed;
+      }
+      // marks are NOT touched; the stale-class and not-a-school-day refusals are shown by their own banners instead of a generic error
+      submitFailure.value = (f.kind == SubmitFailureKind.staleClass || f.kind == SubmitFailureKind.notSchoolDay) ? null : f;
       return SubmitFailed(f);
     } finally {
       submitting.value = false;

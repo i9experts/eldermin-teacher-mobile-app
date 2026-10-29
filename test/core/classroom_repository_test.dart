@@ -194,6 +194,11 @@ void main() {
       for (final code in [401, 403, 500]) {
         await expectLater(mode(code), throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', code)));
       }
+      // 403 (custom role without the attendance-settings grant) is the ONE distinct typed outcome; 401 / 500 stay plain errors (never a guess)
+      await expectLater(mode(403), throwsA(isA<AttendanceModeForbidden>()));
+      for (final code in [401, 500, 502]) {
+        await expectLater(mode(code), throwsA(isNot(isA<AttendanceModeForbidden>())));
+      }
       await expectLater(mode('not json'), throwsA(isA<ApiException>()));
       final c = _Client((m, p, q, b) => {'mode': 'daily'});
       await AttendanceRepository(c).fetchMode();
@@ -213,5 +218,52 @@ void main() {
       await expectLater(AttendanceRepository(_Client((m, p, q, b) => 'oops')).fetchSubjectNames(), throwsA(isA<ApiException>()));
       await expectLater(AttendanceRepository(_Client((m, p, q, b) => 403)).fetchSubjectNames(), throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 403)));
     });
+  
+
+    group('checkDay', () {
+      Future<SchoolDayStatus> check(Object? r, {String? grade = 'Grade 5'}) =>
+          AttendanceRepository(_Client((m, p, q, b) => r)).checkDay(day: DateTime(2026, 10, 25), grade: grade);
+
+      test('GET /students/attendance/check-day with the noon-UTC date and the grade', () async {
+        final c = _Client((m, p, q, b) => {'valid': true, 'configured': true});
+        await AttendanceRepository(c).checkDay(day: DateTime(2026, 10, 25), grade: 'Grade 5');
+        expect(c.calls.single.method, 'GET');
+        expect(c.calls.single.path, '/students/attendance/check-day');
+        expect(c.calls.single.q, {'date': '2026-10-25T12:00:00.000Z', 'grade': 'Grade 5'});
+        final d = _Client((m, p, q, b) => {});
+        await AttendanceRepository(d).checkDay(day: DateTime(2026, 10, 25));
+        expect(d.calls.single.q!.containsKey('grade'), isFalse);
+      });
+
+      test('parsing: valid, not configured, invalid with reason, missing fields', () async {
+        var s = await check({'valid': true, 'configured': true});
+        expect((s.valid, s.configured, s.unknown), (true, true, false));
+        s = await check({'valid': true, 'configured': false});
+        expect((s.valid, s.configured), (true, false));
+        s = await check({'valid': false, 'configured': true, 'reason': 'x is a holiday: Eid'});
+        expect((s.valid, s.reason, s.unknown), (false, 'x is a holiday: Eid', false));
+        s = await check({});
+        expect((s.valid, s.configured, s.reason, s.unknown), (true, false, null, false));
+        s = await check({'valid': 'maybe', 'reason': 5});
+        expect(s.valid, isTrue);
+      });
+
+      test('404 (older server) = valid; 500, 401, network-ish and a wrong shape = unknown (never throws)', () async {
+        final nf = await check(404);
+        expect((nf.valid, nf.unknown), (true, false));
+        for (final r in <Object?>[500, 401, 403, 'not json']) {
+          final s = await check(r);
+          expect((s.unknown, s.valid), (true, true), reason: '$r');
+        }
+        final offline = AttendanceRepository(_ThrowingClient());
+        expect((await offline.checkDay(day: DateTime(2026, 10, 25), grade: 'g')).unknown, isTrue);
+      });
+    });
   });
+}
+
+class _ThrowingClient extends BaseClient {
+  @override
+  Future<Response> get(String url, {Map<String, dynamic>? queryParameters, bool requiresAuth = true, Map<String, String>? headers}) async =>
+      throw DioException(requestOptions: RequestOptions(path: url), type: DioExceptionType.connectionError);
 }

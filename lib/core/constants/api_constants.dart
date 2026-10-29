@@ -72,6 +72,7 @@ class ApiConstants {
 
   // ── Student attendance (class teacher) ───────────────────────
   static const String attendanceList = '$apiPrefix/students/attendance/list'; // use from/to (not `date`)
+  static const String attendanceCheckDay = '$apiPrefix/students/attendance/check-day'; // GET ?date&grade -> {valid, configured, reason?}
   static const String attendanceMark = '$apiPrefix/students/attendance';
   static const String attendanceBulk = '$apiPrefix/students/attendance/bulk';
   /// School-wide mode `{ mode: 'daily' | 'subject_wise' }` (teaching.controller.ts:51-52; readable by any signed-in user; the web reads it in AttendanceTab.tsx).
@@ -145,6 +146,10 @@ class ApiConstants {
   static const String leaveSelfBalance = '$apiPrefix/hr/leave/self/balance';
   static const String leaveSelfHistory = '$apiPrefix/hr/leave/self/history';
   static const String leaveSelfApply = '$apiPrefix/hr/leave/self'; // POST
+
+  // ── My Attendance (staff self-service, permission `attendance:self`) ──
+  static const String attendanceSelf = '$apiPrefix/hr/attendance/self'; // GET ?month=&year=
+  static const String attendanceSelfCorrections = '$apiPrefix/hr/attendance/self/correction-requests'; // GET, POST
 
   // ── Calendar / events / circulars ────────────────────────────
   static const String calendarEvents = '$apiPrefix/school-calendar/events'; // ?from&to

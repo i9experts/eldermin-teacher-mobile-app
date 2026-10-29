@@ -46,7 +46,7 @@ class ClassTeacherInfo {
         gradeId: readString(json['gradeId']),
         gradeName: readString(json['gradeName']),
         sectionName: readString(json['sectionName']),
-        label: readString(json['label']),
+        label: readString(json['label']) ?? readString(json['name']), // `name` on classTeacherAssignments[]
       );
 
   Map<String, dynamic> toJson() => {
@@ -71,7 +71,12 @@ class TeacherProfile {
   final List<TeachingAssignment> currentAssignments;
   final String? status;
   final bool isClassTeacher;
+  /// The first class-teacher assignment only (backend keeps it for old clients).
   final ClassTeacherInfo? classTeacherOf;
+
+  /// EVERY class-teacher assignment (staff-portal.service.ts `classTeacherAssignments`); falls back to
+  /// `[classTeacherOf]` when the array is missing/empty (an older backend).
+  final List<ClassTeacherInfo> classTeacherAssignments;
 
   const TeacherProfile({
     this.employeeId,
@@ -84,10 +89,13 @@ class TeacherProfile {
     this.status,
     this.isClassTeacher = false,
     this.classTeacherOf,
+    this.classTeacherAssignments = const [],
   });
 
   factory TeacherProfile.fromJson(Map<String, dynamic> json) {
     final ct = json['classTeacherOf'];
+    final first = ct is Map ? ClassTeacherInfo.fromJson(asJsonMap(ct)) : null;
+    final all = asJsonMapList(json['classTeacherAssignments']).map(ClassTeacherInfo.fromJson).toList();
     return TeacherProfile(
       employeeId: readString(json['employeeId']),
       designation: readString(json['designation']),
@@ -99,7 +107,8 @@ class TeacherProfile {
           asJsonMapList(json['currentAssignments']).map(TeachingAssignment.fromJson).toList(),
       status: readString(json['status']),
       isClassTeacher: readBool(json['isClassTeacher']),
-      classTeacherOf: ct is Map ? ClassTeacherInfo.fromJson(asJsonMap(ct)) : null,
+      classTeacherOf: first,
+      classTeacherAssignments: all.isNotEmpty ? all : [if (first != null) first],
     );
   }
 
@@ -114,5 +123,6 @@ class TeacherProfile {
         'status': status,
         'isClassTeacher': isClassTeacher,
         'classTeacherOf': classTeacherOf?.toJson(),
+        'classTeacherAssignments': classTeacherAssignments.map((a) => a.toJson()).toList(),
       };
 }

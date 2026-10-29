@@ -65,7 +65,7 @@ class LessonPlansController extends GetxController {
 
   bool get canView {
     auth.staffMe.value;
-    return perms.canAccess('teaching:view');
+    return perms.canAccess('teaching:view', subModuleKey: 'lesson-plans');
   }
 
   List<LessonPlanRecord> get items => state.value.data ?? const [];

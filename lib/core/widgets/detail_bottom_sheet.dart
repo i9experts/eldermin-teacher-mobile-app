@@ -76,20 +76,33 @@ class DetailSheetData {
 /// optional sticky footer. Draggable (drag the sheet taller / shorter, or down to dismiss), scrolls when the content is long, keeps the footer
 /// above the system gesture area and the keyboard.
 class DetailBottomSheet extends StatelessWidget {
-  const DetailBottomSheet({super.key, required this.data, this.scroll, this.onOpenAttachment});
+  const DetailBottomSheet({super.key, required this.data, this.scroll, this.onOpenAttachment, this.fitContent = false});
 
   final DetailSheetData data;
   final ScrollController? scroll;
+
+  /// Sizes the column to its content (the parent must bound the height) instead of filling it; the body scrolls only past that bound.
+  final bool fitContent;
 
   /// Opens an attachment URL. Defaults to [ExternalLinks.openWithConfirm] (http / https only, after a confirmation, outside the app).
   final void Function(String url)? onOpenAttachment;
 
   /// Shows the sheet. [data] is read on every build, so with [reactive] (wraps the body in an `Obx`) it must read at least one Rx value and the
   /// sheet then updates when that value changes; without it the sheet shows [data] as it is now.
-  static Future<T?> show<T>(BuildContext context, {required DetailSheetData Function() data, bool reactive = false, void Function(String url)? onOpenAttachment}) {
+  ///
+  /// By default the sheet is a draggable one opening at 75% of the height. With [fitContent] it is as tall as its content, capped at 85% of
+  /// the screen height (scrolls beyond that; no resizing drag, still drag / tap-outside to dismiss).
+  static Future<T?> show<T>(BuildContext context, {required DetailSheetData Function() data, bool reactive = false, void Function(String url)? onOpenAttachment, bool fitContent = false}) {
     return EmBottomSheet.showPanel<T>(
       context,
-      builder: (ctx) => DraggableScrollableSheet(
+      builder: (ctx) => fitContent
+          ? ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.85),
+              child: reactive
+                  ? Obx(() => DetailBottomSheet(data: data(), onOpenAttachment: onOpenAttachment, fitContent: true))
+                  : DetailBottomSheet(data: data(), onOpenAttachment: onOpenAttachment, fitContent: true),
+            )
+          : DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.75,
         minChildSize: 0.4,
@@ -104,8 +117,8 @@ class DetailBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = data;
-    return Column(key: const Key('detail_sheet'), children: [
-      Expanded(child: _content(context, d)),
+    return Column(key: const Key('detail_sheet'), mainAxisSize: fitContent ? MainAxisSize.min : MainAxisSize.max, children: [
+      fitContent ? Flexible(child: _content(context, d)) : Expanded(child: _content(context, d)),
       if (d.state == DetailSheetState.ready && d.footer != null)
         DecoratedBox(
           key: const Key('detail_sheet_footer'),
@@ -121,9 +134,9 @@ class DetailBottomSheet extends StatelessWidget {
   Widget _content(BuildContext context, DetailSheetData d) {
     switch (d.state) {
       case DetailSheetState.loading:
-        return ListView(controller: scroll, children: const [SizedBox(height: EmSpacing.s32), EmLoading(label: 'Loading details')]);
+        return ListView(controller: scroll, shrinkWrap: fitContent, children: const [SizedBox(height: EmSpacing.s32), EmLoading(label: 'Loading details')]);
       case DetailSheetState.error:
-        return ListView(controller: scroll, children: [EmErrorState(message: d.errorMessage, onRetry: d.onRetry, scroll: false)]);
+        return ListView(controller: scroll, shrinkWrap: fitContent, children: [EmErrorState(message: d.errorMessage, onRetry: d.onRetry, scroll: false)]);
       case DetailSheetState.ready:
         break;
     }
@@ -133,6 +146,7 @@ class DetailBottomSheet extends StatelessWidget {
     final stack = MediaQuery.textScalerOf(context).scale(1) > 1.3;
     return ListView(
       controller: scroll,
+      shrinkWrap: fitContent,
       padding: const EdgeInsets.fromLTRB(EmSpacing.screenH, EmSpacing.s16, EmSpacing.screenH, EmSpacing.s24),
       children: [
         if (d.statusLabel != null && d.statusLabel!.isNotEmpty) ...[

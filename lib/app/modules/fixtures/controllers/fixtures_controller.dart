@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import '../../../../core/models/home/teaching.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/services/fixtures_repository.dart';
+import '../../../../core/services/permission_service.dart';
 import '../../../../core/utils/fixture_rules.dart';
 import '../../../../core/utils/home_time.dart';
 import '../../../common/action_failure.dart';
@@ -38,14 +39,26 @@ class FixturesController extends GetxController {
 
   final FixturesRepository? _repo;
   final AuthController? _auth;
+  final PermissionService? _perms;
   final Clock clock;
-  FixturesController({FixturesRepository? repository, AuthController? auth, Clock? clock})
+  FixturesController({FixturesRepository? repository, AuthController? auth, PermissionService? permissions, Clock? clock})
       : _repo = repository,
         _auth = auth,
+        _perms = permissions,
         clock = clock ?? DateTime.now;
 
   FixturesRepository get repo => _repo ?? Get.find<FixturesRepository>();
   AuthController get auth => _auth ?? Get.find<AuthController>();
+  PermissionService get perms => _perms ?? Get.find<PermissionService>();
+
+  /// 'Mark complete' writes (`PATCH /teaching/fixtures/:id/complete`), which the backend gates for custom roles with
+  /// `@RequireModuleAccess('teaching', 'fixtures', 'manage')`. A view-only custom role therefore must not be offered it. The built-in teacher
+  /// (no custom role) keeps it: the base matrix has no `teaching:manage`, and the server lets the teacher role through.
+  bool get canManageFixtures {
+    auth.staffMe.value;
+    final p = perms;
+    return !p.isCustomRole || p.canAccess('teaching:manage', subModuleKey: 'fixtures');
+  }
   String? get myStaffId => auth.staffId;
 
   final tab = FixtureTab.covering.obs;
@@ -105,7 +118,7 @@ class FixturesController extends GetxController {
     return find(id);
   }
 
-  bool canComplete(Substitution s) => completing.value == null && canMarkComplete(s, myStaffId);
+  bool canComplete(Substitution s) => completing.value == null && canManageFixtures && canMarkComplete(s, myStaffId);
 
   /// Marks my assigned cover as done. The caller has confirmed. Refused (ignored) when it is not mine / not `assigned` / another request is
   /// running. A rejection (404 'Fixture not found or not in an assigned state') re-reads the list so the row shows the real status.

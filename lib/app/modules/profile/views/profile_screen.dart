@@ -115,7 +115,7 @@ class ProfileScreen extends GetView<ProfileController> {
   List<Widget> _details(StaffMe? me, AuthController auth) {
     final user = auth.user.value;
     final tp = me?.teacherProfile;
-    final classTeacher = tp?.classTeacherOf?.displayName ?? '';
+    final classTeacher = (tp?.classTeacherAssignments ?? const []).map((a) => a.displayName).where((n) => n.isNotEmpty).join(', ');
     final subjects = {...?tp?.subjectsCanTeach, ...?tp?.currentAssignments.map((a) => a.subjectName ?? '').where((s) => s.isNotEmpty)}.toList();
     return [
       const SubHeadingText('Account'),

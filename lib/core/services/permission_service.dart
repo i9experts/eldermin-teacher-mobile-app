@@ -9,9 +9,10 @@ import '../models/teacher_user.dart';
 ///    from AuthContext.tsx (custom `user.permissions` override, else the
 ///    role matrix).
 ///  * `institution.activeModules` is kept (read-only, informational) but
-///    NEVER hides anything: the web does not gate on it either
-///    (AuthContext.hasModule exists but is never called; Sidebar.tsx and
-///    ProtectedRoute.tsx use canAccess permissions only). Owner decision A.
+///    never hides anything: the web gates menu/routes on
+///    institution.activeModules (Sidebar.tsx moduleId via hasModule;
+///    ProtectedRoute `module`); the app intentionally does not in v1 -
+///    visibility is by permissions only - pending an owner decision.
 class PermissionService {
   PermissionSet _set;
   List<String> _activeModules;
@@ -35,6 +36,9 @@ class PermissionService {
   void clear() => update(null, null);
 
   String? get role => _set.role;
+
+  /// True when a school-defined custom role (`user.permissions` non-null) replaces the base matrix.
+  bool get isCustomRole => _set.custom != null;
   List<String> get activeModules => _activeModules;
 
   bool canAccess(String permission, {String? subModuleKey}) =>

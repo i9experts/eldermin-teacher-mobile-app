@@ -63,6 +63,8 @@ abstract class Routes {
   static const fixtureDetail = '/fixtures/:id';
   static const leave = '/leave';
   static const leaveApply = '/leave/apply';
+  static const myAttendance = '/my-attendance';
+  static const myAttendanceCorrect = '/my-attendance/correct';
   static const studentLeaves = '/student-leaves';
   static const studentLeaveDetail = '/student-leaves/:id';
   static const calendar = '/calendar';
@@ -148,6 +150,8 @@ abstract class Routes {
     fixtureDetail,
     leave,
     leaveApply,
+    myAttendance,
+    myAttendanceCorrect,
     studentLeaves,
     studentLeaveDetail,
     calendar,

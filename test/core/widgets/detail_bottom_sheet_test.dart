@@ -116,4 +116,59 @@ void main() {
     expect(find.byType(DraggableScrollableSheet), findsOneWidget);
     expect(find.text('F'), findsOneWidget);
   });
+
+  group('fitContent sizing (show)', () {
+    const day = DetailSheetData(title: 'Tue 27 Oct 2026', statusLabel: 'Present', fields: [DetailField('Check-in', '08:02')], footer: SizedBox(key: Key('foot_btn'), height: 48, width: double.infinity));
+
+    Future<double> open(WidgetTester t, DetailSheetData d, {required bool fit, double w = 390, double h = 844, double scale = 1.0, bool settle = true}) async {
+      await t.binding.setSurfaceSize(Size(w, h));
+      t.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(() {
+        t.binding.setSurfaceSize(null);
+        t.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+      await t.pumpWidget(GetMaterialApp(home: Builder(builder: (ctx) => Scaffold(body: TextButton(onPressed: () => DetailBottomSheet.show<void>(ctx, data: () => d, fitContent: fit), child: const Text('go'))))));
+      await t.tap(find.text('go'));
+      settle ? await t.pumpAndSettle() : await t.pump(const Duration(milliseconds: 500));
+      return t.getSize(find.byKey(const Key('detail_sheet'))).height;
+    }
+
+    testWidgets('default stays the 75% draggable sheet', (t) async {
+      final hDefault = await open(t, day, fit: false);
+      expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+      expect(hDefault, closeTo(844 * 0.75, 40));
+    });
+
+    testWidgets('fitContent hugs a short sheet, footer visible and tappable', (t) async {
+      final hFit = await open(t, day, fit: true);
+      expect(find.byType(DraggableScrollableSheet), findsNothing);
+      expect(hFit, lessThan(300));
+      expect(hFit, greaterThan(120));
+      expect(t.getRect(find.byKey(const Key('foot_btn'))).bottom, lessThanOrEqualTo(844));
+      await t.tap(find.byKey(const Key('foot_btn')), warnIfMissed: true);
+    });
+
+    testWidgets('fitContent caps at 85% and scrolls long content', (t) async {
+      final hFit = await open(t, DetailSheetData(title: 'T', longText: List.filled(80, 'A long paragraph of text.').join('\n\n'), footer: const Text('ACTIONS')), fit: true);
+      expect(hFit, lessThanOrEqualTo(844 * 0.85));
+      expect(hFit, greaterThan(844 * 0.6));
+      expect(t.takeException(), isNull);
+      await t.drag(find.byType(ListView), const Offset(0, -600));
+      await t.pump();
+      expect(find.text('ACTIONS'), findsOneWidget);
+      expect(find.text('T'), findsNothing);
+    });
+
+    testWidgets('fitContent at 320dp x 1.3 text scale has no overflow', (t) async {
+      await open(t, day, fit: true, w: 320, scale: 1.3);
+      expect(t.takeException(), isNull);
+      expect(find.byKey(const Key('foot_btn')), findsOneWidget);
+    });
+
+    testWidgets('fitContent loading state works', (t) async {
+      await open(t, const DetailSheetData(title: 'T', state: DetailSheetState.loading), fit: true, settle: false);
+      expect(t.takeException(), isNull);
+      expect(find.byType(EmLoading), findsOneWidget);
+    });
+  });
 }

@@ -50,12 +50,12 @@ class HomeworkController extends GetxController {
 
   DateTime get today => dateOnly(clock());
 
-  /// Gate: the module is visible with `teaching:view` (Classes grid). Creating is also allowed by the backend for the teacher
+  /// Gate: the module is visible with `teaching:view` for sub-module `homework` (Classes grid). Creating is also allowed by the backend for the teacher
   /// role (`STAFF_WRITE_ROLES` includes TEACHER, teaching.controller.ts:197) even though the web matrix has no `teaching:manage`
   /// for teachers: UI-gating only, the server is the security layer.
   bool get canView {
     auth.staffMe.value;
-    return perms.canAccess('teaching:view');
+    return perms.canAccess('teaching:view', subModuleKey: 'homework');
   }
 
   List<Assignment> get items => state.value.data ?? const [];

@@ -352,10 +352,48 @@ void main() {
       expect(find.byType(Badge), findsNothing);
     });
   });
+
+  group('multi-section class teacher', () {
+    final two = [
+      {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionName': 'A', 'name': 'Grade 5 - A'},
+      {'gradeId': 'g5', 'gradeName': 'Grade 5', 'sectionName': 'B', 'name': 'Grade 5 - B'},
+    ];
+
+    testWidgets('two classes: two cards, the title says "My classes", no stale banner when the token covers both', (t) async {
+      final tok = classTeacherJwt([(grade: 'Grade 5', section: 'A'), (grade: 'Grade 5', section: 'B')]);
+      await _mount(t, FakeHomeRepository(), classTeacher: true, assignments: two, token: tok);
+      await t.pump();
+      expect(find.text('My classes'), findsOneWidget);
+      expect(find.text('Class teacher · Grade 5 - A'), findsOneWidget);
+      expect(find.text('Class teacher · Grade 5 - B'), findsOneWidget);
+      expect(find.byKey(const ValueKey('mark_attendance_5|a')), findsOneWidget);
+      expect(find.byKey(const ValueKey('mark_attendance_5|b')), findsOneWidget);
+      expect(find.text('Mark Attendance'), findsNWidgets(2));
+      expect(find.textContaining('Sign out and back in'), findsNothing);
+    });
+
+    testWidgets('a class missing from the token gets the sign-out prompt on ITS card only, with a Sign out action', (t) async {
+      final tok = classTeacherJwt([(grade: 'Grade 5', section: 'A')]);
+      await _mount(t, FakeHomeRepository(), classTeacher: true, assignments: two, token: tok);
+      await t.pump();
+      expect(find.textContaining('Sign out and back in to mark Grade 5 - B.'), findsOneWidget);
+      expect(find.textContaining('mark Grade 5 - A.'), findsNothing);
+      expect(find.text('Sign out'), findsOneWidget);
+    });
+
+    testWidgets('single-class teacher: one card, title "My class", the original button key, no prompt', (t) async {
+      await _mount(t, FakeHomeRepository(), classTeacher: true);
+      await t.pump();
+      expect(find.text('My class'), findsOneWidget);
+      expect(find.byKey(const Key('mark_attendance_button')), findsOneWidget);
+      expect(find.text('Sign out'), findsNothing);
+    });
+  });
 }
 
-Future<HomeDashboardController> _mount(WidgetTester t, FakeHomeRepository repo, {bool classTeacher = false, DateTime? clock}) async {
-  final h = (await t.runAsync(() => signedIn(classTeacher: classTeacher)))!;
+Future<HomeDashboardController> _mount(WidgetTester t, FakeHomeRepository repo,
+    {bool classTeacher = false, DateTime? clock, List<Map<String, Object?>>? assignments, String token = 'tok'}) async {
+  final h = (await t.runAsync(() => signedIn(classTeacher: classTeacher, classTeacherAssignments: assignments, token: token)))!;
   Get.put<HomeRepository>(repo);
   Get.put(HomeShellController());
   final badges = Get.put(HomeBadgesController(repository: repo, auth: h.auth, autoPoll: false));
