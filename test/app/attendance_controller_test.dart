@@ -283,7 +283,7 @@ void main() {
         expect(c.submitting.value, isFalse);
         expect(c.submitFailure.value!.message, isNotEmpty);
         if (tc.$3 == SubmitFailureKind.offline) expect(c.submitFailure.value!.message, contains('marks are kept'));
-        if (tc.$3 == SubmitFailureKind.forbidden) expect(c.submitFailure.value!.message, contains('Forbidden resource'));
+        if (tc.$3 == SubmitFailureKind.forbidden) expect(c.submitFailure.value!.message, isNot(contains('Forbidden resource')));
         attendance.onSubmit = (_, __) async {};
         final again = await c.submit();
         expect(again, isA<SubmitSaved>());
@@ -297,7 +297,7 @@ void main() {
     test('canRetry: false only for a (non-stale) 403; every other failure kind keeps Retry', () {
       final f403 = SubmitFailure.from(ApiException('Forbidden resource', statusCode: 403));
       expect(f403.kind, SubmitFailureKind.forbidden);
-      expect(f403.message, "You can't mark attendance for this class. Forbidden resource");
+      expect(f403.message, "You can't mark attendance for this class.");
       expect(f403.canRetry, isFalse);
       for (final e in <ApiException>[
         ApiException('x'),

@@ -58,7 +58,7 @@ class _BehaviourScreenState extends State<BehaviourScreen> {
     final visible = c.visible;
     final classes = c.classes;
     final myCount = c.countMine();
-    final total = c.countClasses();
+    final total = c.classesCountLabel();
     final q = c.query.value;
     final myId = c.myId, myName = c.myName;
     return ScreenStateView<List<BehaviourRecord>>(

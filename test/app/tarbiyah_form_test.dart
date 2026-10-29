@@ -327,14 +327,41 @@ void main() {
           'title': 'T', 'description': 'd', 'date': '2026-10-01T00:00:00.000Z', 'points': 1, 'reportedBy': by, if (byId != null) 'reportedById': byId,
         });
 
-    test('the first load (My entries) sends mine=true for every grade; My classes sends none', () async {
+    test('the first load (My entries) sends mine=true for every grade; My classes (prefetched for its count) sends none, and opening it needs no new request', () async {
       repo.gradeRecords = (g) async => [r('m1', byId: 'u'), r('o1', by: 'Omar')];
       final c = await list();
       await c.load();
-      expect(repo.queries.map((q) => q['mine']), everyElement(isTrue));
+      expect(repo.queries.where((q) => q['mine'] == true), hasLength(1));
+      expect(repo.queries.where((q) => q['mine'] == false), hasLength(1), reason: 'the other tab\'s first page, fetched with the screen');
+      expect(c.countClasses(), 2, reason: 'My classes (2) is known before the tab is opened');
+      expect(c.classesCountLabel(), '2');
+      expect(c.countMine(), 1);
       repo.queries.clear();
       await c.setScope(BehaviourScope.classes);
-      expect(repo.queries.map((q) => q['mine']), everyElement(isFalse));
+      expect(repo.queries, isEmpty);
+      expect(c.visible.map((x) => x.id), unorderedEquals(['m1', 'o1']));
+      expect(c.countMine(), 1, reason: 'My entries (1) stays known while the other tab is shown');
+    });
+
+    test('the My classes label says "N+" while more pages exist', () async {
+      repo.pageSize = 2;
+      repo.gradeRecords = (g) async => [for (var i = 0; i < 5; i++) r('m$i', byId: 'u')];
+      final c = await list();
+      await c.load();
+      expect(c.classesCountLabel(), '2+');
+    });
+
+    test('a failing prefetch of the other tab is ignored: the shown tab is intact and the other loads when opened', () async {
+      var calls = 0;
+      repo.gradeRecords = (g) async {
+        if (++calls == 2) throw ApiException('boom', statusCode: 500);
+        return [r('m1', byId: 'u'), r('o1', by: 'Omar')];
+      };
+      final c = await list();
+      await c.load();
+      expect(c.state.value.status, SectionStatus.data);
+      expect(c.countClasses(), isNull);
+      await c.setScope(BehaviourScope.classes);
       expect(c.visible.map((x) => x.id), unorderedEquals(['m1', 'o1']));
     });
 

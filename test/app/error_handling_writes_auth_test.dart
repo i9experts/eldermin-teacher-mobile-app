@@ -96,12 +96,26 @@ void main() {
       expect(of(NetFail.connectTimeout).message, startsWith('Connection timed out.'));
     });
 
-    test('403 -> "You can\'t ..." with the server text, never retried blindly', () {
+    test('403 -> "You can\'t ..." without the raw stock text, never retried blindly', () {
       final f = of(NetFail.http403);
       expect(f.kind, ActionFailureKind.forbidden);
       expect(f.isForbidden, isTrue);
-      expect(f.message, startsWith("You can't save this."));
+      expect(f.message, "You can't save this.");
+      expect(f.message, isNot(contains('Forbidden')));
+      expect(f.serverMessage, isEmpty);
       expect(f.canRetry, isFalse);
+    });
+
+    test('403 keeps a SPECIFIC server reason, but never Nest\'s stock texts or blanks', () {
+      ActionFailure with403(String m) => ActionFailure.from(ApiException(m, statusCode: 403), what: 'save this');
+      expect(with403('You can only edit Tarbiyah assessments you recorded yourself').message, "You can't save this. You can only edit Tarbiyah assessments you recorded yourself");
+      for (final m in [
+        'Forbidden resource', 'Forbidden', '  ', '', 'Access denied', 'Something went wrong. Please try again.',
+        'Access denied. Your role does not have manage access to teaching:fixtures.', // the real role-guard text (backend 0ed3d8d)
+        'Your role does not have view access to behaviour.',
+      ]) {
+        expect(with403(m).message, "You can't save this.", reason: '"$m"');
+      }
     });
 
     test('500 -> a calm server message with "kept" and retry; 501 / 404 are not retried', () {

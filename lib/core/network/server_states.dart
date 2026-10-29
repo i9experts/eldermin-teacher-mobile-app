@@ -21,13 +21,19 @@ class ServerStates {
 
   static String? codeOf(Object? body) {
     if (body is! Map) return null;
-    final c = body['code'] ?? body['error'];
-    return c?.toString();
+    final c = body['code']?.toString();
+    if (c != null && c.trim().isNotEmpty) return c.trim();
+    // `error` is Nest's HTTP name ("Forbidden") unless the server sets a machine code (UPPER_SNAKE), as school-suspended.ts does
+    final e = body['error']?.toString().trim() ?? '';
+    return RegExp(r'^[A-Z][A-Z0-9_]+$').hasMatch(e) ? e : null;
   }
 
+  /// Code first: a `SCHOOL_SUSPENDED` code decides; another code is some other 403 (never mistaken for a suspension by its wording). The wording
+  /// ("suspended") is only a FALLBACK for servers whose error filter drops the code (backend sentry.filter.ts:43-47, see hardening-backlog.md).
   static bool isSchoolSuspended(int? statusCode, {String? message, String? code}) {
     if (statusCode != 403) return false;
-    if (code == suspendedCode) return true;
+    final c = (code ?? '').trim();
+    if (c.isNotEmpty) return c == suspendedCode;
     return (message ?? '').toLowerCase().contains('suspended');
   }
 

@@ -148,7 +148,7 @@ void main() {
       await t.tap(find.byKey(const Key('attendance_confirm_submit')));
       await t.pump();
       await t.pump();
-      expect(find.text("You can't mark attendance for this class. Forbidden resource"), findsOneWidget);
+      expect(find.text("You can't mark attendance for this class."), findsOneWidget);
       expect(find.byKey(const Key('submit_retry')), findsNothing, reason: 'a 403 will not succeed on resend');
       expect(find.byKey(const Key('stale_class_banner')), findsNothing);
       expect(find.byKey(const Key('submit_button')), findsOneWidget);

@@ -8,7 +8,10 @@ String? forbiddenDetailOf(String? serverMessage) {
   final m = (serverMessage ?? '').trim();
   if (m.isEmpty || m.length > 200) return null;
   const generic = {'forbidden', 'forbidden resource', 'access denied', 'unauthorized', 'something went wrong. please try again.'};
-  return generic.contains(m.toLowerCase()) ? null : m;
+  final l = m.toLowerCase();
+  // the backend's role-guard text ("Access denied. Your role does not have view|manage access to teaching:fixtures.") names internal module keys
+  if (generic.contains(l) || l.startsWith('access denied') || l.contains('your role does not have')) return null;
+  return m;
 }
 
 enum SectionStatus { loading, data, empty, error, unavailable, forbidden }

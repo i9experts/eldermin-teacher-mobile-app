@@ -185,7 +185,7 @@ void main() {
       expect(it.status.value, UploadStatus.failed);
       expect(it.forbidden.value, isTrue);
       expect(it.unavailable.value, isFalse);
-      expect(it.error.value, "You can't upload a.pdf. Forbidden resource");
+      expect(it.error.value, "You can't upload a.pdf.");
       await c.retryUpload(it.id);
       expect(hr.calls.where((x) => x.startsWith('upload:')), hasLength(1));
     });

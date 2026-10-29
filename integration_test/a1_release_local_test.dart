@@ -160,6 +160,7 @@ Future<void> baseScenario(WidgetTester t, {required bool classTeacher}) async {
       await settle(t, 3500);
       await shot(t, 'class_08_behaviour_my_entries');
       // 9 = the 8 seeded entries of teacher B + the OLD one; the grade has 69 records and the first page holds 50 newer ones, so 9 can only come from mine=true
+      check('class: "My classes (N)" count shows BEFORE that tab is opened', find.textContaining('My classes (').evaluate().isNotEmpty, '${[for (final e in find.textContaining('My classes').evaluate()) (e.widget as Text).data]}');
       check('class: "My entries (9)" includes the entry older than the first page (server-side mine=true)', hasText('My entries (9)'));
       await scrollTo(t, find.textContaining('OLD ENTRY BY TEACHER B'));
       await shot(t, 'class_08b_behaviour_old_entry');
@@ -352,6 +353,35 @@ Future<void> deactivatedScenario(WidgetTester t) async {
   });
 }
 
+// ───────────────────────────────────────── a write the server refuses (403) shows a clean message
+Future<void> forbiddenScenario(WidgetTester t) async {
+  await step(t, 'forbidden: base teacher signed in, then given a view-only role in the DB (the app still shows the button)', () async {
+    await signIn(t, _email, _password);
+    await shot(t, 'forbidden_01_home');
+    await dbAction(t, 'assign_view_role');
+    await openMoreEntry(t, 'Substitutions');
+    await settle(t, 2500);
+    final row = idKeyed('fx_');
+    await waitFor(t, row, seconds: 30);
+    await shot(t, 'forbidden_02_substitutions');
+    await t.tap(row.first);
+    await waitFor(t, find.byKey(const Key('fx_complete')), seconds: 20);
+    await settle(t, 800);
+    await shot(t, 'forbidden_03_cover_detail');
+    await t.tap(find.byKey(const Key('fx_complete')));
+    await waitFor(t, find.byKey(const Key('confirm_dialog_confirm')));
+    await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
+    await waitForAny(t, [find.textContaining("You can't"), find.textContaining('Marked as complete')], seconds: 30);
+    await settle(t, 600);
+    await shot(t, 'forbidden_04_clean_message');
+    print('INFO texts: ${allTexts().where((x) => x.contains("can") || x.contains('orbidden')).toList()}');
+    check('forbidden: message starts "You can\'t mark this as complete."', hasText("You can't mark this as complete."));
+    check('forbidden: no raw "Forbidden resource" on screen', !hasText('Forbidden'));
+    check('forbidden: the app did not crash or sign out', present(find.byKey(const Key('fx_complete'))) || !hasText('Sign in'));
+    await dbAction(t, 'unassign_view_role');
+  });
+}
+
 // ───────────────────────────────────────── Tarbiyah create / edit
 Future<void> tarbiyahScenario(WidgetTester t) async {
   await step(t, 'tarbiyah login (class teacher B) and open the student', () async {
@@ -469,6 +499,8 @@ void main() {
         await deactivatedScenario(t);
       case 'tarbiyah':
         await tarbiyahScenario(t);
+      case 'forbidden':
+        await forbiddenScenario(t);
       default:
         throw TestFailure('unknown scenario $_scenario');
     }

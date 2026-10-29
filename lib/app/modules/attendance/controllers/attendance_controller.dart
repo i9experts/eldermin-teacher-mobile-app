@@ -66,7 +66,7 @@ class SubmitFailure {
         return SubmitFailure(SubmitFailureKind.offline, '${e.message} Your marks are kept: reconnect and tap Retry.');
       case 403:
         if (isClassScopeDenied(e.message)) return SubmitFailure(SubmitFailureKind.staleClass, kStaleClassMessage);
-        return SubmitFailure(SubmitFailureKind.forbidden, "You can't mark attendance for this class. ${e.message}");
+        return SubmitFailure(SubmitFailureKind.forbidden, "You can't mark attendance for this class. ${forbiddenDetailOf(e.message) ?? ''}".trim());
       case 409:
         return SubmitFailure(SubmitFailureKind.conflict, 'This day was changed or is locked on the server. ${e.message}');
       case 400:

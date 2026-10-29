@@ -53,6 +53,9 @@ class BehaviourController extends GetxController {
 
   /// What each scope has loaded (records + the next page per raw grade); filled when the user leaves a scope, dropped on every reload.
   final _cache = <BehaviourScope, ({List<BehaviourRecord> records, Map<String, int> next})>{};
+
+  /// Bumped when the other scope's prefetch lands, so the tab labels (read in an Obx) refresh.
+  final _cacheTick = 0.obs;
   final hasMore = false.obs;
   final loadingMore = false.obs;
   final loadMoreError = RxnString();
@@ -106,10 +109,25 @@ class BehaviourController extends GetxController {
     await load(force: true);
   }
 
-  int countMine() => all.where((r) => r.isMine(userId: myId, userName: myName)).length;
+  /// "My classes" count for the tab label: the records loaded so far, with a trailing "+" while more pages exist.
+  String? classesCountLabel() {
+    final n = countClasses();
+    if (n == null) return null;
+    final more = scope.value == BehaviourScope.classes ? _nextPage.isNotEmpty : (_cache[BehaviourScope.classes]?.next.isNotEmpty ?? false);
+    return more ? '$n+' : '$n';
+  }
+
+  int countMine() {
+    _cacheTick.value;
+    if (scope.value == BehaviourScope.mine || _cache[BehaviourScope.mine] == null) return all.where((r) => r.isMine(userId: myId, userName: myName)).length;
+    return _cache[BehaviourScope.mine]!.records.where((r) => r.isMine(userId: myId, userName: myName)).length;
+  }
 
   /// Records loaded for "My classes", or null until that scope has been opened (the server filtered "My entries" only).
-  int? countClasses() => scope.value == BehaviourScope.classes ? all.length : _cache[BehaviourScope.classes]?.records.length;
+  int? countClasses() {
+    _cacheTick.value;
+    return scope.value == BehaviourScope.classes ? all.length : _cache[BehaviourScope.classes]?.records.length;
+  }
 
   @override
   void onReady() {
@@ -174,10 +192,31 @@ class BehaviourController extends GetxController {
       // With a filter on, an empty answer is "nothing matches" (the controls must stay so it can be cleared), not "no behaviour yet".
       final filtered = filters.value.isActive || filters.value.search.isNotEmpty;
       state.value = out.isEmpty && !filtered ? const SectionState.empty() : SectionState.data(out);
+      // both tab labels carry a count, so the other scope's first page is fetched right away (quietly, cached for the tab switch)
+      await _prefetchOtherScope(token, cs, grades, filtered: filtered);
     } catch (e) {
       if (token != _token) return;
       state.value = SectionState<List<BehaviourRecord>>.fromError(e, previous: state.value);
     }
+  }
+
+  /// First page (per raw grade) of the scope that is NOT shown, stored in [_cache]. A failure is ignored: the tab then loads when opened.
+  Future<void> _prefetchOtherScope(int token, List<ClassRef> cs, Set<String> grades, {required bool filtered}) async {
+    final other = scope.value == BehaviourScope.mine ? BehaviourScope.classes : BehaviourScope.mine;
+    if (_cache.containsKey(other)) return;
+    try {
+      final next = <String, int>{};
+      final out = <BehaviourRecord>[];
+      for (final g in grades) {
+        final page = await repo.fetchRecordsPage(grade: g, filters: filters.value, mine: other == BehaviourScope.mine, page: 1, limit: pageLimit);
+        if (page.pages > 1) next[g] = 2;
+        _merge(out, page.records, cs);
+      }
+      if (token != _token || scope.value == other || _cache.containsKey(other)) return;
+      _sort(out);
+      _cache[other] = (records: out, next: next);
+      _cacheTick.value++;
+    } catch (_) {}
   }
 
   /// The next page of every grade that has one. A failure keeps what is shown and offers "Try again" ([loadMoreError]).

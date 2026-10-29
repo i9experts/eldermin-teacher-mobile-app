@@ -62,7 +62,7 @@ void main() {
       final c = await makeList(assignments: [cls5a, {'gradeLevel': 'Grade 5', 'sectionName': 'B', 'subjectName': 'X'}, cls6b]);
       await c.load();
       expect(repo.calls.where((x) => x.startsWith('grade:')).toSet(), {'grade:Grade 5', 'grade:5', 'grade:Grade 6'});
-      expect(repo.calls.where((x) => x.startsWith('grade:')), hasLength(3)); // 5A and 5B share the grade fetch
+      expect(repo.calls.where((x) => x.startsWith('grade:')), hasLength(6)); // 5A and 5B share the grade fetch; x2 = the other tab's count is prefetched
     });
 
     test('records of other classes returned by the server are dropped (5B, 7C), "5"/"a" is kept as 5A', () async {
@@ -142,7 +142,7 @@ void main() {
       repo.gradeRecords = (g) async => [];
       final c = await makeList();
       await c.load();
-      expect(repo.calls.where((x) => x.startsWith('grade:')), ['grade:Grade 5']);
+      expect(repo.calls.where((x) => x.startsWith('grade:')), ['grade:Grade 5', 'grade:Grade 5']); // shown tab + the other tab's count
     });
 
     test('addRecord shows a fresh entry on top without a re-fetch', () async {
@@ -151,7 +151,7 @@ void main() {
       await c.load();
       c.addRecord(rec('new', day: '2026-10-05', by: 'x', byId: 'u'));
       expect(c.all.first.id, 'new');
-      expect(repo.calls.where((x) => x.startsWith('grade:')), hasLength(2)); // Grade 5 + 5 from the single load
+      expect(repo.calls.where((x) => x.startsWith('grade:')), hasLength(4)); // Grade 5 + 5, for the shown tab and the other tab's count; addRecord adds none
     });
   });
 
@@ -356,7 +356,7 @@ void main() {
       expect(f.message, contains('Your changes are kept'));
       expect(c.descriptionC.text, 'Keep me');
       repo.onCreate = (b) async => throw ApiException('Forbidden resource', statusCode: 403);
-      expect((await c.submit() as LogFailed).failure.message, "You can't save this entry. Forbidden resource");
+      expect((await c.submit() as LogFailed).failure.message, "You can't save this entry.");
       repo.onCreate = (b) async => throw ApiException('No internet connection.');
       expect((await c.submit() as LogFailed).failure.message, contains('Reconnect'));
       repo.onCreate = (b) async => BehaviourRecord.fromJson({'_id': 'ok', ...b});

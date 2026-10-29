@@ -126,6 +126,23 @@ void main() {
       expect(suspended, ['Blocked']);
     });
 
+    test('code first: a SCHOOL_SUSPENDED code wins over any wording; another code is never a suspension even if the text says "suspended"', () async {
+      await call(_StatusAdapter(403)..body = {'message': 'Blocked', 'code': 'SCHOOL_SUSPENDED'});
+      expect(suspended, ['Blocked']);
+      suspended.clear();
+      await call(_StatusAdapter(403)..body = {'message': 'Your suspended invoice is overdue', 'code': 'INVOICE_OVERDUE'});
+      await call(_StatusAdapter(403)..body = {'message': 'Account suspended', 'error': 'ACCOUNT_LOCKED'});
+      expect(suspended, isEmpty);
+    });
+
+    test('Nest\'s own `error: "Forbidden"` is not a machine code, so the wording fallback still applies; `error: SCHOOL_SUSPENDED` is one', () async {
+      await call(_StatusAdapter(403)..body = {'message': "School suspended", 'error': 'Forbidden'});
+      expect(suspended, ['School suspended']);
+      suspended.clear();
+      await call(_StatusAdapter(403)..body = {'message': 'x', 'error': 'SCHOOL_SUSPENDED'});
+      expect(suspended, ['x']);
+    });
+
     test('an ordinary 403 (Forbidden resource) and a suspended-looking 403 on login do not trigger it', () async {
       await call(_StatusAdapter(403)..body = {'message': 'Forbidden resource'});
       await call(_StatusAdapter(403)..body = {'message': "This school's account is suspended — please contact your school"}, url: ApiConstants.login, auth: false);

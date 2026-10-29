@@ -1,4 +1,5 @@
 import '../../core/network/api_exception.dart';
+import '../modules/home/models/section_state.dart' show forbiddenDetailOf;
 
 enum ActionFailureKind { offline, forbidden, notFound, validation, conflict, server, uploadUnavailable, other }
 
@@ -29,7 +30,9 @@ class ActionFailure {
       case null:
         return ActionFailure(ActionFailureKind.offline, '$server $keep Reconnect and try again.');
       case 403:
-        return ActionFailure(ActionFailureKind.forbidden, "You can't $what. ${_pretty(server)}", serverMessage: _pretty(server));
+        // Nest's stock "Forbidden resource" / "Forbidden" is never shown; a specific server reason (e.g. "You can only edit ... you recorded yourself") is kept.
+        final detail = forbiddenDetailOf(_pretty(server)) ?? '';
+        return ActionFailure(ActionFailureKind.forbidden, "You can't $what. $detail".trim(), serverMessage: detail);
       case 404:
         return ActionFailure(ActionFailureKind.notFound, 'This was not found on the server: it may have been removed. ${_pretty(server)}');
       case 409:

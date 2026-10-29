@@ -3,7 +3,7 @@
 # takes a simulator screenshot on every `SHOT:<name>` marker and performs the few DB actions the scenario asks for with `DBACTION:<name>:`.
 # DB writes touch ONLY the isolated database eldermin_teacher_verify (fixed list below; nothing else is executable from the test).
 # Credentials are never stored here: export A1_EMAIL / A1_PASSWORD in the calling shell (dummy local accounts); they go to --dart-define.
-# Usage: tool/dev/capture_a1.sh <simulator-udid> <out-dir> <base|class|viewonly|noassess|suspended|deactivated|tarbiyah> <api-base-url>
+# Usage: tool/dev/capture_a1.sh <simulator-udid> <out-dir> <base|class|viewonly|noassess|suspended|deactivated|tarbiyah|forbidden> <api-base-url>
 # ANTI-LOOP: aborts when no new SHOT marker appeared for WATCHDOG_IDLE s (default 180) or after WATCHDOG_MAX s (default 900). It stops ONLY the flutter
 # process it started (by PID, then that process's children): never `pkill -f`.
 set -u
@@ -12,7 +12,7 @@ cd "$(dirname "$0")/../.."
 mkdir -p "$OUT"
 DBN=eldermin_teacher_verify
 FLAGS="$OUT/flags"; mkdir -p "$FLAGS"; rm -f "$FLAGS"/*.flag
-case "$SCEN" in base) START=10;; class) START=20;; viewonly) START=30;; noassess) START=40;; suspended) START=50;; deactivated) START=60;; tarbiyah) START=70;; *) echo "unknown scenario"; exit 2;; esac
+case "$SCEN" in base) START=10;; class) START=20;; viewonly) START=30;; noassess) START=40;; suspended) START=50;; deactivated) START=60;; tarbiyah) START=70;; forbidden) START=80;; *) echo "unknown scenario"; exit 2;; esac
 mdb() { mongosh --quiet "mongodb://127.0.0.1:27017/$DBN" --eval "$1" 2>&1 | tail -3; }
 db_action() {
   case "$1" in
@@ -20,6 +20,8 @@ db_action() {
     restore_school)  mdb 'const r=db.tenants.updateOne({slug:"demo-school"},{$set:{status:"active"}}); print("restore matched="+r.matchedCount+" modified="+r.modifiedCount)';;
     deactivate_staff) mdb 'const u=db.users.findOne({email:"deact.a1@demo-school.local"}); const r=db.staff.updateMany({userId:u._id},{$set:{isActive:false}}); print("deactivate matched="+r.matchedCount+" modified="+r.modifiedCount)';;
     restore_staff)   mdb 'const u=db.users.findOne({email:"deact.a1@demo-school.local"}); const r=db.staff.updateMany({userId:u._id},{$set:{isActive:true}}); print("restore matched="+r.matchedCount+" modified="+r.modifiedCount)';;
+    assign_view_role)   mdb 'const r=db.roles.findOne({name:"A1 role view"}); const u=db.users.updateOne({email:"teacher.a@demo-school.local"},{$set:{customRoleId:r._id}}); print("assign modified="+u.modifiedCount)';;
+    unassign_view_role) mdb 'const u=db.users.updateOne({email:"teacher.a@demo-school.local"},{$set:{customRoleId:null}}); print("unassign modified="+u.modifiedCount)';;
     *) echo "unknown db action";;
   esac
 }

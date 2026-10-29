@@ -135,7 +135,7 @@ void main() {
       expect(c.all.map((r) => r.id), ['r1', 'r2', 'r3', 'r4', 'r5']);
       expect(c.hasMore.value, isFalse);
       await c.loadMore(); // nothing left: no request
-      expect(repo.queries.map((q) => q['page']), [1, 2, 3]);
+      expect(repo.queries.where((q) => q['mine'] == true).map((q) => q['page']), [1, 2, 3]); // the shown tab (the other tab's first page is prefetched, mine=false)
     });
 
     test('everything on one page: no "load more"', () async {

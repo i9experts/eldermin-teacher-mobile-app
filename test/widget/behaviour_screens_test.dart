@@ -152,9 +152,10 @@ void main() {
       expect(find.text('Colleague entry'), findsNothing); // not mine
       expect(find.text('Other class entry'), findsNothing);
       expect(find.text('My entries (1)'), findsOneWidget);
-      expect(find.text('My classes'), findsOneWidget, reason: 'its count is unknown until that scope is opened (My entries is filtered by the server)');
-      await t.tap(find.text('My classes'));
-      await t.runAsync(() => pumpEventQueue());
+      await t.runAsync(() => pumpEventQueue()); // the other tab's count is fetched with the screen
+      await settle(t);
+      expect(find.text('My classes (2)'), findsOneWidget, reason: 'the count shows before the tab is opened');
+      await t.tap(find.text('My classes (2)'));
       await settle(t);
       expect(find.text('My classes (2)'), findsOneWidget);
       expect(find.text('Colleague entry'), findsOneWidget);

@@ -319,7 +319,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       fill(c);
       repo.onCreate = (i, t, a) async => throw ApiException('Forbidden resource', statusCode: 403);
-      expect(((await c.submit(assign: false)) as FormFailed).failure.message, "You can't create this homework. Forbidden resource");
+      expect(((await c.submit(assign: false)) as FormFailed).failure.message, "You can't create this homework.");
       repo.onCreate = (i, t, a) async => throw ApiException('No internet connection.');
       final off = (await c.submit(assign: false)) as FormFailed;
       expect(off.failure.message, contains('Reconnect'));
@@ -657,7 +657,7 @@ void main() {
     test('403 / offline / 5xx failures are distinguishable and keep the marks', () async {
       final c = await make();
       repo.onGrade = (a, s, g, f) async => throw ApiException('Forbidden resource', statusCode: 403);
-      expect(((await c.grade('s1', '5', '')) as GradeFailed).failure.message, "You can't save these marks. Forbidden resource");
+      expect(((await c.grade('s1', '5', '')) as GradeFailed).failure.message, "You can't save these marks.");
       repo.onGrade = (a, s, g, f) async => throw ApiException('No internet connection.');
       expect(((await c.grade('s1', '5', '')) as GradeFailed).failure.message, contains('Your marks are kept'));
       repo.onGrade = (a, s, g, f) async => throw ApiException('Internal server error', statusCode: 500);

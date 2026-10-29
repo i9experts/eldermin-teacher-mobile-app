@@ -335,7 +335,7 @@ void main() {
       await settle(t);
       await t.tap(find.byKey(const Key('confirm_dialog_confirm')));
       await settle(t);
-      expect(find.text("You can't delete this homework. Forbidden resource"), findsOneWidget);
+      expect(find.text("You can't delete this homework."), findsOneWidget);
       expect(find.text('Mine'), findsOneWidget);
     });
 
@@ -485,7 +485,7 @@ void main() {
       unawaited(c.pickDocuments());
       await settle(t);
       final id = c.attachments.single.id;
-      expect(find.text("You can't upload sheet.pdf. Forbidden resource"), findsOneWidget);
+      expect(find.text("You can't upload sheet.pdf."), findsOneWidget);
       expect(find.byKey(ValueKey('att_err_$id')), findsOneWidget);
       expect(find.byKey(ValueKey('retry_$id')), findsNothing);
       expect(find.text('Upload unavailable'), findsNothing);
