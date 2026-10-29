@@ -1,8 +1,8 @@
 # Changelog
 
-Eldermin Teacher (`version: 1.0.0+1`, first store release). One branch per phase; reports in `../eldermin-teacher-app-docs/phase*/`.
+Eldermin Teacher (`version: 1.0.0+2`). One branch per phase; reports in `../eldermin-teacher-app-docs/phase*/`.
 
-## 1.0.0+1 (first store release; branch `release/teacher-v1` = design/auth-motion + feat/behaviour-tarbiyah)
+## 1.0.0+2 (1.0.0+1 was already uploaded to Google Play; adds the full logo in pull-to-refresh) / 1.0.0+1 (first store release; branch `release/teacher-v1` = design/auth-motion + feat/behaviour-tarbiyah)
 - Android release signing never falls back to the debug key: the build fails with a clear message without `android/key.properties`. Unused Firebase (plugin, `firebase_core`, `firebase.json`, iOS plist references) removed; there is no push in v1.
 - Student 360 "Recent results" reads the marks collection (`GET /assessments/marks/list?studentId=`) instead of the legacy results the 360 returns.
 - Create / edit / approve controls are hidden from view-only custom roles (homework, lesson plans, PTM, syllabus ticks, marks, remarks, quiz grading, student-leave decisions, attendance marking, quick actions) and their screens are refused by the route guard. My leave and My attendance are always visible.
