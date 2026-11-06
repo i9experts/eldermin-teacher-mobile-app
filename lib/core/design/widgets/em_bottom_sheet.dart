@@ -22,7 +22,9 @@ class EmBottomSheet extends StatelessWidget {
       useSafeArea: true,
       backgroundColor: EmColors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(EmRadius.hero))),
-      builder: (_) => EmKeyboardAccessory.overlay(child: EmBottomSheet(title: title, footer: footer, child: child)),
+      // useSafeArea only insets the TOP; the bottom inset (Android gesture / 3-button bar) is added here so content and footer never sit
+      // behind the system bar. SafeArea reads MediaQuery.padding, which already excludes the part the keyboard covers - no double gap.
+      builder: (_) => EmKeyboardAccessory.overlay(child: SafeArea(top: false, child: EmBottomSheet(title: title, footer: footer, child: child))),
     );
   }
 
@@ -42,11 +44,12 @@ class EmBottomSheet extends StatelessWidget {
           padding: const EdgeInsets.only(top: 12, bottom: 4),
           child: ExcludeSemantics(child: Container(width: 40, height: 4, decoration: const BoxDecoration(color: EmColors.border, borderRadius: EmRadius.pillAll))),
         );
-        if (heightFactor == null) return EmKeyboardAccessory.overlay(child: Column(mainAxisSize: MainAxisSize.min, children: [handle, Flexible(child: body)]));
+        // Bottom system-bar inset for every panel body (see [show]); a body that already has its own SafeArea finds the padding consumed.
+        if (heightFactor == null) return EmKeyboardAccessory.overlay(child: SafeArea(top: false, child: Column(mainAxisSize: MainAxisSize.min, children: [handle, Flexible(child: body)])));
         return EmKeyboardAccessory.overlay(
           child: SizedBox(
             height: MediaQuery.sizeOf(ctx).height * heightFactor,
-            child: Column(children: [handle, Expanded(child: body)]),
+            child: SafeArea(top: false, child: Column(children: [handle, Expanded(child: body)])),
           ),
         );
       },
